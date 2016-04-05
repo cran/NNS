@@ -1,0 +1,52 @@
+#' VN Seasonality Test
+#'
+#' Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
+#'
+#' @param variable Variable
+#' @examples
+#' set.seed(123)
+#' x<-rnorm(100)
+#' \dontrun{VN.seas(x)}
+
+
+
+VN.seas <- function(variable){
+
+  output <- vector("numeric", length(variable)/4)
+  instances <- vector("numeric", length(variable)/4)
+
+  for (i in 1:(length(variable)/4)){
+
+    if (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])) <
+          abs(sd(variable)/mean(variable))){
+
+                            instances[i] <- i
+
+                            output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
+
+                          }}
+ if(sum(instances[instances>0])==0) {return(1)}
+ # print(c(instances, output))
+    if(length(instances[instances]>0)>0){
+    plot(instances[instances>0],output[output>0],
+         xlab="Period", ylab="Coefficient of Variance", main = "Seasonality Test",
+         ylim = c(0,2*abs(sd(variable)/mean(variable))),
+         col=ifelse(output[output>0]==min(output[output>0]), "red", "black"), pch =ifelse(output[output>0]==min(output[output>0]), 19, 1))
+
+         abline(h=abs(sd(variable)/mean(variable)), col="red",lty=5)
+          text(mean(instances[instances>0]),abs(sd(variable)/mean(variable)),adj=c(0,-.25),"Variable Coefficient of Variance",col='red')
+
+        n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
+
+      M<- matrix(c(instances[instances>0], output[output>0],n),
+                     nrow=length(instances[instances>0]),  byrow= FALSE)
+
+
+    colnames(M) <- c("Period","Coefficient of Variance","Variable Coefficient of Variance")
+    print(M)
+    }
+
+    if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}
+
+
+  }
