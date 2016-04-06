@@ -7,7 +7,7 @@
 #' x<-rnorm(100); y<-rnorm(100)
 #' A<-cbind(x,y)
 #' \dontrun{VN.ANOVA(A)}
-
+#' @export
 
 
 VN.ANOVA<- function(A){

@@ -14,7 +14,7 @@
 #' set.seed(123)
 #' x<-rnorm(100)
 #' \dontrun{VN.ARMA(x)}
-
+#' @export
 
 
 

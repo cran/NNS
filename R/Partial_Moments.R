@@ -13,7 +13,7 @@
 #' set.seed(123)
 #' x<-rnorm(100)
 #' \dontrun{LPM(0,0,x)}
-
+#' @export
 
 LPM<- function(degree,target,variable)
  {sum((target - (variable[variable < target]))^degree)/length(variable)}
@@ -32,6 +32,7 @@ LPM<- function(degree,target,variable)
 #' set.seed(123)
 #' x<-rnorm(100)
 #' \dontrun{UPM(0,0,x)}
+#' @export
 
 
 UPM<- function(degree,target,variable){
@@ -53,6 +54,7 @@ UPM<- function(degree,target,variable){
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{Co_UPM(0,mean(x),mean(y),x,y)}
+#' @export
 
 
 Co_UPM<- function(degree,target1,target2,variable1,variable2){
@@ -83,7 +85,7 @@ Co_UPM<- function(degree,target1,target2,variable1,variable2){
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{Co_LPM(0,mean(x),mean(y),x,y)}
-
+#' @export
 
 Co_LPM<- function(degree,target1,target2,variable1,variable2){
 
@@ -114,6 +116,7 @@ Co_LPM<- function(degree,target1,target2,variable1,variable2){
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{D_LPM(0,mean(x),mean(y),x,y)}
+#' @export
 
 D_LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 
@@ -146,6 +149,7 @@ D_LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{D_UPM(0,mean(x),mean(y),x,y)}
+#' @export
 
 D_UPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 

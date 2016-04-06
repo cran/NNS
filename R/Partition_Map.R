@@ -9,7 +9,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{parition.map(x,y)}
-
+#' @export
 
 partition.map = function(x, y,order= ceiling(log10(length(x))), degree=1){
 

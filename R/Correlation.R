@@ -11,7 +11,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{VN.cor(x,y)}
-
+#' @export
 
 VN.cor = function( x, y,order=ceiling(log10(length(x))),
                    degree= ifelse(length(x)<100,0,1)){

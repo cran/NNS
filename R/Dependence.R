@@ -11,6 +11,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{VN.dep(x,y)}
+#' @export
 
 VN.dep = function( x, y,order=ceiling(log10(length(x))),
                    degree= ifelse(length(x)<100,0,1)){

@@ -13,7 +13,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{VN.reg(x,y)}
-
+#' @export
 
 
 VN.reg = function (x, y,

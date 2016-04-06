@@ -11,7 +11,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' \dontrun{VN.ARMA.reg(x,y)}
-
+#' @export
 
 VN.ARMA.reg = function (x, y,
                           order=max(2,ceiling(log10(length(x)))),

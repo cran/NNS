@@ -7,7 +7,7 @@
 #' x<-rnorm(100); y<-rnorm(100)
 #' A<-cbind(x,y)
 #' \dontrun{VN.norm(A)}
-
+#' @export
 
 VN.norm <- function(A) {
   m  <- colMeans(A)

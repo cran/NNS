@@ -1,6 +1,16 @@
+#' LPM VaR
+#'
+#' Generates a VaR based on the Lower Partial Moment ratio
+#' @param percentile The percentile for VaR
+#' @param degree Degree = 0 for discrete distributions, degree = 1 for continuous distributions
+#' @param x Variable
+#' @examples
+#' set.seed(123)
+#' x<-rnorm(100)
+#' \dontrun{LPM.VaR(0.95,0,x)}
+#' @export
 
-
-VaR <- function(percentile,degree,x){
+LPM.VaR <- function(percentile,degree,x){
 
   x.sort <- sort(x, decreasing=FALSE)
 
@@ -16,7 +26,17 @@ VaR <- function(percentile,degree,x){
 
   }}
 
-
+#' UPM VaR
+#'
+#' Generates an upside VaR based on the Upper Partial Moment ratio
+#' @param percentile The percentile for VaR
+#' @param degree Degree = 0 for discrete distributions, degree = 1 for continuous distributions
+#' @param x Variable
+#' @examples
+#' set.seed(123)
+#' x<-rnorm(100)
+#' \dontrun{UPM.VaR(0.95,0,x)}
+#' @export
 
 UPM.VaR <- function(percentile,degree,x){
 
@@ -42,10 +62,10 @@ UPM.VaR <- function(percentile,degree,x){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.ANOVA.binary(x,y,0.95)}
+#' \dontrun{VN.ANOVA.bin(x,y,0.95)}
+#' @export
 
-
-VN.ANOVA.binary<- function(control,treatment,confidence.interval){
+VN.ANOVA.bin<- function(control,treatment,confidence.interval){
 
         mean.of.means <- mean(c(mean(control),mean(treatment)))
 
@@ -81,9 +101,9 @@ VN.ANOVA.binary<- function(control,treatment,confidence.interval){
               pos=4,0.75,"mu+",col="green")
 
         #Lower end of CDF confidence interval for control mean
-        abline(v=min(VaR(confidence.interval,1,control),VaR(.5,1,control)),
+        abline(v=min(LPM.VaR(confidence.interval,1,control),LPM.VaR(.5,1,control)),
               col="blue",lwd=4, lty=3)
-            text(min(VaR(confidence.interval,1,control),VaR(.5,1,control)),
+            text(min(LPM.VaR(confidence.interval,1,control),LPM.VaR(.5,1,control)),
               pos=2,0.75,"mu-",col="blue")
 
   #Effect Size Lower Bound
@@ -91,7 +111,7 @@ VN.ANOVA.binary<- function(control,treatment,confidence.interval){
 
 
   #Effect Size Upper Bound
-        Upper.Bound.Effect=max(mean(treatment)-min(VaR(confidence.interval,1,control),VaR(.5,1,control)),0)
+        Upper.Bound.Effect=max(mean(treatment)-min(LPM.VaR(confidence.interval,1,control),LPM.VaR(.5,1,control)),0)
 
   #Certainty Statistic and Effect Size Given Confidence Interval
         return(c(Certainty.of.Same.Population=VN.ANOVA.rho,Lower.Bound.Effect=Lower.Bound.Effect,Upper.Bound.Effect=Upper.Bound.Effect))

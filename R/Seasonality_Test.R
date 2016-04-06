@@ -7,7 +7,7 @@
 #' set.seed(123)
 #' x<-rnorm(100)
 #' \dontrun{VN.seas(x)}
-
+#' @export
 
 
 VN.seas <- function(variable){

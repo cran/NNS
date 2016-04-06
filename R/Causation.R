@@ -1,4 +1,19 @@
-Uni.Causation <- function(x,y,tau){
+#' Uni-Directional Causation
+#'
+#' Returns the uni-directional causality from observational data between two variables.  Causation nets out the univariate effect.
+#'
+#' @param x Variable
+#' @param y Variable
+#' @param tau Number of lagged observations to consider
+#' @keywords causation
+#' @examples
+#' set.seed(123)
+#' x<-rnorm(100); y<-rnorm(100)
+#' \dontrun{Uni.caus(x,y,3)}
+#' @export
+
+
+Uni.caus <- function(x,y,tau){
 
   min.length = min(length(x),length(y))
 
@@ -106,17 +121,18 @@ Uni.Causation <- function(x,y,tau){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.Causation(x,y,3)}
+#' \dontrun{VN.caus(x,y,3)}
+#' @export
 
-VN.Causation <- function(x,y,tau){
-  if(abs(Uni.Causation(x,y,tau))<abs(Uni.Causation(y,x,tau))){
-    return(c(Causation.x.given.y = Uni.Causation(x,y,tau),
-         Causation.y.given.x = Uni.Causation(y,x,tau),
- "C(y--->x)" = Uni.Causation(y,x,tau)-Uni.Causation(x,y,tau)))}
+VN.caus <- function(x,y,tau){
+  if(abs(Uni.caus(x,y,tau))<abs(Uni.caus(y,x,tau))){
+    return(c(Causation.x.given.y = Uni.caus(x,y,tau),
+         Causation.y.given.x = Uni.caus(y,x,tau),
+ "C(y--->x)" = Uni.caus(y,x,tau)-Uni.caus(x,y,tau)))}
   else{
-    return(c(Causation.x.given.y = Uni.Causation(x,y,tau),
-             Causation.y.given.x = Uni.Causation(y,x,tau),
-             "C(x--->y)" = Uni.Causation(x,y,tau)-Uni.Causation(y,x,tau)))
+    return(c(Causation.x.given.y = Uni.caus(x,y,tau),
+             Causation.y.given.x = Uni.caus(y,x,tau),
+             "C(x--->y)" = Uni.caus(x,y,tau)-Uni.caus(y,x,tau)))
   }
 
 
