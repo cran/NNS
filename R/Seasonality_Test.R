@@ -3,6 +3,9 @@
 #' Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
 #'
 #' @param variable Variable
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
@@ -24,9 +27,13 @@ VN.seas <- function(variable){
 
                             output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
 
-                          }}
+    }
+    else{instances[i] <- 0
+    output[i]<- 0
+    }
+    }
  if(sum(instances[instances>0])==0) {return(1)}
- # print(c(instances, output))
+
     if(length(instances[instances]>0)>0){
     plot(instances[instances>0],output[output>0],
          xlab="Period", ylab="Coefficient of Variance", main = "Seasonality Test",

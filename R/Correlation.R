@@ -7,6 +7,9 @@
 #' @param degree Defaults to 0 for smaller number of observations
 #' @param order Number of partial moment quadrants to be generated
 #' @keywords correlation
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -26,10 +29,10 @@ VN.cor = function( x, y,order=ceiling(log10(length(x))),
   for(item in unique(partitioned_df$master_part)){
     sub_x = partitioned_df[partitioned_df$master_part == item, 'x']
     sub_y = partitioned_df[partitioned_df$master_part == item, 'y']
-    clpm = c(clpm, Co_LPM(degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
-    cupm = c(cupm, Co_UPM(degree,mean(sub_x),mean(sub_y), sub_x, sub_y))
-    dlpm = c(dlpm, D_LPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
-    dupm = c(dupm, D_UPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
+    clpm = c(clpm, Co.LPM(degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
+    cupm = c(cupm, Co.UPM(degree, mean(sub_x),mean(sub_y), sub_x, sub_y))
+    dlpm = c(dlpm, D.LPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
+    dupm = c(dupm, D.UPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
 
 
   }

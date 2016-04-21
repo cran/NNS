@@ -6,6 +6,7 @@
 #' @param y Variable
 #' @param tau Number of lagged observations to consider
 #' @keywords causation
+#' @author Fred Viole, OVVO Financial Systems
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -118,6 +119,9 @@ Uni.caus <- function(x,y,tau){
 #' @param y Variable
 #' @param tau Number of lagged observations to consider
 #' @keywords causation
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)

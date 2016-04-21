@@ -4,8 +4,7 @@
 \alias{VN.dep}
 \title{VN Dependence}
 \usage{
-VN.dep(x, y, order = ceiling(log10(length(x))), degree = ifelse(length(x) <
-  100, 0, 1))
+VN.dep(x, y, order = 2, degree = 0)
 }
 \arguments{
 \item{x}{Variable 1}
@@ -23,6 +22,13 @@ Returns the dependence between two variables based on higher order partial momen
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 \dontrun{VN.dep(x,y)}
+}
+\author{
+Fred Viole, OVVO Financial Systems
+}
+\references{
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+\url{http://amzn.com/1490523995}
 }
 \keyword{dependence}
 

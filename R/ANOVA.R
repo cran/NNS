@@ -2,6 +2,9 @@
 #'
 #' Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple variables.  Returns a degree of certainty the samples belong to the same population, not a p-value.
 #' @param A Matrix of variables.
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)

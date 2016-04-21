@@ -21,5 +21,12 @@ set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 \dontrun{VN.caus(x,y,3)}
 }
+\author{
+Fred Viole, OVVO Financial Systems
+}
+\references{
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+\url{http://amzn.com/1490523995}
+}
 \keyword{causation}
 

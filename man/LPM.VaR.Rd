@@ -21,4 +21,11 @@ set.seed(123)
 x<-rnorm(100)
 \dontrun{LPM.VaR(0.95,0,x)}
 }
+\author{
+Fred Viole, OVVO Financial Systems
+}
+\references{
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+\url{http://amzn.com/1490523995}
+}
 

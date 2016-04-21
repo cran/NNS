@@ -1,6 +1,6 @@
-#' VN Dependence
+#' VN Dependence for regression
 #'
-#' Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.
+#' Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.  Routine for regression order, eliminates plotting.
 #'
 #' @param x Variable 1
 #' @param y Variable 2
@@ -13,15 +13,15 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.dep(x,y)}
+#' \dontrun{VN.dep.reg(x,y)}
 #' @export
 
-VN.dep = function( x, y,
+VN.dep.reg = function( x, y,
                    order=2,
                    degree=0){
 
 
-  if(order==1){return("Please Increase the Order Specification")}
+ # if(order==1){return("Please Increase the Order Specification")}
 
   partitioned_df = partition.map(x, y,order,degree)
 
@@ -46,21 +46,21 @@ VN.dep = function( x, y,
 
   for(i in 1:order){
 
-  rhos[i] =  abs((clpm[i]+cupm[i]-dlpm[i]-dupm[i]) / (clpm[i]+cupm[i]+dlpm[i]+dupm[i]))
+    rhos[i] =  abs((clpm[i]+cupm[i]-dlpm[i]-dupm[i]) / (clpm[i]+cupm[i]+dlpm[i]+dupm[i]))
   }
 
-  plot(x,y)
+
 
   m<- rbind(VN.cor(x, y,order,degree),sum(na.omit(rhos))/length(na.omit(rhos)))
 
   rownames(m) = c("Correlation","Dependence")
   m[is.nan(m)] <- 0
 
-  #m
-  return(m)
+  m
+  #return(m)
 
   ### Regression Dependence
 
-  return(sum(na.omit(rhos))/length(na.omit(rhos)))
+  #return(sum(na.omit(rhos))/length(na.omit(rhos)))
 
 }

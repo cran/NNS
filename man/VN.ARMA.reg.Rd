@@ -4,8 +4,7 @@
 \alias{VN.ARMA.reg}
 \title{VN.ARMA.reg}
 \usage{
-VN.ARMA.reg(x, y, order = max(2, ceiling(log10(length(x)))),
-  point.est = NULL)
+VN.ARMA.reg(x, y, order = NULL, point.est = NULL)
 }
 \arguments{
 \item{x}{Independent Variable}
@@ -23,5 +22,12 @@ VN.reg function with reduced output specifically for VN.ARMA routine
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 \dontrun{VN.ARMA.reg(x,y)}
+}
+\author{
+Fred Viole, OVVO Financial Systems
+}
+\references{
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+\url{http://amzn.com/1490523995}
 }
 

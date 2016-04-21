@@ -7,6 +7,9 @@
 #' @param y Dependent Variable
 #' @param order Number of partial moment quadrants to be generated
 #' @param point.est Value to be fitted
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -14,8 +17,9 @@
 #' @export
 
 VN.ARMA.reg = function (x, y,
-                          order=max(2,ceiling(log10(length(x)))),
-                          point.est = NULL){
+                        order=NULL,
+                        point.est = NULL){
+
 
   temp_df = data.frame(x=x, y=y)
   temp_df[,'temp_part'] = 'p'
@@ -25,7 +29,6 @@ VN.ARMA.reg = function (x, y,
   Regression.Coefficients = data.frame(matrix(ncol=3))
 
   names(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
-
 
 
   if(order==1){return("Please Increase the Order Specification")}
@@ -58,12 +61,22 @@ VN.ARMA.reg = function (x, y,
 
 
   }
+  min.range = min(na.omit(regression.points[,1]))
+  max.range = max(na.omit(regression.points[,1]))
 
 
+  Dynamic.average.min = mean(y[x<min.range])
+  Dynamic.average.max = mean(y[x>max.range])
 
   ###Endpoints
-  x0 = temp_df[order(temp_df$x),][1,2]
-  x.max = temp_df[order(temp_df$x),][length(x),2]
+  if(length(x[x<min.range])>0){
+    if(VN.dep.reg(x,y)[1]<.9){
+      x0 = Dynamic.average.min} else {
+        x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
+
+  if(length(x[x>max.range])>0){
+    if(VN.dep.reg(x,y)[1]<.9){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+
 
   regression.points[1,2] = x0
   regression.points[1,1] = min(x)
@@ -86,7 +99,7 @@ VN.ARMA.reg = function (x, y,
     run = regression.points[i+1,1] - regression.points[i,1]
 
     Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
-    Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-15)
+    Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
   }
 
   Regression.Coefficients= na.omit(Regression.Coefficients)
@@ -104,16 +117,18 @@ VN.ARMA.reg = function (x, y,
 
     z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
 
+
+
     if(is.null(point.est)){point.est.y = NULL} else{
 
-      if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]}
+      if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i+ceiling(abs(p-q)/2),2]}
 
       else{if(!is.null(point.est) && point.est<Regression.Coefficients[1,2]){
-        point.est.y = ((point.est - Regression.Coefficients[2,2])*(Regression.Coefficients[1,1]))+(regression.points[2,2])
+        point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
       }
 
-        else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-1),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p-1),2])
-        }
+        else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p+ceiling(abs(p-q)/2)),2])
+    }
         }
       }
     }

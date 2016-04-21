@@ -4,9 +4,9 @@
 \alias{VN.reg}
 \title{VN Regression}
 \usage{
-VN.reg(x, y, order = max(2, ceiling(VN.dep(x, y) *
+VN.reg(x, y, order = max(2, ceiling(VN.dep.reg(x, y)[1] *
   ceiling(log10(length(x))))), point.est = NULL, location = "top",
-  print.values = FALSE)
+  print.values = FALSE, print.equation = FALSE)
 }
 \arguments{
 \item{x}{Independent Variable}
@@ -20,6 +20,8 @@ VN.reg(x, y, order = max(2, ceiling(VN.dep(x, y) *
 \item{location}{Sets the legend location within the plot}
 
 \item{print.values}{Defaults to FALSE, set to TRUE in order to return all fitted values for independent variable}
+
+\item{print.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients}
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -28,6 +30,13 @@ Generates a nonlinear regression based on partial moment quadrant means.
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 \dontrun{VN.reg(x,y)}
+}
+\author{
+Fred Viole, OVVO Financial Systems
+}
+\references{
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+\url{http://amzn.com/1490523995}
 }
 \keyword{nonlinear}
 \keyword{regression}

@@ -5,6 +5,9 @@
 #' @param y Variable 2
 #' @param degree Defaults to 0 for smaller number of observations
 #' @param order Number of partial moment quadrants to be generated.
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)

@@ -8,7 +8,11 @@
 #' @param point.est Returns the fitted value for any value of the independent variable
 #' @param location Sets the legend location within the plot
 #' @param print.values Defaults to FALSE, set to TRUE in order to return all fitted values for independent variable
+#' @param print.equation Defaults to FALSE, set to TRUE in order to return the local coefficients
 #' @keywords nonlinear regression
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -17,11 +21,11 @@
 
 
 VN.reg = function (x, y,
-            order=max(2,ceiling(VN.dep(x,y)*ceiling(log10(length(x))))),
+            order=max(2,ceiling(VN.dep.reg(x,y)[1]*ceiling(log10(length(x))))),
             point.est = NULL,
             location = 'top',
-            print.values = FALSE){
-
+            print.values = FALSE,
+            print.equation = FALSE){
 
   temp_df = data.frame(x=x, y=y)
   temp_df[,'temp_part'] = 'p'
@@ -65,10 +69,22 @@ VN.reg = function (x, y,
 
   }
 
+  min.range = min(na.omit(regression.points[,1]))
+  max.range = max(na.omit(regression.points[,1]))
+
+
+  Dynamic.average.min = mean(y[x<min.range])
+  Dynamic.average.max = mean(y[x>max.range])
 
   ###Endpoints
-  x0 = temp_df[order(temp_df$x),][1,2]
-  x.max = temp_df[order(temp_df$x),][length(x),2]
+  if(length(x[x<min.range])>0){
+    if(VN.dep.reg(x,y)[1]<.9){
+      x0 = Dynamic.average.min} else {
+        x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
+
+  if(length(x[x>max.range])>0){
+    if(VN.dep.reg(x,y)[1]<.9){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+
 
   regression.points[1,2] = x0
   regression.points[1,1] = min(x)
@@ -85,13 +101,15 @@ VN.reg = function (x, y,
 
   q=length(regression.points[,1])
 
+
+
   for(i in 1:q){
 
       rise = regression.points[i+1,2] - regression.points[i,2]
       run = regression.points[i+1,1] - regression.points[i,1]
 
       Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
-      Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-15)
+      Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
   }
 
   Regression.Coefficients= na.omit(Regression.Coefficients)
@@ -109,15 +127,17 @@ VN.reg = function (x, y,
 
       z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
 
+      #print(c(z,x[z],z.diff))
+
       if(is.null(point.est)){point.est.y = NULL} else{
 
-          if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]}
+          if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i+ceiling(abs(p-q)/2),2]}
 
             else{if(!is.null(point.est) && point.est<Regression.Coefficients[1,2]){
-     point.est.y = ((point.est - Regression.Coefficients[2,2])*(Regression.Coefficients[1,1]))+(regression.points[2,2])
+     point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
       }
 
-                else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-1),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p-1),2])
+                else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p+ceiling(abs(p-q)/2)),2])
       }
      }
     }
@@ -132,8 +152,14 @@ VN.reg = function (x, y,
 
  }
 
+  if(print.equation==TRUE){
+    print(regression.points)
+    print(Regression.Coefficients)
+  }
 
   Values = (cbind(x,Fitted=fitted[,2],Actual=y,Difference=fitted[,2]-(y)))
+
+  MSE = mean((fitted[,2]-y)^2)
 
   R=cor(fitted[,2],y)
   R2=R^2
@@ -165,18 +191,38 @@ VN.reg = function (x, y,
   }
 
   if(!is.null(point.est)){
-  if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
+  if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p+ceiling(abs(p-q)/2),1],regression.points[p+ceiling(abs(p-q)/2),2],col="green",lty=2)
   if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
   }
 
 
 ### Print Values
 
-  if(print.values ==FALSE) {print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))}
+  if(print.values ==FALSE){
+    if(is.null(point.est)){
+    return(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
+    }}
 
-  if(is.null(point.est)) {if(print.values ==TRUE)   print(Values)
-    print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))}
-  if(!is.null(point.est)) {if(print.values ==TRUE) print(Values)
-    print(c(Point=point.est, Fitted.value=point.est.y))}
+  if(print.values ==FALSE){
+    if(!is.null(point.est)) {
+    print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
+    return(c(Point=point.est, Fitted.value=point.est.y))
+    }}
+
+  if(print.values ==TRUE){
+    if(is.null(point.est)){
+    print(Values)
+    return(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
+    }}
+
+
+  if(print.values ==TRUE){
+    if(!is.null(point.est)) {
+      print(Values)
+      print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
+      return(c(Point=point.est, Fitted.value=point.est.y))
+    }}
+
+
 
 }

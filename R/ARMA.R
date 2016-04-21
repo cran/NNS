@@ -10,6 +10,9 @@
 #' @param Linear To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.
 #' @param Dynamic To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.
 #' @keywords Autoressive model
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
@@ -21,12 +24,18 @@
 # Autoregressive Model
 VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE){
 
-  original.variable = variable
+  original.original.variable = variable
 
   if(!is.null(Training_set)){
-  variable = variable[1:Training_set]} else {
+  variable = variable[1:Training_set]
+  original.variable = variable[1:Training_set]
+  }
+
+  else {
     Training_set = length(variable)
-    variable = variable}
+    variable = variable
+    original.variable = variable
+    }
 
 # Seasonality test
   output <- vector("numeric", length(variable)/4)
@@ -37,7 +46,7 @@ VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Ne
 if(Dynamic == TRUE){
    for (j in 0:(h-1)){
 
-    for (i in 1:(length(variable)/4)){
+    for (i in 1:floor((length(variable)/4))){
 
     if (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])) <
         abs(sd(variable)/mean(variable))){
@@ -46,19 +55,27 @@ if(Dynamic == TRUE){
 
       output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
 
-    }}
+    } else{instances[i] <- 0
+    output[i]<- 0
+    } }
 
   n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
+
   if(sum(instances[instances>0])==0) {lag = 1
   Weights = 1}
+
   if(sum(instances[instances>0])>0){
   M<- matrix(c(instances[instances>0], output[output>0],n),
              nrow=length(instances[instances>0]),  byrow= FALSE)
 
 
-  Observation.weighting = (1/M[,1])/sum(1/M[,1])
+  Observation.sum = sum(1/M[,1])
+  Observation.weighting = (1/M[,1])
 
-  Weights = (((1/M[,2])/sum((1/M[,2])))+Observation.weighting)/(sum((((1/M[,2])/sum((1/M[,2])))+Observation.weighting)))
+  Lag.sum = sum(1/M[,2])
+  Lag.weighting = (1/M[,2])
+
+  Weights = (Lag.weighting+Observation.weighting) / (Lag.sum+Observation.sum)
 
   if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}
 
@@ -92,9 +109,10 @@ if(Dynamic == TRUE){
 # Regression on Component Series
   Regression.Estimates = numeric()
   Coefficients = numeric()
+  reg.order = ceiling(log(a,4))+1
     if(Linear==FALSE){
    for (i in 1:length(lag)){
-    Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1))
+    Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
       }
     }
 
@@ -122,20 +140,23 @@ if(Dynamic == TRUE){
   else {
 
 
-  for (i in 1:(length(variable)/4)){
+  for (i in 1:(length(original.variable)/4)){
 
-    if (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])) <
-        abs(sd(variable)/mean(variable))){
+    if (abs(sd(original.variable[seq(length(original.variable),1,-i)])/mean(original.variable[seq(length(original.variable),1,-i)])) <
+        abs(sd(original.variable)/mean(original.variable))){
 
       instances[i] <- i
 
-      output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
+      output[i]<- (abs(sd(original.variable[seq(length(original.variable),1,-i)])/mean(original.variable[seq(length(original.variable),1,-i)])))
 
-    }}
+    }
+    else{instances[i] <- 0
+    output[i]<- 0
+    } }
 
 
 
-  n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
+  n<- rep(abs(sd(original.variable)/mean(original.variable)),length(instances[instances>0]))
   if(sum(instances[instances>0])==0) {lag = 1
   Weights = 1}
 
@@ -143,10 +164,13 @@ if(Dynamic == TRUE){
   M<- matrix(c(instances[instances>0], output[output>0],n),
              nrow=length(instances[instances>0]),  byrow= FALSE)
 
+  Observation.sum = sum(1/M[,1])
+  Observation.weighting = (1/M[,1])
 
-  Observation.weighting = (1/M[,1])/sum(1/M[,1])
+  Lag.sum = sum(1/M[,2])
+  Lag.weighting = (1/M[,2])
 
-  Weights = (((1/M[,2])/sum((1/M[,2])))+Observation.weighting)/(sum((((1/M[,2])/sum((1/M[,2])))+Observation.weighting)))
+  Weights = (Lag.weighting+Observation.weighting) / (Lag.sum+Observation.sum)
 
    {M[which.min(M[,2]),1]}
 
@@ -184,12 +208,15 @@ if(Dynamic == TRUE){
       Component.series[[i]] = na.omit(Component.series[[i]])
     }
 
+
+
     # Regression on Component Series
     Regression.Estimates = numeric()
     Coefficients = numeric()
+    reg.order = ceiling(log(a,4))+1
     if(Linear==FALSE){
       for (i in 1:length(lag)){
-        Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1))
+        Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
         }
       }
 
@@ -216,19 +243,20 @@ if(Dynamic == TRUE){
   }}  # ELSE {}
 
 #### PLOTTING
+  par(mfrow=c(2,1))
   if(sum(instances[instances>0])>0){
   plot(instances[instances>0],output[output>0],
        xlab="Period", ylab="Coefficient of Variance", main = "Seasonality Test",
-       ylim = c(0,2*abs(sd(variable)/mean(variable))),
+       ylim = c(0,2*abs(sd(original.variable)/mean(original.variable))),
        col=ifelse(output[output>0]==min(output[output>0]), "red", "black"),
        pch =ifelse(output[output>0]==min(output[output>0]), 19, 1))
 
-  abline(h=abs(sd(variable)/mean(variable)), col="red",lty=5)
-  text(mean(instances[instances>0]),abs(sd(variable)/mean(variable)),adj=c(0,-.25),
+  abline(h=abs(sd(original.variable)/mean(original.variable)), col="red",lty=5)
+  text(mean(instances[instances>0]),abs(sd(original.variable)/mean(original.variable)),adj=c(0,-.25),
       "Variable Coefficient of Variance",col='red')
   }
 
-  plot(original.variable, type = 'l',main = "Forecast",col='steelblue',  xlim=c(1,(a+h)), ylab="Variable", ylim=c(min(Estimates,original.variable),max(original.variable,Estimates)))
+  plot( original.original.variable, type = 'l',main = "Forecast",col='steelblue',  xlim=c(1,max((a+h),length(original.original.variable))), ylab="Variable", ylim=c(min(Estimates, original.original.variable),max( original.original.variable,Estimates)))
 
   lines((Training_set+1):(Training_set+h),Estimates,type = 'l',lty=3,col='red')
   segments(Training_set,original.variable[Training_set],Training_set+1,Estimates[1],lty=3,col='red')
@@ -237,24 +265,24 @@ if(Dynamic == TRUE){
   points(Training_set,variable[Training_set],col="green",pch=18)
   points(Training_set+h,sum(Regression.Estimates*Weights),col="green",pch=18)
 
-  if(Negative_Values==TRUE){
-  for (i in 1:length(lag)){
-    segments(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1],
-             length(original.variable)+h,
-           Regression.Estimates[i]
-           ,col=adjustcolor("red", alpha.f = .125), lty = 3)
-  }
-  }
+#  if(Negative_Values==TRUE){
+ # for (i in 1:length(lag)){
+ #   segments(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1],
+#             length(original.variable)+h,
+#           Regression.Estimates[i]
+#           ,col=adjustcolor("red", alpha.f = .125), lty = 3)
+#  }
+#  }
 
-  if(Negative_Values==FALSE){
-    for (i in 1:length(lag)){
-      segments(0,max(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1]),
-               length(original.variable)+h,
-               max(0,Regression.Estimates[i])
-               ,col=adjustcolor("red", alpha.f = 0.125), lty = 3)
-
-    }
-  }
+#  if(Negative_Values==FALSE){
+#    for (i in 1:length(lag)){
+#      segments(0,max(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1]),
+ #              length(original.variable)+h,
+ #              max(0,Regression.Estimates[i])
+#               ,col=adjustcolor("red", alpha.f = 0.125), lty = 3)
+#
+ #   }
+#  }
 
 return(Estimates)
 
