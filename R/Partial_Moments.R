@@ -7,7 +7,7 @@
 #' @return LPM of variable
 #' @keywords partial moments
 #' @importFrom grDevices adjustcolor rainbow
-#' @importFrom graphics abline boxplot legend lines par plot points segments text
+#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot
 #' @importFrom stats coef cor lm na.omit sd
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -15,7 +15,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' \dontrun{LPM(0,0,x)}
+#' \dontrun{LPM(0,mean(x),x)}
 #' @export
 
 LPM<- function(degree,target,variable)
@@ -37,7 +37,7 @@ LPM<- function(degree,target,variable)
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' \dontrun{UPM(0,0,x)}
+#' \dontrun{UPM(0,mean(x),x)}
 #' @export
 
 
@@ -130,7 +130,7 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{D.LPM(0,mean(x),mean(y),x,y)}
+#' \dontrun{D.LPM(0,0,mean(x),mean(y),x,y)}
 #' @export
 
 D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
@@ -166,7 +166,7 @@ D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{D.UPM(0,mean(x),mean(y),x,y)}
+#' \dontrun{D.UPM(0,0,mean(x),mean(y),x,y)}
 #' @export
 
 D.UPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){

@@ -64,14 +64,14 @@ VN.SD.Efficient.Set <- function(A,degree) {
 
      challenger <- final_ranked[,i+1]
 
-     if (SSD(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
+     if (VN.SSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
 
 
-     if (SSD(base,challenger)==0){
+     if (VN.SSD.uni(base,challenger)==0){
 
        for (j in current_base){
          base<- final_ranked[,j]
-         if (SSD(base,challenger)==0){ next }
+         if (VN.SSD.uni(base,challenger)==0){ next }
          else
          {Dominated_set[i] <- i+1  }
        }

@@ -31,10 +31,12 @@ VN.ARMA.reg = function (x, y,
   names(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
 
-  if(order==1){return("Please Increase the Order Specification")}
+  if(order<1){return("Please Increase the Order Specification")}
 
-  if(order >1){
-    for(i in 1:(order-1)){
+
+  order=order-1
+
+    for(i in 0:(order)){
 
       for(item in unique(temp_df$master_part)){
         tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
@@ -43,11 +45,12 @@ VN.ARMA.reg = function (x, y,
 
 
         temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 1, sep = '')
-        temp_df[temp_df$x <= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x <= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
-        temp_df[temp_df$x >= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
-        temp_df[temp_df$x <= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x <= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
+        temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
+        temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
+        temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
 
-        if(nchar(item)==order-1){
+        ### order + 1 to account for 'p'
+        if(nchar(item)==order+1){
 
           regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
 
@@ -57,7 +60,7 @@ VN.ARMA.reg = function (x, y,
       }
 
       temp_df[,'master_part'] = temp_df[, 'temp_part']
-    }
+    #}
 
 
   }
@@ -70,12 +73,12 @@ VN.ARMA.reg = function (x, y,
 
   ###Endpoints
   if(length(x[x<min.range])>0){
-    if(VN.dep.reg(x,y)[1]<.9){
+    if(VN.dep.reg(x,y,2)[2]<.5){
       x0 = Dynamic.average.min} else {
         x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
 
   if(length(x[x>max.range])>0){
-    if(VN.dep.reg(x,y)[1]<.9){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+    if(VN.dep.reg(x,y,2)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
 
 
   regression.points[1,2] = x0

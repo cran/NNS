@@ -21,7 +21,7 @@
 
 
 VN.reg = function (x, y,
-            order=max(2,ceiling(VN.dep.reg(x,y)[1]*ceiling(log10(length(x))))),
+            order=max(2,ceiling(VN.dep.reg(x,y,2)[2]*ceiling(log10(length(x))))),
             point.est = NULL,
             location = 'top',
             print.values = FALSE,
@@ -38,10 +38,10 @@ VN.reg = function (x, y,
 
 
 
-  if(order==1){return("Please Increase the Order Specification")}
+  if(order<1){return("Please Increase the Order Specification")}
+  order=order-1
 
-  if(order >1){
-    for(i in 1:(order-1)){
+    for(i in 0:(order)){
 
       for(item in unique(temp_df$master_part)){
         tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
@@ -50,11 +50,13 @@ VN.reg = function (x, y,
 
 
         temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 1, sep = '')
-        temp_df[temp_df$x <= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x <= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
-        temp_df[temp_df$x >= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
-        temp_df[temp_df$x <= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x <= tmp_xbar & temp_df$y <= tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
+        temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
+        temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
+        temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
 
-        if(nchar(item)==order-1){
+
+        ### order + 1 to account for 'p'
+        if(nchar(item)==order+1){
 
         regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
 
@@ -64,7 +66,9 @@ VN.reg = function (x, y,
       }
 
       temp_df[,'master_part'] = temp_df[, 'temp_part']
-    }
+
+
+    #}
 
 
   }
@@ -78,12 +82,12 @@ VN.reg = function (x, y,
 
   ###Endpoints
   if(length(x[x<min.range])>0){
-    if(VN.dep.reg(x,y)[1]<.9){
+    if(VN.dep.reg(x,y,2)[2]<.5){
       x0 = Dynamic.average.min} else {
         x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
 
   if(length(x[x>max.range])>0){
-    if(VN.dep.reg(x,y)[1]<.9){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+    if(VN.dep.reg(x,y,2)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
 
 
   regression.points[1,2] = x0
@@ -127,7 +131,6 @@ VN.reg = function (x, y,
 
       z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
 
-      #print(c(z,x[z],z.diff))
 
       if(is.null(point.est)){point.est.y = NULL} else{
 
@@ -171,7 +174,7 @@ VN.reg = function (x, y,
   xmax= max(c(point.est,x))
   ymin= min(c(point.est.y,y))
   ymax= max(c(point.est.y,y))
-  plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue', xlab = "X",ylab="Y")
+  plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue', xlab = "X",ylab="Y",main=paste0("Order = ",order+1))
 
 
   ### Plot Regression points and fitted values and legend

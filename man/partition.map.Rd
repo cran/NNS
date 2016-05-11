@@ -4,7 +4,7 @@
 \alias{partition.map}
 \title{Partition Map}
 \usage{
-partition.map(x, y, order = ceiling(log10(length(x))), degree = 1)
+partition.map(x, y, order = ceiling(log10(length(x))))
 }
 \arguments{
 \item{x}{Variable 1}
@@ -12,8 +12,6 @@ partition.map(x, y, order = ceiling(log10(length(x))), degree = 1)
 \item{y}{Variable 2}
 
 \item{order}{Number of partial moment quadrants to be generated.}
-
-\item{degree}{Defaults to 0 for smaller number of observations}
 }
 \description{
 Creates partitions based on quadrant means, assigning observations to those quadrants.  Needed for correlation, dependence, regression routines.  Default degree = 1 for area, but routines have their own conditional degree specifications built in

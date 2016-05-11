@@ -16,6 +16,7 @@
 
 Uni.caus <- function(x,y,tau){
 
+
   min.length = min(length(x),length(y))
 
   x.vectors = list()
@@ -36,7 +37,7 @@ Uni.caus <- function(x,y,tau){
 
   x.vectors.tau = do.call(cbind.data.frame, x.vectors)
 
-  x.norm.tau <- VN.norm(x.vectors.tau)[,1]
+  x.norm.tau <- VN.norm.caus(x.vectors.tau)[,1]
 
 
   ## Normalize y to y.tau
@@ -53,13 +54,13 @@ Uni.caus <- function(x,y,tau){
 
   y.vectors.tau = do.call(cbind.data.frame, y.vectors)
 
-  y.norm.tau <- VN.norm(y.vectors.tau)[,1]
+  y.norm.tau <- VN.norm.caus(y.vectors.tau)[,1]
 
 
   ## Normalize x.norm.tau to y.norm.tau
   x.tau.y.tau = cbind(x.norm.tau,y.norm.tau)
-  x.norm.to.y = VN.norm(x.tau.y.tau)[,1]
-  y.norm.to.x = VN.norm(x.tau.y.tau)[,2]
+  x.norm.to.y = VN.norm.caus(x.tau.y.tau)[,1]
+  y.norm.to.x = VN.norm.caus(x.tau.y.tau)[,2]
 
 
   ## Conditional Probability from Normalized Variables P(x.norm.to.y |y.norm.to.x)
@@ -83,9 +84,9 @@ Uni.caus <- function(x,y,tau){
   ymax = max(c(max(x),max(y)))
   par(mar=c(2, 4, 0, 1))
   plot(y,type = 'l', ylim=c(ymin, ymax),ylab='RAW',col='red',lwd = 3)
-  lines(x, col = 'black',lwd = 1)
-  legend('top',c("X","Y"), lty = 1,lwd=c(1,3),
-         col=c('black','red'),ncol=2,bty ="n")
+  lines(x, col = 'steelblue',lwd = 3)
+  legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
+         col=c('steelblue','red'),ncol=2,bty ="n")
 
 
 
@@ -94,18 +95,18 @@ Uni.caus <- function(x,y,tau){
   ymax = max(c(max(x.norm.tau),max(y.norm.tau)))
   par(mar=c(2, 4, 0, 1))
   plot(y.norm.tau,type = 'l', ylim=c(ymin, ymax),ylab='TIME NORMALIZED',col='red',lwd = 3)
-  lines(x.norm.tau)
-  legend('top',c("X","Y"), lty = 1,lwd=c(1,3),
-         col=c('black','red'),ncol=2,bty ="n")
+  lines(x.norm.tau, col='steelblue',lwd=3)
+  legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
+         col=c('steelblue','red'),ncol=2,bty ="n")
 
   ## Time Normalized Variables Normalized to each other Plot
   ymin = min(c(min(x.norm.to.y),min(y.norm.to.x)))
   ymax = max(c(max(x.norm.to.y),max(y.norm.to.x)))
   par(mar=c(2, 4, 0, 1))
   plot(y.norm.to.x,type = 'l', ylim=c(ymin, ymax),ylab='X & Y NORMALIZED',col='red',lwd = 3)
-  lines(x.norm.to.y)
-  legend('top',c("X","Y"), lty = 1,lwd=c(1,3),
-         col=c('black','red'),ncol=2,bty ="n")
+  lines(x.norm.to.y,col='steelblue',lwd=3)
+  legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
+         col=c('steelblue','red'),ncol=2,bty ="n")
 
   return(Causation.x.given.y)
 
@@ -129,6 +130,7 @@ Uni.caus <- function(x,y,tau){
 #' @export
 
 VN.caus <- function(x,y,tau){
+
   if(abs(Uni.caus(x,y,tau))<abs(Uni.caus(y,x,tau))){
     return(c(Causation.x.given.y = Uni.caus(x,y,tau),
          Causation.y.given.x = Uni.caus(y,x,tau),
@@ -136,7 +138,7 @@ VN.caus <- function(x,y,tau){
   else{
     return(c(Causation.x.given.y = Uni.caus(x,y,tau),
              Causation.y.given.x = Uni.caus(y,x,tau),
-             "C(x--->y)" = Uni.caus(x,y,tau)-Uni.caus(y,x,tau)))
+             "C(x--->y)" = -Uni.caus(y,x,tau)+Uni.caus(x,y,tau)))
   }
 
 

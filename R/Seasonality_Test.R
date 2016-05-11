@@ -41,7 +41,7 @@ VN.seas <- function(variable){
          col=ifelse(output[output>0]==min(output[output>0]), "red", "black"), pch =ifelse(output[output>0]==min(output[output>0]), 19, 1))
 
          abline(h=abs(sd(variable)/mean(variable)), col="red",lty=5)
-          text(mean(instances[instances>0]),abs(sd(variable)/mean(variable)),adj=c(0,-.25),"Variable Coefficient of Variance",col='red')
+          text(length(instances[instances>0])/2,abs(sd(variable)/mean(variable)),adj=c(0,-.25),"Variable Coefficient of Variance",col='red')
 
         n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
 

@@ -21,9 +21,10 @@ VN.dep.reg = function( x, y,
                    degree=0){
 
 
- # if(order==1){return("Please Increase the Order Specification")}
 
-  partitioned_df = partition.map(x, y,order,degree)
+
+  partitioned_df = partition.map(x, y,order)
+
 
   clpm = numeric(0)
   cupm = numeric(0)

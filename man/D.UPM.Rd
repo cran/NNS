@@ -29,7 +29,7 @@ This function generates a multivariate divergent upper partial moment for any de
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{D.UPM(0,mean(x),mean(y),x,y)}
+\dontrun{D.UPM(0,0,mean(x),mean(y),x,y)}
 }
 \author{
 Fred Viole, OVVO Financial Systems

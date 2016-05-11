@@ -109,7 +109,8 @@ if(Dynamic == TRUE){
 # Regression on Component Series
   Regression.Estimates = numeric()
   Coefficients = numeric()
-  reg.order = ceiling(log(a,4))+1
+  reg.order = ceiling(log(aa,4))+0
+
     if(Linear==FALSE){
    for (i in 1:length(lag)){
     Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
@@ -213,7 +214,8 @@ if(Dynamic == TRUE){
     # Regression on Component Series
     Regression.Estimates = numeric()
     Coefficients = numeric()
-    reg.order = ceiling(log(a,4))+1
+    reg.order = ceiling(log(aa,4))+0
+
     if(Linear==FALSE){
       for (i in 1:length(lag)){
         Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
@@ -252,7 +254,7 @@ if(Dynamic == TRUE){
        pch =ifelse(output[output>0]==min(output[output>0]), 19, 1))
 
   abline(h=abs(sd(original.variable)/mean(original.variable)), col="red",lty=5)
-  text(mean(instances[instances>0]),abs(sd(original.variable)/mean(original.variable)),adj=c(0,-.25),
+  text(length(instances[instances>0])/2,abs(sd(original.variable)/mean(original.variable)),adj=c(0,-0.25),
       "Variable Coefficient of Variance",col='red')
   }
 

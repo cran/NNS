@@ -4,7 +4,7 @@
 \alias{VN.reg}
 \title{VN Regression}
 \usage{
-VN.reg(x, y, order = max(2, ceiling(VN.dep.reg(x, y)[1] *
+VN.reg(x, y, order = max(2, ceiling(VN.dep.reg(x, y, 2)[2] *
   ceiling(log10(length(x))))), point.est = NULL, location = "top",
   print.values = FALSE, print.equation = FALSE)
 }

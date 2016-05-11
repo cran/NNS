@@ -4,7 +4,7 @@
 \alias{VN.dep}
 \title{VN Dependence}
 \usage{
-VN.dep(x, y, order = 2, degree = 0)
+VN.dep(x, y, order = 2, degree = 0, print.map = TRUE)
 }
 \arguments{
 \item{x}{Variable 1}
@@ -14,6 +14,8 @@ VN.dep(x, y, order = 2, degree = 0)
 \item{order}{Number of partial moment quadrants to be generated}
 
 \item{degree}{Defaults to 0 for smaller number of observations}
+
+\item{print.map}{Displays partition mapping onto plot.  Defaults to TRUE.}
 }
 \description{
 Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.

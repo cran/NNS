@@ -22,7 +22,7 @@ This function generates a univariate lower partial moment for any degree or targ
 \examples{
 set.seed(123)
 x<-rnorm(100)
-\dontrun{LPM(0,0,x)}
+\dontrun{LPM(0,mean(x),x)}
 }
 \author{
 Fred Viole, OVVO Financial Systems
