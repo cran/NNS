@@ -4,16 +4,16 @@
 \alias{VN.dep}
 \title{VN Dependence}
 \usage{
-VN.dep(x, y, order = 2, degree = 0, print.map = TRUE)
+VN.dep(x, y, order = NULL, degree = 0, print.map = TRUE)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Number of partial moment quadrants to be generated}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).}
 
-\item{degree}{Defaults to 0 for smaller number of observations}
+\item{degree}{Defaults to 0 for smaller number of observations.}
 
 \item{print.map}{Displays partition mapping onto plot.  Defaults to TRUE.}
 }

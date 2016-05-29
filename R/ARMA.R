@@ -267,24 +267,6 @@ if(Dynamic == TRUE){
   points(Training_set,variable[Training_set],col="green",pch=18)
   points(Training_set+h,sum(Regression.Estimates*Weights),col="green",pch=18)
 
-#  if(Negative_Values==TRUE){
- # for (i in 1:length(lag)){
- #   segments(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1],
-#             length(original.variable)+h,
-#           Regression.Estimates[i]
-#           ,col=adjustcolor("red", alpha.f = .125), lty = 3)
-#  }
-#  }
-
-#  if(Negative_Values==FALSE){
-#    for (i in 1:length(lag)){
-#      segments(0,max(0,coef(lm(Component.series[[i]]~Component.index[[i]]))[1]),
- #              length(original.variable)+h,
- #              max(0,Regression.Estimates[i])
-#               ,col=adjustcolor("red", alpha.f = 0.125), lty = 3)
-#
- #   }
-#  }
 
 return(Estimates)
 

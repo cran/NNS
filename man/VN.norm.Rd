@@ -4,12 +4,14 @@
 \alias{VN.norm}
 \title{VN Normalization}
 \usage{
-VN.norm(A, chart.type = NULL)
+VN.norm(A, chart.type = NULL, location = NULL)
 }
 \arguments{
 \item{A}{Matrix of variables.}
 
 \item{chart.type}{Defaults to NULL.  'l' for line, 'b' for boxplot}
+
+\item{location}{Location of legend in plot.  Defaults to 'topright'}
 }
 \description{
 Normalizes a matrix of variables based on nonlinear scaling normalization method.

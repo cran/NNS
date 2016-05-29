@@ -4,7 +4,7 @@
 \alias{partition.map}
 \title{Partition Map}
 \usage{
-partition.map(x, y, order = ceiling(log10(length(x))))
+partition.map(x, y, order = ceiling(log(length(x), 4)))
 }
 \arguments{
 \item{x}{Variable 1}

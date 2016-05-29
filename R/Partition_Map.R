@@ -13,20 +13,22 @@
 #' \dontrun{parition.map(x,y)}
 #' @export
 
-partition.map = function(x, y,order= ceiling(log10(length(x)))){
+partition.map = function(x, y,order= ceiling(log(length(x),4))){
 
   temp_df = data.frame(x=x, y=y)
   temp_df[,'temp_part'] = 'p'
   temp_df[,'master_part'] = 'p'
 
-  if(order<1){return("Please Increase the Order Specification")}
 
-    order=order-1
+ if(order<1){return("Please Increase the Order Specification")}
 
 
-    for(i in 0:(order)){
+  for(i in 1:(order)){
 
-      for(item in unique(temp_df$master_part)){
+    for(item in unique(temp_df$master_part)){
+
+      if(nchar(item)==i && length(temp_df[temp_df$master_part == item,'x'])>=4){
+
         tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
         tmp_ybar = mean(temp_df[temp_df$master_part == item, 'y'])
 
@@ -36,10 +38,12 @@ partition.map = function(x, y,order= ceiling(log10(length(x)))){
         temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
         temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
 
-      }
-
-      temp_df[,'master_part'] = temp_df[, 'temp_part']
+      }##>=4
     }
+
+    temp_df[,'master_part'] = temp_df[, 'temp_part']
+  }
+
 
 
   return(temp_df[, c('x', 'y', 'master_part')])

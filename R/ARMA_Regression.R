@@ -73,12 +73,12 @@ VN.ARMA.reg = function (x, y,
 
   ###Endpoints
   if(length(x[x<min.range])>0){
-    if(VN.dep.reg(x,y,2)[2]<.5){
+    if(VN.dep(x,y,order=max(2,order),print.map=FALSE)[2]<.5){
       x0 = Dynamic.average.min} else {
         x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
 
   if(length(x[x>max.range])>0){
-    if(VN.dep.reg(x,y,2)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+    if(VN.dep(x,y,order=max(2,order),print.map=FALSE)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
 
 
   regression.points[1,2] = x0

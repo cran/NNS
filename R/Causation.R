@@ -37,7 +37,7 @@ Uni.caus <- function(x,y,tau){
 
   x.vectors.tau = do.call(cbind.data.frame, x.vectors)
 
-  x.norm.tau <- VN.norm.caus(x.vectors.tau)[,1]
+  x.norm.tau <- VN.norm(x.vectors.tau)[,1]
 
 
   ## Normalize y to y.tau
@@ -54,13 +54,13 @@ Uni.caus <- function(x,y,tau){
 
   y.vectors.tau = do.call(cbind.data.frame, y.vectors)
 
-  y.norm.tau <- VN.norm.caus(y.vectors.tau)[,1]
+  y.norm.tau <- VN.norm(y.vectors.tau)[,1]
 
 
   ## Normalize x.norm.tau to y.norm.tau
   x.tau.y.tau = cbind(x.norm.tau,y.norm.tau)
-  x.norm.to.y = VN.norm.caus(x.tau.y.tau)[,1]
-  y.norm.to.x = VN.norm.caus(x.tau.y.tau)[,2]
+  x.norm.to.y = VN.norm(x.tau.y.tau)[,1]
+  y.norm.to.x = VN.norm(x.tau.y.tau)[,2]
 
 
   ## Conditional Probability from Normalized Variables P(x.norm.to.y |y.norm.to.x)
@@ -68,7 +68,12 @@ Uni.caus <- function(x,y,tau){
 
 
   ## Correlation of Normalized Variables
-  rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,
+  for (i in 2:floor(log(length(x),4))){
+    if(is.na(VN.cor(x.norm.to.y,y.norm.to.x,i))){
+      cor.order=i-1
+      break}}
+
+  rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,cor.order,
                    degree= ifelse(length(x)<100,0,1))
 
   #rho.x.y = cor(x.norm.to.y,y.norm.to.x)

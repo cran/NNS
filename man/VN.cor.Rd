@@ -4,15 +4,14 @@
 \alias{VN.cor}
 \title{VN Correlation}
 \usage{
-VN.cor(x, y, order = ceiling(log10(length(x))), degree = ifelse(length(x) <
-  100, 0, 1))
+VN.cor(x, y, order = NULL, degree = ifelse(length(x) < 100, 0, 1))
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Number of partial moment quadrants to be generated}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).}
 
 \item{degree}{Defaults to 0 for smaller number of observations}
 }
