@@ -6,7 +6,8 @@
 \usage{
 VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
-  plot = TRUE, tol = 0.99999)
+  return.values = FALSE, return.equation = FALSE, plot = TRUE,
+  tol = 0.99999)
 }
 \arguments{
 \item{x}{Independent Variable(s)}
@@ -21,9 +22,13 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 
 \item{location}{Sets the legend location within the plot}
 
-\item{print.values}{Defaults to FALSE, set to TRUE in order to return all fitted values for independent variable}
+\item{print.values}{Defaults to FALSE, set to TRUE in order to print all fitted values for independent variable}
 
-\item{print.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients}
+\item{print.equation}{Defaults to FALSE, set to TRUE in order to print the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable}
+
+\item{return.values}{Defaults to FALSE, set to TRUE in order to return fitted values into a vector.}
+
+\item{return.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable}
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
@@ -40,6 +45,13 @@ x<-rnorm(100); y<-rnorm(100)
 ## For Multiple Regression:
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
 \dontrun{VN.reg(x,y,point.est=c(.25,.5,.75))}
+
+## To call fitted values:
+\dontrun{VN.reg(x,y,return.values=TRUE)$fitted}
+
+## To call partial derivative:
+\dontrun{VN.reg(x,y,return.equation=TRUE)$derivative}
+
 }
 \author{
 Fred Viole, OVVO Financial Systems

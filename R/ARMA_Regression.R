@@ -63,22 +63,31 @@ VN.ARMA.reg = function (x, y,
     #}
 
 
+    }
+
+
+  for (j in 1:ceiling(log(length(y),2))){
+    if(is.na(VN.dep(x,y,j,print.map=FALSE)[2])){
+      dep.order=j-1
+      break}
   }
+
+
   min.range = min(na.omit(regression.points[,1]))
   max.range = max(na.omit(regression.points[,1]))
 
 
-  Dynamic.average.min = mean(y[x<min.range])
-  Dynamic.average.max = mean(y[x>max.range])
+  Dynamic.average.min = median(y[x<min.range])
+  Dynamic.average.max = median(y[x>max.range])
 
   ###Endpoints
   if(length(x[x<min.range])>0){
-    if(VN.dep(x,y,order=max(2,order),print.map=FALSE)[2]<.5){
+    if(VN.dep(x,y,dep.order,print.map=FALSE)[2]<.5){
       x0 = Dynamic.average.min} else {
         x0 = y[x==min(x)]} }  else {x0 = y[x==min(x)]}
 
   if(length(x[x>max.range])>0){
-    if(VN.dep(x,y,order=max(2,order),print.map=FALSE)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
+    if(VN.dep(x,y,dep.order,print.map=FALSE)[2]<.5){x.max = Dynamic.average.max} else {x.max = y[x==max(x)]}}  else { x.max = y[x==max(x)]}
 
 
   regression.points[1,2] = x0

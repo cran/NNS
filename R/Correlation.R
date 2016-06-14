@@ -20,7 +20,7 @@ VN.cor = function( x, y, order = NULL,
                    degree= ifelse(length(x)<100,0,1)){
 
 
-  # partitioned_df=partition.map(x,y,order)
+
 
   clpm = numeric(0)
   cupm = numeric(0)
@@ -28,10 +28,10 @@ VN.cor = function( x, y, order = NULL,
   dupm = numeric(0)
 
   if(is.null(order)){
-    for (i in 2:floor(log(length(x),4))){
-      if(min(nchar(partition.map(x,y,i)$master_part))==i)
-        order=i-1
-    }}
+    for (i in 1:floor(log(length(x),4))){
+      if(min(nchar(partition.map(x,y,i)$master_part))==i){
+        order=i-1}
+    } }
 
   partitioned_df=partition.map(x,y,order)
 

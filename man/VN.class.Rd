@@ -6,14 +6,14 @@
 \usage{
 VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
-  plot = TRUE)
+  plot = TRUE, clean.method = NULL)
 }
 \arguments{
 \item{x}{Complete dataset in matrix form.}
 
 \item{y}{Column of data to be classified.}
 
-\item{threshold}{Sets the coefficient threshold for independent variables.  Defaults to 0.}
+\item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
 
 \item{order}{Controls the number of partial moment quadrant means.  Defaults to smaller order to avoid overfitting}
 
@@ -26,6 +26,11 @@ VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
 \item{print.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients}
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
+
+\item{clean.method}{Method to handle missing or NA values.  'omit' uses \code{\link{complete.cases}} function on data while 'zero' replaces missing data with 0 value.  Defaults to NULL assuming user has cleaned data prior to analyzing.}
+}
+\value{
+Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 }
 \description{
 Classifies data based on multiple logistic nonlinear regression (VN.reg)
@@ -33,6 +38,12 @@ Classifies data based on multiple logistic nonlinear regression (VN.reg)
 \examples{
 ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
 \dontrun{VN.class(iris,5)}
+
+## To call mean squared error
+\dontrun{VN.class(iris,5)$MSE}
+
+## To call predicted values
+\dontrun{VN.class(iris,5)$Predictions}
 }
 \author{
 Fred Viole, OVVO Financial Systems

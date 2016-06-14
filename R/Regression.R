@@ -8,8 +8,10 @@
 #' @param type  To perform logistic regression, set to type = "LOGIT".  Defualts to NULL.
 #' @param point.est Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.
 #' @param location Sets the legend location within the plot
-#' @param print.values Defaults to FALSE, set to TRUE in order to return all fitted values for independent variable
-#' @param print.equation Defaults to FALSE, set to TRUE in order to return the local coefficients
+#' @param print.values Defaults to FALSE, set to TRUE in order to print all fitted values for independent variable
+#' @param print.equation Defaults to FALSE, set to TRUE in order to print the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable
+#' @param return.values Defaults to FALSE, set to TRUE in order to return fitted values into a vector.
+#' @param return.equation Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable
 #' @param plot  To plot regression or not.  Defaults to TRUE.
 #' @param tol  Minimum acceptable R2 Adjusted to stop order testing.  Defaults to 0.99999.
 #' @keywords nonlinear regression
@@ -24,6 +26,13 @@
 #' ## For Multiple Regression:
 #' x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
 #' \dontrun{VN.reg(x,y,point.est=c(.25,.5,.75))}
+#'
+#' ## To call fitted values:
+#' \dontrun{VN.reg(x,y,return.values=TRUE)$fitted}
+#'
+#' ## To call partial derivative:
+#' \dontrun{VN.reg(x,y,return.equation=TRUE)$derivative}
+#'
 #' @export
 
 
@@ -34,6 +43,8 @@ VN.reg = function (x, y,
                    location = 'top',
                    print.values = FALSE,
                    print.equation = FALSE,
+                   return.values = FALSE,
+                   return.equation = FALSE,
                    plot = TRUE,
                    tol=.99999){
 
@@ -62,14 +73,15 @@ if (ncol(original.variable)==1){
       for (i in 1:ncol(original.variable)){
 
 
-        for (j in 1:floor(log(length(y),2))){
-          if(is.na(VN.cor(original.variable[,i],y,j))){
-            cor.order=j-1
-            break}
-        }
+    #    for (j in 1:floor(log(length(y),2))){
+     #     if(is.na(VN.dep(original.variable[,i],y,j,print.map=FALSE)[1])){
+     #       cor.order=j-1
+     #       break}
+     #   }
 
+        cor.order=1
 
-        x.star.coef[i]=  VN.cor(original.variable[,i],y,cor.order)
+        x.star.coef[i]=  VN.dep(original.variable[,i],y,cor.order,print.map = FALSE)[1]
         x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*original.variable[,i])
 
 
@@ -179,8 +191,8 @@ order.p=order.p-1
   max.range = max(na.omit(regression.points[,1]))
 
 
-  Dynamic.average.min = mean(y[x<min.range])
-  Dynamic.average.max = mean(y[x>max.range])
+  Dynamic.average.min = median(y[x<min.range])
+  Dynamic.average.max = median(y[x>max.range])
 
   ###Endpoints
   if(is.null(type)){
@@ -352,15 +364,15 @@ if(!is.null(ncol(original.variable))) {
 
 
 
-      for (j in 1:floor(log(length(y),2))){
-        if(is.na(VN.cor(original.variable[,i],y,j))){
-          cor.order=j-1
-          break}
-      }
+    #  for (j in 1:floor(log(length(y),2))){
+    #    if(is.na(VN.cor(original.variable[,i],y,j))){
+    #      cor.order=j-1
+    #      break}
+    #  }
 
+      cor.order = 1
 
-
-      x.star.coef[i]=  VN.cor(original.variable[,i],y,cor.order)
+      x.star.coef[i]=  VN.dep(original.variable[,i],y,cor.order,print.map = FALSE)[1]
       x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*original.variable[,i])
 
 
@@ -474,8 +486,8 @@ min.range = min(na.omit(regression.points[,1]))
 max.range = max(na.omit(regression.points[,1]))
 
 
-Dynamic.average.min = mean(y[x<min.range])
-Dynamic.average.max = mean(y[x>max.range])
+Dynamic.average.min = median(y[x<min.range])
+Dynamic.average.max = median(y[x>max.range])
 
 ###Endpoints
 if(is.null(type)){
@@ -574,7 +586,7 @@ Values = (cbind(x,Fitted=fitted[,2],Actual=y,Difference=fitted[,2]-(y),
 MSE = mean((fitted[,2]-y)^2)
 
 
-
+R=cor(fitted[,2],y)^2
 
 
 R2=  (sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
@@ -619,7 +631,11 @@ if(plot==TRUE){
 }# plot TRUE bracket
 
 
-### Print Values
+### Print / return Values
+
+  if(return.values == TRUE | return.equation==TRUE){
+    return(list("fitted"=cbind(x,"fitted values"=fitted[,2]), "derivative"=Regression.Coefficients[-p,]))
+  }
 
   if(print.values ==FALSE){
     if(is.null(point.est)){

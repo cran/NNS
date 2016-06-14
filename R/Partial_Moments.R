@@ -8,7 +8,7 @@
 #' @keywords partial moments
 #' @importFrom grDevices adjustcolor rainbow
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot
-#' @importFrom stats coef cor lm na.omit sd
+#' @importFrom stats coef cor lm na.omit sd median complete.cases
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -19,7 +19,7 @@
 #' @export
 
 LPM<- function(degree,target,variable)
- {sum((target - (variable[variable <= target]))^degree)/length(variable)}
+ {sum((target - (variable[variable < target]))^degree)/length(variable)}
 
 
 
@@ -42,7 +42,7 @@ LPM<- function(degree,target,variable)
 
 
 UPM<- function(degree,target,variable){
-  sum(((variable[variable > target]) - target)^degree)/length(variable)}
+  sum(((variable[variable >= target]) - target)^degree)/length(variable)}
 
 
 #' Co-Upper Partial Moment
@@ -70,7 +70,7 @@ Co.UPM<- function(degree,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if ((variable1[i]>target1)*(variable2[i]>target2)==1)
+    if ((variable1[i]>=target1)*(variable2[i]>=target2)==1)
 
       output[i]<- (((variable1[i]-target1)^degree)*((variable2[i]-target2)^degree))
   }
@@ -104,7 +104,7 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if (variable1[i]<=target1 & variable2[i]<=target2)
+    if (variable1[i]<target1 & variable2[i]<target2)
 
     output[i]<- (((target1-variable1[i])^degree)*((target2-variable2[i])^degree))
   }

@@ -4,13 +4,15 @@
 #'
 #' @param x Complete dataset in matrix form.
 #' @param y Column of data to be classified.
-#' @param threshold  Sets the coefficient threshold for independent variables.  Defaults to 0.
+#' @param threshold  Sets the correlation threshold for independent variables.  Defaults to 0.
 #' @param order Controls the number of partial moment quadrant means.  Defaults to smaller order to avoid overfitting
 #' @param point.est Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.
 #' @param location Sets the legend location within the plot
 #' @param print.values Defaults to FALSE, set to TRUE in order to return all fitted values for independent variable
 #' @param print.equation Defaults to FALSE, set to TRUE in order to return the local coefficients
 #' @param plot  To plot regression or not.  Defaults to TRUE.
+#' @param clean.method  Method to handle missing or NA values.  'omit' uses \code{\link{complete.cases}} function on data while 'zero' replaces missing data with 0 value.  Defaults to NULL assuming user has cleaned data prior to analyzing.
+#' @return Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 #' @keywords nonlinear logistic regression, classifier
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -18,7 +20,14 @@
 #' @examples
 #' ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
 #' \dontrun{VN.class(iris,5)}
+#'
+#' ## To call mean squared error
+#' \dontrun{VN.class(iris,5)$MSE}
+#'
+#' ## To call predicted values
+#' \dontrun{VN.class(iris,5)$Predictions}
 #' @export
+
 
 
 VN.class = function (x, y,threshold = 0,
@@ -27,12 +36,14 @@ VN.class = function (x, y,threshold = 0,
                      location = 'top',
                      print.values = FALSE,
                      print.equation = FALSE,
-                     plot = TRUE){
+                     plot = TRUE,
+                     clean.method = NULL){
+
 
   type = "LOGIT"
 
   preds = numeric()
-
+  x[is.na(x)] <- 0
   original.columns = ncol(x)
   original.variable = x
   new.variable = matrix(nrow=nrow(x))
@@ -43,12 +54,19 @@ VN.class = function (x, y,threshold = 0,
     new.variable = cbind(new.variable,as.numeric(original.variable[,i]))
 
     ###  Clean data
-    new.variable = new.variable[,!colSums(!is.finite(new.variable))]
+    if(!is.null(clean.method)){
+        if(clean.method == 'omit'){
+              new.variable = new.variable[complete.cases(new.variable)]
+              }
+
+        if(clean.method == 'zero'){
+              new.variable[is.na(new.variable)] <- 0
+              }
+        }
   }
 
-  x= new.variable[,-y]
-  y= new.variable[,y]
-
+  x <- new.variable[, c(-1, -(y + 1))]
+  y <- new.variable[, (y + 1)]
 
   if(!is.null(ncol(x))) {
 
@@ -61,18 +79,20 @@ VN.class = function (x, y,threshold = 0,
 
 
 
-        for (i in 1:ncol(x)){
 
+      for (i in 1:ncol(x)){
 
-          for (j in 2:floor(log(length(x),4))){
-            if(is.na(VN.cor(x[,i],y,j,degree=0))){
-              cor.order=j-1
-              break}
-          }
+      #  if(is.null(cor.order)){
+      #  for (j in 1:floor(log(length(y),2))){
+      #      if(is.na(VN.dep(x[,i],y,order=j,print.map=FALSE)[1])){
+      #          cor.order=j-1
+      #          break}
+      #  }}
 
+        cor.order=1
 
+        x.star.coef[i] = VN.dep(x[,i],y,cor.order,degree=0,print.map=FALSE)[1]
 
-        x.star.coef[i] = VN.cor(x[,i],y,cor.order)
 
         if(abs(x.star.coef[i])<threshold){x.star.coef[i]=0}
 
@@ -98,197 +118,192 @@ VN.class = function (x, y,threshold = 0,
       x = rowSums(x.star.matrix[,2:(1+ncol(x))])/ncol(x)
     }}
 
-if(is.null(order)){
 
-for (k in 1:ceiling(log(length(y),2))){
+  if(is.null(order)){
 
-   order.p=k
+    for (k in 1:ceiling(log(length(y),2))){
 
-  temp_df = data.frame(x=x, y=y)
-  temp_df[,'temp_part'] = 'p'
-  temp_df[,'master_part'] = 'p'
+      order.p=k
 
-  regression.points = data.frame(matrix(ncol = 2))
-  Regression.Coefficients = data.frame(matrix(ncol=3))
+      temp_df = data.frame(x=x, y=y)
+      temp_df[,'temp_part'] = 'p'
+      temp_df[,'master_part'] = 'p'
 
-  names(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
+      regression.points = data.frame(matrix(ncol = 2))
+      Regression.Coefficients = data.frame(matrix(ncol=3))
 
-
-
- # if(order<1){return("Please Increase the Order Specification")}
-
-  ###  Partition Map based on X-values only
-  if(!is.null(type)){
-    order.p=order.p-1
-
-    for(i in 0:(order.p)){
-
-      for(item in unique(temp_df$master_part)){
-        tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
-        tmp_ybar = mean(temp_df[temp_df$master_part == item,'y'])
+      names(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
 
 
-        temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'master_part'], 1, sep = '')
-        temp_df[temp_df$x < tmp_xbar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar  & temp_df$master_part == item,'master_part'], 2, sep = '')
+      ###  Partition Map based on X-values only
+      if(!is.null(type)){
+        order.p=order.p-1
+
+        for(i in 0:(order.p)){
+
+          for(item in unique(temp_df$master_part)){
+            tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
+            tmp_ybar = mean(temp_df[temp_df$master_part == item,'y'])
 
 
 
-        ### order + 1 to account for 'p'
-        if(nchar(item)==order.p+1){
+            temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'master_part'], 1, sep = '')
+            temp_df[temp_df$x < tmp_xbar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar  & temp_df$master_part == item,'master_part'], 2, sep = '')
 
-          regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
+
+
+            ### order + 1 to account for 'p'
+            if(nchar(item)==order.p+1){
+
+              regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
+
+            }
+
+
+          }
+
+          temp_df[,'master_part'] = temp_df[, 'temp_part']
 
         }
 
 
       }
 
-      temp_df[,'master_part'] = temp_df[, 'temp_part']
-
-    }
 
 
-  }
+      x0 = unique(y[x==min(x)])
+      x.max = unique(y[x==max(x)])
+
+      if(length(x0)>1){x0 = mean(x0)}
+      if(length(x.max)>1){x.max = mean(x.max)}
 
 
+      regression.points[1,2] = x0
+      regression.points[1,1] = min(x)
 
-  x0 = unique(y[x==min(x)])
-  x.max = unique(y[x==max(x)])
-
-  if(length(x0)>1){x0 = mean(x0)}
-  if(length(x.max)>1){x.max = mean(x.max)}
-
-
-  regression.points[1,2] = x0
-  regression.points[1,1] = min(x)
-
-  regression.points[length(regression.points[,2])+1,2] = x.max
-  regression.points[length(regression.points[,1]),1] = max(x)
+      regression.points[length(regression.points[,2])+1,2] = x.max
+      regression.points[length(regression.points[,1]),1] = max(x)
 
 
-  ###Regression Equation
+      ###Regression Equation
 
-  regression.points = na.omit(regression.points[order(regression.points),])
+      regression.points = na.omit(regression.points[order(regression.points),])
 
 
-  q=length(regression.points[,1])
+      q=length(regression.points[,1])
 
 
 
-  for(i in 1:q){
+      for(i in 1:q){
 
-    rise = regression.points[i+1,2] - regression.points[i,2]
-    run = regression.points[i+1,1] - regression.points[i,1]
+        rise = regression.points[i+1,2] - regression.points[i,2]
+        run = regression.points[i+1,1] - regression.points[i,1]
 
-    Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
-    Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
-  }
-
-  Regression.Coefficients= na.omit(Regression.Coefficients)
-
-  ### Fitted Values
-  p = length((Regression.Coefficients)[,1])
-
-  ### Differences in p, q arise at times...
-  if(p!=q){break}
-
-  fitted = numeric()
-  fitted.new = numeric()
-
-  for (i in 1:p){
-
-    z=(which(x>=Regression.Coefficients[i,2] & x<Regression.Coefficients[(i),3]))
-
-    z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
-
-
-    if(is.null(point.est)){point.est.y = NULL} else{
-
-      if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]}
-
-      else{if(!is.null(point.est) && point.est<Regression.Coefficients[1,2]){
-        point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
+        Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
+        Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
       }
 
-        else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+      Regression.Coefficients= na.omit(Regression.Coefficients)
+
+      ### Fitted Values
+      p = length((Regression.Coefficients)[,1])
+
+      ### Differences in p, q arise at times...
+      if(p!=q){break}
+
+      fitted = numeric()
+      fitted.new = numeric()
+
+      for (i in 1:p){
+
+        z=(which(x>=Regression.Coefficients[i,2] & x<Regression.Coefficients[(i),3]))
+
+        z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
+
+
+        if(is.null(point.est)){point.est.y = NULL} else{
+
+          if(!is.null(point.est) && point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]}
+
+          else{if(!is.null(point.est) && point.est<Regression.Coefficients[1,2]){
+            point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
+          }
+
+            else{if(!is.null(point.est) && point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+            }
+            }
+          }
         }
-        }
+
+
+        fitted.new =  cbind(z,z.diff)
+
+
+        fitted = rbind(fitted,fitted.new)
+        fitted = fitted[order(fitted[,1]),]
+
       }
-    }
+
+      if(print.equation==TRUE){
+        print(Regression.Coefficients)
+      }
+
+      Values = (cbind(x,Fitted=fitted[,2],Actual=y,Difference=fitted[,2]-(y),
+                      Accuracy=abs(round(fitted[,2])-(y))
+      ))
+
+      MSE = mean((fitted[,2]-y)^2)
+
+      R2=(sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
+
+      R2.adj = 1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
+
+      Prediction.Accuracy=(length(y)-sum(abs(round(fitted[,2])-(y))>0))/length(y)
+
+      ###Plotting and regression equation
+      if(plot==TRUE){
+        xmin= min(c(point.est,x))
+        xmax= max(c(point.est,x))
+        ymin= min(c(point.est.y,y))
+        ymax= max(c(point.est.y,y))
+        plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
+             xlab = if(original.columns>1){"Synthetic X*"}else{"X"},
+             ylab="Y",main=paste0("Order = ",order+1))
 
 
-    fitted.new =  cbind(z,z.diff)
+        ### Plot Regression points and fitted values and legend
+        points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
+        lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
 
 
-    fitted = rbind(fitted,fitted.new)
-    fitted = fitted[order(fitted[,1]),]
+        if(!is.null(point.est)){ points(point.est,point.est.y, col='green',pch=18)
+          legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),
+                                                              paste("R2 Adjusted",format(R2.adj,digits=4)),paste("Predictors",(p-1)),
+                                                              if(original.columns>1){paste("Synthetic Point Estimate",point.est)}else{paste("Point Estimate",point.est)},
+                                                              paste("Fitted Value",format(point.est.y,digits = 6))
+          ))}
 
+        if(is.null(point.est)){
+          legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),paste("R2 Adjusted",format(R2.adj,digits=4)),paste("Predictors",(p-1))))
+        }
+
+        if(!is.null(point.est)){
+          if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
+          if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
+        }
+
+      }# plot TRUE bracket
+      preds[k]=  Prediction.Accuracy
+
+    } # k order bracket
   }
-
-  if(print.equation==TRUE){
-    print(regression.points)
-    print(Regression.Coefficients)
-  }
-
-  Values = (cbind(x,Fitted=fitted[,2],Actual=y,Difference=fitted[,2]-(y),
-                  Accuracy=abs(round(fitted[,2])-(y))
-  ))
-
-  MSE = mean((fitted[,2]-y)^2)
-
-
-
-  R=cor(fitted[,2],y)
-  R2=R^2
-
-  R2.adj = 1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
-
-  Prediction.Accuracy=(length(y)-sum(abs(round(fitted[,2])-(y))>0))/length(y)
-
-  ###Plotting and regression equation
-  if(plot==TRUE){
-    xmin= min(c(point.est,x))
-    xmax= max(c(point.est,x))
-    ymin= min(c(point.est.y,y))
-    ymax= max(c(point.est.y,y))
-    plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
-         xlab = if(original.columns>1){"Synthetic X*"}else{"X"},
-         ylab="Y",main=paste0("Order = ",order+1))
-
-
-    ### Plot Regression points and fitted values and legend
-    points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
-    lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
-
-
-    if(!is.null(point.est)){ points(point.est,point.est.y, col='green',pch=18)
-      legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),
-                                                          paste("R2 Adjusted",format(R2.adj,digits=4)),paste("Predictors",(p-1)),
-                                                          if(original.columns>1){paste("Synthetic Point Estimate",point.est)}else{paste("Point Estimate",point.est)},
-                                                          paste("Fitted Value",format(point.est.y,digits = 6))
-      ))}
-
-    if(is.null(point.est)){
-      legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),paste("R2 Adjusted",format(R2.adj,digits=4)),paste("Predictors",(p-1))))
-    }
-
-    if(!is.null(point.est)){
-      if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
-      if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
-    }
-
-  }# plot TRUE bracket
-  preds[k]=  Prediction.Accuracy
-
-} # k order bracket
-}
 
   optimal.order = which.max(na.omit(preds))
 
 
   if(!is.null(order)){order = order} else {order=optimal.order}
-  #order=optimal.order
+
 
   temp_df = data.frame(x=x, y=y)
   temp_df[,'temp_part'] = 'p'
@@ -299,9 +314,6 @@ for (k in 1:ceiling(log(length(y),2))){
 
   names(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
-
-
-  # if(order<1){return("Please Increase the Order Specification")}
 
   ###  Partition Map based on X-values only
   if(!is.null(type)){
@@ -413,7 +425,6 @@ for (k in 1:ceiling(log(length(y),2))){
   }
 
   if(print.equation==TRUE){
-    #print(regression.points)
     print(Regression.Coefficients[-p,])
   }
 
@@ -421,14 +432,18 @@ for (k in 1:ceiling(log(length(y),2))){
                   Accuracy=abs(round(fitted[,2])-(y))
   ))
 
+
+
   MSE = mean((fitted[,2]-y)^2)
 
+  Predictions = fitted[,2]
 
   R2=(sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
 
   R2.adj = 1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
 
   Prediction.Accuracy=(length(y)-sum(abs(round(fitted[,2])-(y))>0))/length(y)
+
 
   ###Plotting and regression equation
   if(plot==TRUE){
@@ -466,86 +481,35 @@ for (k in 1:ceiling(log(length(y),2))){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ### Print Values
+  ### Print Values
 
   if(print.values ==FALSE){
     if(is.null(point.est)){
-      return(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj,
+      print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj,
                Prediction.Accuracy=(length(y)-sum(abs(round(fitted[,2])-(y))>0))/length(y)
 
       ))
+      return(list("MSE"=MSE,"Predictions"=Predictions))
     }}
 
   if(print.values ==FALSE){
     if(!is.null(point.est)) {
       print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
       if(!is.null(original.columns)){if(original.columns>1){
-        return(c(Synthetic_Point=point.est, Fitted.value=point.est.y
-        ))}
-      }else{ return(c(Point=point.est, Fitted.value=point.est.y))}
+        print(c(Synthetic_Point=point.est, Fitted.value=point.est.y
+        ))
+        return(list("MSE"=MSE,"Predictions"=Predictions))}
+      }else{ print(c(Point=point.est, Fitted.value=point.est.y))
+        return(list("MSE"=MSE,"Predictions"=Predictions))}
     }}
 
   if(print.values ==TRUE){
     if(is.null(point.est)){
       print(Values)
-      return(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj,
+      print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj,
                Prediction.Accuracy=(length(y)-sum(abs(round(fitted[,2])-(y))>0))/length(y)
       ))
+      return(list("MSE"=MSE,"Predictions"=Predictions))
     }}
 
 
@@ -554,8 +518,10 @@ for (k in 1:ceiling(log(length(y),2))){
       print(Values)
       print(c("Predictors" = p-1,"R2"=R2,"R2 Adjusted"=R2.adj))
       if(!is.null(original.columns)){if(original.columns>1){
-        return(c(Synthetic_Point=point.est, Fitted.value=point.est.y))}
-      }else{ return(c(Point=point.est, Fitted.value=point.est.y))}
+        print(c(Synthetic_Point=point.est, Fitted.value=point.est.y))
+        return(list("MSE"=MSE,"Predictions"=Predictions))}
+      }else{ print(c(Point=point.est, Fitted.value=point.est.y))
+        return(list("MSE"=MSE,"Predictions"=Predictions))}
     }}
 
 

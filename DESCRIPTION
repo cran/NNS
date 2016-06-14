@@ -1,7 +1,7 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.1.9
+Version: 0.1.9.2
 Date: 2016-04-04
 Author: Fred Viole
 Maintainer: Fred Viole <viole.nawrocki@gmail.com>
@@ -10,6 +10,6 @@ License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-05-29 14:33:44 UTC; Fred Viole
+Packaged: 2016-06-14 14:47:01 UTC; Fred Viole
 Repository: CRAN
-Date/Publication: 2016-05-29 16:48:49
+Date/Publication: 2016-06-14 20:34:43
