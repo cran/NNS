@@ -10,7 +10,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{Uni.caus(x,y,3)}
+#' Uni.caus(x,y,3)
 #' @export
 
 

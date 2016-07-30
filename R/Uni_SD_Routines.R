@@ -8,7 +8,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{FSD(x,y)}
+#' FSD(x,y)
 #' @export
 
 FSD <- function(x,y){
@@ -61,7 +61,7 @@ FSD <- function(x,y){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.SSD.uni(x,y)}
+#' VN.SSD.uni(x,y)
 #' @export
 
 
@@ -116,7 +116,7 @@ VN.SSD.uni <- function(x,y){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{TSD(x,y)}
+#' TSD(x,y)
 #' @export
 
 

@@ -8,7 +8,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 #' A<-data.frame(x,y,z)
-#' \dontrun{Co.PM.cor(A)}
+#' Co.PM.cor(A)
 #' @export
 
 

@@ -28,7 +28,7 @@ Autoregressive model incorporating nonlinear regressions of component series.
 \examples{
 set.seed(123)
 x<-rnorm(100)
-\dontrun{VN.ARMA(x)}
+VN.ARMA(x)
 }
 \author{
 Fred Viole, OVVO Financial Systems

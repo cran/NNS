@@ -8,7 +8,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.SSD(x,y)}
+#' VN.SSD(x,y)
 #' @export
 
 

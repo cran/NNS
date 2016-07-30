@@ -10,7 +10,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' \dontrun{LPM.VaR(0.95,0,x)}
+#' LPM.VaR(0.95,0,x)
 #' @export
 
 LPM.VaR <- function(percentile,degree,x){
@@ -38,7 +38,7 @@ LPM.VaR <- function(percentile,degree,x){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' \dontrun{UPM.VaR(0.95,0,x)}
+#' UPM.VaR(0.95,0,x)
 #' @export
 
 UPM.VaR <- function(percentile,degree,x){
@@ -65,7 +65,7 @@ UPM.VaR <- function(percentile,degree,x){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.ANOVA.bin(x,y,0.95)}
+#' VN.ANOVA.bin(x,y,0.95)
 #' @export
 
 VN.ANOVA.bin<- function(control,treatment,confidence.interval){

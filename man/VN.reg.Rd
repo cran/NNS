@@ -28,7 +28,7 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 
 \item{return.values}{Defaults to FALSE, set to TRUE in order to return fitted values into a vector.}
 
-\item{return.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable}
+\item{return.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independent variable) for a given range of the independent variable}
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
@@ -40,17 +40,17 @@ Generates a nonlinear regression based on partial moment quadrant means.
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.reg(x,y)}
+VN.reg(x,y)
 
 ## For Multiple Regression:
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
-\dontrun{VN.reg(x,y,point.est=c(.25,.5,.75))}
+VN.reg(x,y,point.est=c(.25,.5,.75))
 
 ## To call fitted values:
-\dontrun{VN.reg(x,y,return.values=TRUE)$fitted}
+VN.reg(x,y,return.values=TRUE)$fitted
 
 ## To call partial derivative:
-\dontrun{VN.reg(x,y,return.equation=TRUE)$derivative}
+VN.reg(x,y,return.equation=TRUE)$derivative
 
 }
 \author{

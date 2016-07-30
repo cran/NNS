@@ -23,7 +23,7 @@ Returns the dependence between two variables based on higher order partial momen
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.dep(x,y)}
+VN.dep(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

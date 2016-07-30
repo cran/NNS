@@ -13,7 +13,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.ARMA.reg(x,y)}
+#' VN.ARMA.reg(x,y,order=1)
 #' @export
 
 VN.ARMA.reg = function (x, y,

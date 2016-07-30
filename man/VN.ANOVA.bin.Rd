@@ -19,6 +19,6 @@ Performs an analysis of variance (ANOVA) for two variables: control and treatmen
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.ANOVA.bin(x,y,0.95)}
+VN.ANOVA.bin(x,y,0.95)
 }
 

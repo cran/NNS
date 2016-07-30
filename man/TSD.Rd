@@ -17,7 +17,7 @@ Uni-directional test of third degree stochastic dominance using lower partial mo
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{TSD(x,y)}
+TSD(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

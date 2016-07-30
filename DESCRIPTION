@@ -1,8 +1,8 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.1.9.2
-Date: 2016-04-04
+Version: 0.1.9.4
+Date: 2016-07-29
 Author: Fred Viole
 Maintainer: Fred Viole <viole.nawrocki@gmail.com>
 Description: Nonlinear nonparametric statistics using partial moments.
@@ -10,6 +10,6 @@ License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-06-14 14:47:01 UTC; Fred Viole
+Packaged: 2016-07-30 01:35:41 UTC; Fred Viole
 Repository: CRAN
-Date/Publication: 2016-06-14 20:34:43
+Date/Publication: 2016-07-30 09:30:19

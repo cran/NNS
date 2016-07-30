@@ -19,6 +19,6 @@ Generates an upside VaR based on the Upper Partial Moment ratio
 \examples{
 set.seed(123)
 x<-rnorm(100)
-\dontrun{UPM.VaR(0.95,0,x)}
+UPM.VaR(0.95,0,x)
 }
 

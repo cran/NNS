@@ -18,7 +18,7 @@ Determines the set of stochastic dominant variables for various degrees.
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 A<-data.frame(x,y,z)
-\dontrun{VN.SD.Efficient.Set(A,1)}
+VN.SD.Efficient.Set(A,1)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -15,7 +15,7 @@ Seasonality test based on the coefficient of variance for the variable and lagge
 \examples{
 set.seed(123)
 x<-rnorm(100)
-\dontrun{VN.seas(x)}
+VN.seas(x)
 }
 \author{
 Fred Viole, OVVO Financial Systems

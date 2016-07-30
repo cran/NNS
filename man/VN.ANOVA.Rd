@@ -16,7 +16,7 @@ Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple var
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 A<-cbind(x,y)
-\dontrun{VN.ANOVA(A)}
+VN.ANOVA(A)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -37,13 +37,13 @@ Classifies data based on multiple logistic nonlinear regression (VN.reg)
 }
 \examples{
 ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
-\dontrun{VN.class(iris,5)}
+VN.class(iris,5)
 
 ## To call mean squared error
-\dontrun{VN.class(iris,5)$MSE}
+VN.class(iris,5)$MSE
 
 ## To call predicted values
-\dontrun{VN.class(iris,5)$Predictions}
+VN.class(iris,5)$Predictions
 }
 \author{
 Fred Viole, OVVO Financial Systems

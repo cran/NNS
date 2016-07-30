@@ -19,7 +19,7 @@ Creates partitions based on quadrant means, assigning observations to those quad
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{parition.map(x,y)}
+partition.map(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -19,7 +19,7 @@ Generates a VaR based on the Lower Partial Moment ratio
 \examples{
 set.seed(123)
 x<-rnorm(100)
-\dontrun{LPM.VaR(0.95,0,x)}
+LPM.VaR(0.95,0,x)
 }
 \author{
 Fred Viole, OVVO Financial Systems

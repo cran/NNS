@@ -9,7 +9,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' \dontrun{VN.seas(x)}
+#' VN.seas(x)
 #' @export
 
 

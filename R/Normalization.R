@@ -11,7 +11,7 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' A<-cbind(x,y)
-#' \dontrun{VN.norm(A, chart.type='l')}
+#' VN.norm(A)
 #' @export
 
 VN.norm <- function(A,chart.type=NULL,location = NULL) {

@@ -21,7 +21,7 @@ VN.reg function with reduced output specifically for VN.ARMA routine
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.ARMA.reg(x,y)}
+VN.ARMA.reg(x,y,order=1)
 }
 \author{
 Fred Viole, OVVO Financial Systems

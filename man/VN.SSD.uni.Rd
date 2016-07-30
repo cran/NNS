@@ -17,7 +17,7 @@ Uni-directional test of second degree stochastic dominance using lower partial m
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.SSD.uni(x,y)}
+VN.SSD.uni(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

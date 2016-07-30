@@ -8,7 +8,7 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.TSD(x,y)}
+#' VN.TSD(x,y)
 #' @export
 
 VN.TSD <- function(x,y){

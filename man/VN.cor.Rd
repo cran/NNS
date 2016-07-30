@@ -21,7 +21,7 @@ Returns the nonlinear correlation coefficient based on partial moment quadrants 
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.cor(x,y)}
+VN.cor(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

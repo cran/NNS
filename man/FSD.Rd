@@ -17,7 +17,7 @@ Uni-directional test of first degree stochastic dominance using lower partial mo
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{FSD(x,y)}
+FSD(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -12,13 +12,13 @@
 #' \url{https://github.com/OVVO-Financial/NNS/blob/Prelim/Feature_Probability}
 #' @examples
 #' ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
-#' \dontrun{Feature.probability(iris,5)}
+#' Feature.probability(iris,5)
 #'
 #' ## To call mean squared error
-#' \dontrun{Feature.probability(iris,5)$MSE}
+#' Feature.probability(iris,5)$MSE
 #'
 #' ## To call predicted values
-#' \dontrun{Feature.probability(iris,5)$Predictions}
+#' Feature.probability(iris,5)$Predictions
 #' @export
 
 
@@ -93,7 +93,7 @@ Feature.probability = function (x, y,threshold = 0) {
       }
     }
     outcome = as.data.frame(table(vote))
-    #return(length(outcome[,2]))
+
     if (length(outcome[, 2]) > 1) {
       ties <- (sum((outcome[, 2]) == max(outcome[, 2])))
     } else {

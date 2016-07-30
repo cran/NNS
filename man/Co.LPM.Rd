@@ -27,7 +27,7 @@ This function generates a multivariate co-lower partial moment for any degree or
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{Co.LPM(0,mean(x),mean(y),x,y)}
+Co.LPM(0,mean(x),mean(y),x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

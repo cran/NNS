@@ -19,7 +19,7 @@ Returns the uni-directional causality from observational data between two variab
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{Uni.caus(x,y,3)}
+Uni.caus(x,y,3)
 }
 \author{
 Fred Viole, OVVO Financial Systems

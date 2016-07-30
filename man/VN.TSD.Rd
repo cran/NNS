@@ -17,7 +17,7 @@ Bi-directional test of third degree stochastic dominance using lower partial mom
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.TSD(x,y)}
+VN.TSD(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -27,7 +27,7 @@ This function generates a multivariate co-upper partial moment for any degree or
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{Co.UPM(0,mean(x),mean(y),x,y)}
+Co.UPM(0,mean(x),mean(y),x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

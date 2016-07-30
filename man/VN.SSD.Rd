@@ -17,7 +17,7 @@ Bi-directional test of second degree stochastic dominance using lower partial mo
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-\dontrun{VN.SSD(x,y)}
+VN.SSD(x,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems
