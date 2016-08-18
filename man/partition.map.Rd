@@ -4,14 +4,18 @@
 \alias{partition.map}
 \title{Partition Map}
 \usage{
-partition.map(x, y, order = ceiling(log(length(x), 4)))
+partition.map(x, y, type = NULL, order = NULL, overide = FALSE)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
+\item{type}{Controls the partitioning basis.  Set to \code{type="XONLY"} for X-axis based partitioning.  Defaults to NULL for both X and Y-axis partitioning.}
+
 \item{order}{Number of partial moment quadrants to be generated.}
+
+\item{overide}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{overide=TRUE}.}
 }
 \description{
 Creates partitions based on quadrant means, assigning observations to those quadrants.  Needed for correlation, dependence, regression routines.  Default degree = 1 for area, but routines have their own conditional degree specifications built in

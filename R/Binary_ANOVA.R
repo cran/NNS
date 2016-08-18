@@ -16,18 +16,14 @@
 LPM.VaR <- function(percentile,degree,x){
 
   x.sort <- sort(x, decreasing=FALSE)
-
-
-  for (i in (1:length(x))){
+  start <- max(1,as.integer((1-percentile)*length(x)))
+  for (i in start:length(x)){
 
     if(LPM(degree,x.sort[i],x)/(LPM(degree,x.sort[i],x)+UPM(degree,x.sort[i],x))>=(1-percentile)){
 
       return((x.sort[i-1]))
 
-    }
-
-
-  }}
+    }}}
 
 #' UPM VaR
 #'
@@ -44,9 +40,8 @@ LPM.VaR <- function(percentile,degree,x){
 UPM.VaR <- function(percentile,degree,x){
 
   x.sort <- sort(x, decreasing=TRUE)
-
-
-  for (i in (1:length(x))){
+  start <- max(1,as.integer((1-percentile)*length(x)))
+    for (i in start:length(x)){
 
     if(UPM(degree,x.sort[i],x)/(LPM(degree,x.sort[i],x)+UPM(degree,x.sort[i],x))>=(1-percentile)){
 
@@ -61,14 +56,14 @@ UPM.VaR <- function(percentile,degree,x){
 #' Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.
 #' @param control The control group sample
 #' @param treatment The treatment group sample
-#' @param confidence.interval The confidence interval surrounding the control mean.
+#' @param confidence.interval The confidence interval surrounding the control mean.  Defaults to NULL.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' VN.ANOVA.bin(x,y,0.95)
 #' @export
 
-VN.ANOVA.bin<- function(control,treatment,confidence.interval){
+VN.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
 
         mean.of.means <- mean(c(mean(control),mean(treatment)))
 
@@ -85,7 +80,7 @@ VN.ANOVA.bin<- function(control,treatment,confidence.interval){
   #Certainty associated with samples
         VN.ANOVA.rho <- (0.5 - MAD.CDF)/0.5
 
-    print(c("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Continuous CDF of Control" =LPM_ratio.1,"Continuous CDF of Treatment" = LPM_ratio.2))
+    print(c("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Continuous CDF of Control" =LPM_ratio.1,"Continuous CDF of Treatment" = LPM_ratio.2, "Certainty of Same Population" = VN.ANOVA.rho))
 
   #Graphs
         boxplot(list(control,treatment), las=2, names=c("Control","Treatment"),
@@ -97,6 +92,7 @@ VN.ANOVA.bin<- function(control,treatment,confidence.interval){
         abline(v=mean.of.means,col="red",lwd=4)
             text(mean.of.means,pos=4, 2.5, "Mean of means", col = "red")
 
+if(!is.null(confidence.interval)){
         #Upper end of CDF confidence interval for control mean
             a=UPM.VaR((confidence.interval+(1-confidence.interval)/2),1,control)
             b=UPM.VaR(.5,1,control)
@@ -121,7 +117,7 @@ VN.ANOVA.bin<- function(control,treatment,confidence.interval){
         Upper.Bound.Effect=max(mean(treatment)-min(c,d),0)
 
   #Certainty Statistic and Effect Size Given Confidence Interval
-        return(c(Certainty.of.Same.Population=VN.ANOVA.rho,Lower.Bound.Effect=Lower.Bound.Effect,Upper.Bound.Effect=Upper.Bound.Effect))
-
+        return(c(Lower.Bound.Effect=Lower.Bound.Effect,Upper.Bound.Effect=Upper.Bound.Effect))
+}
 }
 

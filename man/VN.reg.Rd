@@ -7,16 +7,16 @@
 VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
   return.values = FALSE, return.equation = FALSE, plot = TRUE,
-  tol = 0.99999)
+  threshold = 0)
 }
 \arguments{
 \item{x}{Independent Variable(s)}
 
 \item{y}{Dependent Variable}
 
-\item{order}{Controls the number of partial moment quadrant means.  Defaults to smaller order to avoid overfitting}
+\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.}
 
-\item{type}{To perform logistic regression, set to type = "LOGIT".  Defualts to NULL.}
+\item{type}{To perform logistic regression, set to \code{type = "LOGIT"}.  Defualts to NULL.}
 
 \item{point.est}{Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.}
 
@@ -32,7 +32,7 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
-\item{tol}{Minimum acceptable R2 Adjusted to stop order testing.  Defaults to 0.99999.}
+\item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -42,7 +42,16 @@ set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 VN.reg(x,y)
 
-## For Multiple Regression:
+## Manual {order} selection
+VN.reg(x,y,order=2)
+
+## Maximum {order} selection
+VN.reg(x,y,order='max')
+
+## x-only paritioning
+VN.reg(x,y,type="XONLY")
+
+## For Multiple Regression based on Synthetic X*:
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
 VN.reg(x,y,point.est=c(.25,.5,.75))
 

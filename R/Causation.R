@@ -68,12 +68,14 @@ Uni.caus <- function(x,y,tau){
 
 
   ## Correlation of Normalized Variables
-  for (i in 2:floor(log(length(x),4))){
-    if(is.na(VN.cor(x.norm.to.y,y.norm.to.x,i))){
+  for (i in 1:floor(log(length(x),4))){
+    if(is.na(VN.cor(x.norm.to.y,y.norm.to.x,order=i))){
       cor.order=i-1
       break}}
 
-  rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,cor.order,
+  cor.order=1
+
+  rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,order=cor.order,
                    degree= ifelse(length(x)<100,0,1))
 
   #rho.x.y = cor(x.norm.to.y,y.norm.to.x)

@@ -14,7 +14,7 @@ VN.ARMA(variable, h = 1, Training_set = NULL, Seasonal_Factor = TRUE,
 
 \item{Training_set}{Sets the number of observations from 1:xx to monitor performance of forecast over in-sample range. Defaults to NULL to use all observations.}
 
-\item{Seasonal_Factor}{Automatically selects the best seasonal lag from the seasonality test.  Defaults to TRUE.  To use weighted average of all seasonal lags set to FALSE.}
+\item{Seasonal_Factor}{Automatically selects the best seasonal lag from the seasonality test.  Defaults to TRUE.  To use weighted average of all seasonal lags set to FALSE.  Otherwise, input integer lag to use, i.e. \code{Seasonal_Factor=12} for monthly data.}
 
 \item{Negative_Values}{If the variable can be negative, set to TRUE.  Defaults to FALSE.}
 

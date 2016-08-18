@@ -3,7 +3,6 @@
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
 #' @param A Matrix of variables.
 #' @param chart.type  Defaults to NULL.  'l' for line, 'b' for boxplot
-#' @param location Location of legend in plot.  Defaults to 'topright'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -14,10 +13,10 @@
 #' VN.norm(A)
 #' @export
 
-VN.norm <- function(A,chart.type=NULL,location = NULL) {
+VN.norm <- function(A,chart.type=NULL) {
   m  <- colMeans(A)
   RG <- m %o% (1/m)
-  scales <- colMeans(RG * abs(cor(A)))
+  scales <- colMeans(RG * abs(VN.cor(A)))
   A_Normalized <- t(t(A) * scales)
 
   n <- ncol(A)
@@ -42,10 +41,10 @@ if(!is.null(chart.type)){
   par(mfrow=c(2,1))
 
   matplot(A,type = 'l',col=rainbow(n),ylab='')
-   legend(location, inset=c(0,0),c(colnames(A)),lty=1,col=c(rainbow(n)))
+   legend('top', inset=c(0,0),c(colnames(A)),lty=1,col=c(rainbow(n)),bty='n',horiz=TRUE)
 
   matplot(A_Normalized,type = 'l',col=rainbow(n),ylab='')
-  legend(location,c(paste0(colnames(A)," Normalized")),lty=1,col=c(rainbow(n)))
+  legend('top',c(paste0(colnames(A)," Normalized")),lty=1,col=c(rainbow(n)),bty='n',horiz=TRUE)
   }}
 
   par(mfrow=c(1,1))

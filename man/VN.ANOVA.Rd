@@ -4,10 +4,12 @@
 \alias{VN.ANOVA}
 \title{VN ANOVA}
 \usage{
-VN.ANOVA(A)
+VN.ANOVA(A, pairwise = FALSE)
 }
 \arguments{
 \item{A}{Matrix of variables.}
+
+\item{pairwise}{Returns pairwise certainty tests when set to TRUE.  Defaults to FALSE.}
 }
 \description{
 Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple variables.  Returns a degree of certainty the samples belong to the same population, not a p-value.
@@ -16,7 +18,8 @@ Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple var
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 A<-cbind(x,y)
-VN.ANOVA(A)
+VN.ANOVA(A,pairwise=TRUE)
+mean(na.omit(VN.ANOVA(A,pairwise = TRUE)$x))
 }
 \author{
 Fred Viole, OVVO Financial Systems

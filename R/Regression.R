@@ -4,8 +4,8 @@
 #'
 #' @param x Independent Variable(s)
 #' @param y Dependent Variable
-#' @param order Controls the number of partial moment quadrant means.  Defaults to smaller order to avoid overfitting
-#' @param type  To perform logistic regression, set to type = "LOGIT".  Defualts to NULL.
+#' @param order Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.
+#' @param type  To perform logistic regression, set to \code{type = "LOGIT"}.  Defualts to NULL.
 #' @param point.est Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.
 #' @param location Sets the legend location within the plot
 #' @param print.values Defaults to FALSE, set to TRUE in order to print all fitted values for independent variable
@@ -13,7 +13,7 @@
 #' @param return.values Defaults to FALSE, set to TRUE in order to return fitted values into a vector.
 #' @param return.equation Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independent variable) for a given range of the independent variable
 #' @param plot  To plot regression or not.  Defaults to TRUE.
-#' @param tol  Minimum acceptable R2 Adjusted to stop order testing.  Defaults to 0.99999.
+#' @param threshold  Sets the correlation threshold for independent variables.  Defaults to 0.
 #' @keywords nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -23,7 +23,16 @@
 #' x<-rnorm(100); y<-rnorm(100)
 #' VN.reg(x,y)
 #'
-#' ## For Multiple Regression:
+#' ## Manual {order} selection
+#' VN.reg(x,y,order=2)
+#'
+#' ## Maximum {order} selection
+#' VN.reg(x,y,order='max')
+#'
+#' ## x-only paritioning
+#' VN.reg(x,y,type="XONLY")
+#'
+#' ## For Multiple Regression based on Synthetic X*:
 #' x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
 #' VN.reg(x,y,point.est=c(.25,.5,.75))
 #'
@@ -36,7 +45,7 @@
 #' @export
 
 
-VN.reg = function (x, y,
+VN.reg = function (x,y,
                    order=NULL,
                    type = NULL,
                    point.est = NULL,
@@ -46,43 +55,40 @@ VN.reg = function (x, y,
                    return.values = FALSE,
                    return.equation = FALSE,
                    plot = TRUE,
-                   tol=.99999){
+                   threshold = 0){
 
   R2s = numeric()
   original.columns = ncol(x)
   original.variable = x
-
-  if(is.null(order)){
-    for (k in 1:ceiling(log(length(y),2))){
-
-      order.p=k
+  total.cor = Co.PM.cor(cbind(x,y))
 
 
 
-      if(!is.null(ncol(original.variable))) {
+if(!is.null(ncol(original.variable))) {
         if (ncol(original.variable)==1){
           x=(original.variable)
         }else{
 
-
+          type = "XONLY"
+          x.star.dep = numeric()
           x.star.coef = numeric()
           x.star.matrix = matrix(nrow=length(y))
 
 
-
           for (i in 1:ncol(original.variable)){
+            x.star.structure = VN.dep(original.variable[,i],y,print.map = FALSE)
 
-
-            #    for (j in 1:floor(log(length(y),2))){
-            #     if(is.na(VN.dep(original.variable[,i],y,j,print.map=FALSE)[1])){
-            #       cor.order=j-1
-            #       break}
-            #   }
-
-            cor.order=1
-
-            x.star.coef[i]=  VN.dep(original.variable[,i],y,cor.order,print.map = FALSE)[1]
+            x.star.dep[i] = x.star.structure[2]
+            x.star.coef[i]=  x.star.structure[1]-total.cor
+            if(abs(x.star.coef[i])<threshold){x.star.coef[i]=0}
             x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*original.variable[,i])
+
+            if(i == ncol(x)){
+
+              print(paste0("Synthetic Independent Variable X* = (",
+                           paste(format(x.star.coef[1:i],digits = 4),paste("X",1:i,sep = ''),sep='*',collapse = "  "),")/",sum(abs(x.star.coef)>0)),quote=FALSE)
+              print("",quote=FALSE)
+            }
 
 
           }
@@ -99,96 +105,38 @@ VN.reg = function (x, y,
 
 
 
-      temp_df = data.frame(x=x, y=y)
-      temp_df[,'temp_part'] = 'p'
-      temp_df[,'master_part'] = 'p'
+  if (is.null(original.columns)){
+  dependence = VN.dep(x,y,print.map = FALSE)[2]}else{dependence=mean(x.star.dep)}
 
+  if(is.null(order)){
+      if(!is.null(original.columns)|!is.null(type)){
+        if(dependence>0.75&length(y)>=100){
+        part.map = partition.map(x,y,overide=TRUE)
+          if(!is.null(type)){part.map=partition.map(x,y,type="XONLY",overide=TRUE)}}
 
-      regression.points = data.frame(matrix(ncol = 2))
+        if(dependence<0.75|length(y)<100){
+          part.map = partition.map(x,y)
+          if(!is.null(type)){part.map=partition.map(x,y,type="XONLY")}}
+      } else {
+
+        if(dependence>0.75&length(y)>=100){
+        part.map = partition.map(x,y,overide=TRUE)
+          if(!is.null(type)){part.map=partition.map(x,y,overide=TRUE)}}
+
+        if(dependence<0.75|length(y)<100){
+        part.map = partition.map(x,y)
+          if(!is.null(type)){part.map=partition.map(x,y)}}
+      }
+
       Regression.Coefficients = data.frame(matrix(ncol=3))
 
       colnames(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
-      # if(order<1){return("Please Increase the Order Specification")}
-      if(is.null(type)){
-        order.p = order.p-1
-        for(i in 0:(order.p)){
+      regression.points=part.map$regression.points
+      naive.order =min(nchar(part.map$df[,3]))
 
-          for(item in unique(temp_df$master_part)){
-
-
-            tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
-            tmp_ybar = mean(temp_df[temp_df$master_part == item, 'y'])
-
-
-
-            temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 1, sep = '')
-            temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
-            temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
-            temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
-
-
-            ### order + 1 to account for 'p'
-            if(nchar(item)==order.p+1){
-
-              regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
-
-            }
-
-
-          }
-
-          temp_df[,'master_part'] = temp_df[, 'temp_part']
-
-        }
-      }
-
-
-      ###  FOR LOGISTIC REGRESSION
-      if(!is.null(type)){
-        order.p=order.p-1
-
-        for(i in 0:(order.p)){
-
-          for(item in unique(temp_df$master_part)){
-            tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
-            tmp_ybar = mean(temp_df[temp_df$master_part == item,'y'])
-
-
-
-            temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'master_part'], 1, sep = '')
-            temp_df[temp_df$x < tmp_xbar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar  & temp_df$master_part == item,'master_part'], 2, sep = '')
-
-
-
-            ### order + 1 to account for 'p'
-            if(nchar(item)==order.p+1){
-
-              regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
-
-            }
-
-
-          }
-
-          temp_df[,'master_part'] = temp_df[, 'temp_part']
-
-        }
-
-
-      }
-
-
-      for (j in 1:ceiling(log(length(y),2))){
-        if(is.na(VN.dep(x,y,j,print.map=FALSE)[2])){
-          dep.order=j-1
-          break}
-      }
-
-
-
-      min.range = min(na.omit(regression.points[,1]))
-      max.range = max(na.omit(regression.points[,1]))
+      min.range = min(regression.points[,1])
+      max.range = max(regression.points[,1])
 
 
       Dynamic.average.min = median(y[x<min.range])
@@ -197,12 +145,12 @@ VN.reg = function (x, y,
       ###Endpoints
       if(is.null(type)){
         if(length(x[x<min.range])>0){
-          if(VN.dep(x,y,dep.order,print.map = FALSE)[2]<.5){
+          if(dependence<.5){
             x0 = Dynamic.average.min} else {
               x0 = unique(y[x==min(x)])} }  else {x0 = unique(y[x==min(x)])}
 
         if(length(x[x>max.range])>0){
-          if(VN.dep(x,y,dep.order,print.map = FALSE)[2]<.5){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
+          if(dependence<.5){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
       }
 
       if(!is.null(type)){
@@ -214,22 +162,21 @@ VN.reg = function (x, y,
 
       }
 
-      regression.points[1,2] = x0
-      regression.points[1,1] = min(x)
-
-      regression.points[length(regression.points[,2])+1,2] = x.max
-      regression.points[length(regression.points[,1]),1] = max(x)
+      regression.points = rbind(regression.points,c(min(x),x0))
+      regression.points = rbind(regression.points,c(max(x),x.max))
 
 
-
-      ###Regression Equation
+### Regression Equation
 
       regression.points = na.omit(regression.points[order(regression.points),])
 
 
       q=length(regression.points[,2])
+  ### Eliminate possible differences in p, q
+      if(regression.points[q,1]==regression.points[(q-1),1]){regression.points=regression.points[-q,]}
+      if(regression.points[1,1]==regression.points[2,1]){regression.points=regression.points[-1,]}
 
-
+      q=length(regression.points[,2])
 
       for(i in 1:q){
 
@@ -242,11 +189,8 @@ VN.reg = function (x, y,
 
       Regression.Coefficients= na.omit(Regression.Coefficients)
 
-      ### Fitted Values
+  ### Fitted Values
       p = length((Regression.Coefficients)[,2])
-
-      ### Differences in p, q arise at times...
-      #  if(p!=q){break}
 
       fitted = numeric()
       fitted.new = numeric()
@@ -296,9 +240,9 @@ VN.reg = function (x, y,
 
       R2=  (sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
 
-      R2.adj = 1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
+      R2.adj = R2 #1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
 
-      ###Plotting and regression equation
+  ###Plotting and regression equation
       if(plot==TRUE){
         xmin= min(c(point.est,x))
         xmax= max(c(point.est,x))
@@ -307,11 +251,11 @@ VN.reg = function (x, y,
         plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
              xlab = if(!is.null(original.columns))
              {if(original.columns>1){"Synthetic X*"}}else{"X"},
-             ylab="Y",main=paste0("Order = ",order+1))
+             ylab="Y",main=paste0("Order = ",naive.order))
 
 
 
-        ### Plot Regression points and fitted values and legend
+    ### Plot Regression points and fitted values and legend
         points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
         lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
 
@@ -334,218 +278,96 @@ VN.reg = function (x, y,
         }
 
       }# plot TRUE bracket
+      optimal.order = min(nchar(part.map$df[,3]))-1
 
-      R2s[k]=  R2.adj
+    }
 
-      if(!is.null(tol)){
-        if(R2s[k]>tol) break}
-    }}
-  optimal.order = which.max(na.omit(R2s))
+
 
 
   ###  FOR RUNNING WITH OPTIMAL ORDER
-  if(!is.null(order)){order = order} else {order=optimal.order}
+    if(!is.null(order)){
+      if(order=="max"){
+        order=ceiling(log2(length(y)))
+      }else{order = order}
 
-  if(!is.null(ncol(original.variable))) {
+      if(is.null(type)){part.map = partition.map(x,y,overide = TRUE,order = order)}else{part.map=partition.map(x,y,type="XONLY",overide = TRUE,order = order)}
 
-    if (ncol(original.variable)==1){
-      x=(original.variable)
-    }else{
 
-      x.star.coef = numeric()
-      x.star.matrix = matrix(nrow=length(y))
+      regression.points = data.frame(matrix(ncol = 2))
+      Regression.Coefficients = data.frame(matrix(ncol=3))
 
+      colnames(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
 
-      for (i in 1:ncol(original.variable)){
+      regression.points=part.map$regression.points
 
+      min.range = min(regression.points[,1])
+      max.range = max(regression.points[,1])
 
-
-        #  for (j in 1:floor(log(length(y),2))){
-        #    if(is.na(VN.cor(original.variable[,i],y,j))){
-        #      cor.order=j-1
-        #      break}
-        #  }
-
-        cor.order = 1
-
-        x.star.coef[i]=  VN.dep(original.variable[,i],y,cor.order,print.map = FALSE)[1]
-        x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*original.variable[,i])
-
-
-
-        if(i == ncol(original.variable)){
-
-          print(paste0("Synthetic Independent Variable X* = (",
-                       paste(format(x.star.coef[1:i],digits = 4),paste("X",1:i,sep = ''),sep='*',collapse = "  "),")/",ncol(original.variable)),quote=FALSE)
-          print("",quote=FALSE)
-        }
-      }
-
-
-      if(!is.null(point.est)){
-
-        point.est= sum(point.est*x.star.coef)/ncol(original.variable)
-      }
-
-
-      x = rowSums(x.star.matrix[,2:(1+ncol(original.variable))])/ncol(original.variable)
-    }}
-
-
-
-  temp_df = data.frame(x=x, y=y)
-  temp_df[,'temp_part'] = 'p'
-  temp_df[,'master_part'] = 'p'
-
-  regression.points = data.frame(matrix(ncol = 2))
-  Regression.Coefficients = data.frame(matrix(ncol=3))
-
-  colnames(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
-
-
-  if(is.null(type)){
-    order=order-1
-
-    for(i in 0:(order)){
-
-      for(item in unique(temp_df$master_part)){
-
-
-        tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
-        tmp_ybar = mean(temp_df[temp_df$master_part == item, 'y'])
-
-
-
-        temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 1, sep = '')
-        temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y >= tmp_ybar & temp_df$master_part == item,'master_part'], 2, sep = '')
-        temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 3, sep = '')
-        temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar & temp_df$y < tmp_ybar & temp_df$master_part == item,'master_part'], 4, sep = '')
-
-
-        ### order + 1 to account for 'p'
-        if(nchar(item)==order+1){
-
-          regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
-
-        }
-
-
-      }
-
-      temp_df[,'master_part'] = temp_df[, 'temp_part']
-
-    }
-  }
-
-
-  ###  FOR LOGISTIC REGRESSION
-  if(!is.null(type)){
-    order=order-1
-
-    for(i in 0:(order)){
-
-      for(item in unique(temp_df$master_part)){
-        tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
-        tmp_ybar = mean(temp_df[temp_df$master_part == item,'y'])
-
-
-
-        temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x >= tmp_xbar  & temp_df$master_part == item,'master_part'], 1, sep = '')
-        temp_df[temp_df$x < tmp_xbar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$x < tmp_xbar  & temp_df$master_part == item,'master_part'], 2, sep = '')
-
-
-
-        ### order + 1 to account for 'p'
-        if(nchar(item)==order+1){
-
-          regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
-
-        }
-
-
-      }
-
-      temp_df[,'master_part'] = temp_df[, 'temp_part']
-
-    }
-
-
-  }
-
-  for (j in 1:floor(log(length(x),2))){
-    if(is.na(VN.dep(x,y,j,print.map=FALSE)[2])){
-      dep.order=j-1
-      break}
-  }
-
-  min.range = min(na.omit(regression.points[,1]))
-  max.range = max(na.omit(regression.points[,1]))
-
-
-  Dynamic.average.min = median(y[x<min.range])
-  Dynamic.average.max = median(y[x>max.range])
+      Dynamic.average.min = median(y[x<min.range])
+      Dynamic.average.max = median(y[x>max.range])
 
   ###Endpoints
-  if(is.null(type)){
-    if(length(x[x<min.range])>0){
-      if(VN.dep(x,y,dep.order,print.map = FALSE)[2]<.5){
-        x0 = Dynamic.average.min} else {
-          x0 = unique(y[x==min(x)])} }  else {x0 = unique(y[x==min(x)])}
+      if(is.null(type)){
+          if(length(x[x<min.range])>0){
+              if(dependence<.5){
+                  x0 = Dynamic.average.min} else {
+                  x0 = unique(y[x==min(x)])} }  else {x0 = unique(y[x==min(x)])}
 
-    if(length(x[x>max.range])>0){
-      if(VN.dep(x,y,dep.order,print.map = FALSE)[2]<.5){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
+          if(length(x[x>max.range])>0){
+              if(dependence<.5){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
   }
 
-  if(!is.null(type)){
-    x0 = unique(y[x==min(x)])
-    x.max = unique(y[x==max(x)])
+      if(!is.null(type)){
+          x0 = unique(y[x==min(x)])
+          x.max = unique(y[x==max(x)])
 
-    if(length(x0)>1){x0 = mean(x0)}
-    if(length(x.max)>1){x.max = mean(x.max)}
+          if(length(x0)>1){x0 = mean(x0)}
+          if(length(x.max)>1){x.max = mean(x.max)}
 
   }
 
-  regression.points[1,2] = x0
-  regression.points[1,1] = min(x)
-
-  regression.points[length(regression.points[,2])+1,2] = x.max
-  regression.points[length(regression.points[,1]),1] = max(x)
+  regression.points = rbind(regression.points,c(min(x),x0))
+  regression.points = rbind(regression.points,c(max(x),x.max))
 
 
 
   ###Regression Equation
 
-  regression.points = na.omit(regression.points[order(regression.points),])
+    regression.points = na.omit(regression.points[order(regression.points),])
 
 
-  q=length(regression.points[,2])
+    q=length(regression.points[,2])
 
+    if(regression.points[q,1]==regression.points[q-1,1]){regression.points=regression.points[-q,]}
+    if(regression.points[2,1]==regression.points[1,1]){regression.points=regression.points[-1,]}
 
+    q=length(regression.points[,2])
 
-  for(i in 1:q){
+    for(i in 1:q){
 
-    rise = regression.points[i+1,2] - regression.points[i,2]
-    run = regression.points[i+1,1] - regression.points[i,1]
+      rise = regression.points[i+1,2] - regression.points[i,2]
+      run = regression.points[i+1,1] - regression.points[i,1]
 
-    Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
-    Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
+      Regression.Coefficients[i,] = cbind((rise/run),regression.points[i,1],regression.points[i+1,1])
+      Regression.Coefficients[q,] = cbind(1,regression.points[i,1],regression.points[i,1]+1e-10)
   }
 
-  Regression.Coefficients= na.omit(Regression.Coefficients)
+      Regression.Coefficients= na.omit(Regression.Coefficients)
 
   ### Fitted Values
-  p = length((Regression.Coefficients)[,2])
+      p = length((Regression.Coefficients)[,2])
 
 
-  fitted = numeric()
-  fitted.new = numeric()
+      fitted = numeric()
+      fitted.new = numeric()
 
   for (i in 1:p){
 
-    z=(which(x>=Regression.Coefficients[i,2] & x<Regression.Coefficients[(i),3]))
+      z=(which(x>=Regression.Coefficients[i,2] & x<Regression.Coefficients[(i),3]))
 
-    z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
+      z.diff = ((x[z]- Regression.Coefficients[i,2])*Regression.Coefficients[i,1])+regression.points[i,2]
 
 
     if(is.null(point.est)){point.est.y = NULL} else{
@@ -572,7 +394,6 @@ VN.reg = function (x, y,
   }
 
   if(print.equation==TRUE){
-    #print(regression.points)
     print(Regression.Coefficients[-p,])
   }
 
@@ -584,27 +405,27 @@ VN.reg = function (x, y,
 
   R2=  (sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
 
-  R2.adj = 1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
+  R2.adj = R2#1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
 
   ###Plotting and regression equation
-  if(plot==TRUE){
-    xmin= min(c(point.est,x))
-    xmax= max(c(point.est,x))
-    ymin= min(c(point.est.y,y))
-    ymax= max(c(point.est.y,y))
-    plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
+    if(plot==TRUE){
+      xmin= min(c(point.est,x))
+      xmax= max(c(point.est,x))
+      ymin= min(c(point.est.y,y))
+      ymax= max(c(point.est.y,y))
+      plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
          xlab = if(!is.null(original.columns))
          {if(original.columns>1){"Synthetic X*"}}else{"X"},
-         ylab="Y",main=paste0("Order = ",order+1))
+         ylab="Y",main=paste0("Order = ",order))
 
 
 
     ### Plot Regression points and fitted values and legend
-    points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
-    lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
+      points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
+      lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
 
 
-    if(!is.null(point.est)){ points(point.est,point.est.y, col='green',pch=18)
+      if(!is.null(point.est)){ points(point.est,point.est.y, col='green',pch=18)
       legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),
                                                           paste("Segments",(p-1)),
                                                           if(!is.null(original.columns))
@@ -612,36 +433,36 @@ VN.reg = function (x, y,
                                                           paste("Fitted Value",format(point.est.y,digits = 6))
       ))}
 
-    if(is.null(point.est)){
+      if(is.null(point.est)){
       legend(location, bty="n", y.intersp = 0.75,legend=c(paste("R2",format(R2,digits=4)),paste("Segments",(p-1))))
     }
 
-    if(!is.null(point.est)){
-      if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
-      if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
+      if(!is.null(point.est)){
+          if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
+          if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
     }
 
   }# plot TRUE bracket
-
+}
 
   ### Print / return Values
-
-  if(return.values == TRUE | return.equation==TRUE){
-    return(list("fitted"=cbind(x,"fitted values"=fitted[,2]), "derivative"=Regression.Coefficients[-p,]))
+    if(return.values == TRUE | return.equation==TRUE ){
+        return(list("fitted"=cbind(x,"fitted values"=fitted[,2]), "derivative"=Regression.Coefficients[-p,],"Point.est"=point.est.y,"regression.points"=regression.points,"R2"=R2))
   }
 
-  if(print.values ==FALSE){
-    if(is.null(point.est)){
-      return(c("Segments" = p-1,"R2"=R2))
+
+
+    if(print.values ==FALSE){
+        if(is.null(point.est)){
+          return(c("Segments" = p-1,"R2"=R2))
     }}
 
-  if(print.values ==FALSE){
-    if(!is.null(point.est)) {
-      print(c("Segments" = p-1,"R2"=R2))
-      if(!is.null(original.columns)){if(original.columns>1){
-        return(c(Synthetic_Point=point.est, Fitted.value=point.est.y
-        ))}
-      }else{ return(c(Point=point.est, Fitted.value=point.est.y))}
+    if(print.values ==FALSE){
+        if(!is.null(point.est)) {
+          print(c("Segments" = p-1,"R2"=R2))
+        if(!is.null(original.columns)){if(original.columns>1){
+            return(c(Synthetic_Point=point.est, Fitted.value=point.est.y
+        ))}}else{ return(c(Point=point.est, Fitted.value=point.est.y))}
     }}
 
   if(print.values ==TRUE){

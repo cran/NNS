@@ -4,16 +4,16 @@
 \alias{VN.dep}
 \title{VN Dependence}
 \usage{
-VN.dep(x, y, order = NULL, degree = 0, print.map = TRUE)
+VN.dep(x, y, order = NULL, degree = NULL, print.map = TRUE)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL to have data determine maximum partitions.  Setting a specific order will activate \code{overide=TRUE} from \link{partition.map}}
 
-\item{degree}{Defaults to 0 for smaller number of observations.}
+\item{degree}{Defaults to NULL to allow number of observations to be \code{degree} determinant.}
 
 \item{print.map}{Displays partition mapping onto plot.  Defaults to TRUE.}
 }
@@ -32,5 +32,6 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
-\keyword{dependence}
+\keyword{correlation}
+\keyword{dependence,}
 

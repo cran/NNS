@@ -9,7 +9,7 @@
 #' @keywords classifier
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Annotated code is available at
-#' \url{https://github.com/OVVO-Financial/NNS/blob/Prelim/Feature_Probability}
+#' \url{https://github.com/OVVO-Financial/NNS/blob/Prelim/R/Feature_probability.R}
 #' @examples
 #' ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
 #' Feature.probability(iris,5)

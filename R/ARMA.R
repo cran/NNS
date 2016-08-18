@@ -5,7 +5,7 @@
 #' @param variable Variable
 #' @param h Number of periods to forecast, defaults to 1.
 #' @param Training_set Sets the number of observations from 1:xx to monitor performance of forecast over in-sample range. Defaults to NULL to use all observations.
-#' @param Seasonal_Factor Automatically selects the best seasonal lag from the seasonality test.  Defaults to TRUE.  To use weighted average of all seasonal lags set to FALSE.
+#' @param Seasonal_Factor Automatically selects the best seasonal lag from the seasonality test.  Defaults to TRUE.  To use weighted average of all seasonal lags set to FALSE.  Otherwise, input integer lag to use, i.e. \code{Seasonal_Factor=12} for monthly data.
 #' @param Negative_Values If the variable can be negative, set to TRUE.  Defaults to FALSE.
 #' @param Linear To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.
 #' @param Dynamic To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.
@@ -83,6 +83,7 @@ if(Dynamic == TRUE){
   if(Seasonal_Factor==TRUE){lag = if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}}
 
   if(Seasonal_Factor==FALSE){lag<- M[,1]}
+  if(is.numeric(Seasonal_Factor)){lag<- Seasonal_Factor}
   a=length(variable)
 }
   if(length(lag)==1){par(mfrow=c(2,1))} else {par(mfrow=c(1,1))}
@@ -113,7 +114,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
    for (i in 1:length(lag)){
-    Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
+    Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE)$Point.est
       }
     }
 
@@ -180,6 +181,7 @@ if(Dynamic == TRUE){
   if(Seasonal_Factor==TRUE){lag = M[which.min(M[,2]),1]}
 
   if(Seasonal_Factor==FALSE){lag<- M[,1]}
+  if(is.numeric(Seasonal_Factor)){lag<- Seasonal_Factor}
   a=length(variable)
   }
 
@@ -218,7 +220,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
       for (i in 1:length(lag)){
-        Regression.Estimates[i]=VN.ARMA.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),order=reg.order)
+        Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE)$Point.est
         }
       }
 

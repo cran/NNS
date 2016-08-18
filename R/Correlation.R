@@ -21,52 +21,30 @@ VN.cor = function( x, y, order = NULL,
 
 
 
+  if(!missing(y)){
 
-  clpm = numeric(0)
-  cupm = numeric(0)
-  dlpm = numeric(0)
-  dupm = numeric(0)
+  return(VN.dep(x,y,print.map = FALSE)[1])
 
-  if(is.null(order)){
-    for (i in 1:floor(log(length(x),4))){
-      if(min(nchar(partition.map(x,y,i)$master_part))==i){
-        order=i-1}
-    } }
-
-  partitioned_df=partition.map(x,y,order)
-
-  prior.partitioned_df = partitioned_df
-  prior.partitioned_df[,'master_part'] = substr(partitioned_df$master_part, 1, nchar(partitioned_df$master_part)-1)
-
-  partition.lengths = numeric()
+}
 
 
-  for(item in unique(prior.partitioned_df$master_part)){
-    partition.lengths[item] = nchar(item)
+
+if(missing(y)){
+  n= ncol(x)
+  if(is.null(n)){stop("supply both 'x' and 'y' or a matrix-like 'x'")}
+  rhos = data.frame()
+
+  for(j in 0:(n-1)){
+    for(i in 1:(n-j)){
+      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = FALSE)[1]
+      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = FALSE)[1]
+    }
   }
+  colnames(rhos) = colnames(x)
+  rownames(rhos) = colnames(x)
 
-
-
-  for(item in unique(prior.partitioned_df$master_part)){
-
-    if(nchar(item) == min(partition.lengths) && min(partition.lengths)==order+0){
-
-      sub_x = prior.partitioned_df[prior.partitioned_df$master_part == item, 'x']
-      sub_y = prior.partitioned_df[prior.partitioned_df$master_part == item, 'y']
-
-
-      clpm = c(clpm, Co.LPM(degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      cupm = c(cupm, Co.UPM(degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      dlpm = c(dlpm, D.LPM(degree,degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      dupm = c(dupm, D.UPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
-
-
-    }}
-
-
-  nonlin_cor = (sum(clpm) +sum(cupm) -sum(dlpm) -sum(dupm))/(sum(clpm)+sum(cupm)+sum(dlpm)+sum(dupm))
-
-  return(nonlin_cor)
+  return(rhos)
+}
 
 
 }

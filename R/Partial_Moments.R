@@ -8,7 +8,7 @@
 #' @keywords partial moments
 #' @importFrom grDevices adjustcolor rainbow
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot
-#' @importFrom stats coef cor lm na.omit sd median complete.cases
+#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}

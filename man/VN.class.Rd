@@ -15,7 +15,7 @@ VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
 
 \item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
 
-\item{order}{Controls the number of partial moment quadrant means.  Defaults to smaller order to avoid overfitting}
+\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.}
 
 \item{point.est}{Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.}
 
@@ -33,7 +33,7 @@ VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
 Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 }
 \description{
-Classifies data based on multiple logistic nonlinear regression (VN.reg)
+Classifies data based on multiple logistic nonlinear regression \code{VN.reg}
 }
 \examples{
 ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.

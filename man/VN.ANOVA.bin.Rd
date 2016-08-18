@@ -4,14 +4,14 @@
 \alias{VN.ANOVA.bin}
 \title{VN ANOVA Binary}
 \usage{
-VN.ANOVA.bin(control, treatment, confidence.interval)
+VN.ANOVA.bin(control, treatment, confidence.interval = NULL)
 }
 \arguments{
 \item{control}{The control group sample}
 
 \item{treatment}{The treatment group sample}
 
-\item{confidence.interval}{The confidence interval surrounding the control mean.}
+\item{confidence.interval}{The confidence interval surrounding the control mean.  Defaults to NULL.}
 }
 \description{
 Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.

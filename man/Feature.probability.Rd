@@ -34,7 +34,7 @@ Fred Viole, OVVO Financial Systems
 }
 \references{
 Annotated code is available at
-\url{https://github.com/OVVO-Financial/NNS/blob/Prelim/Feature_Probability}
+\url{https://github.com/OVVO-Financial/NNS/blob/Prelim/R/Feature_probability.R}
 }
 \keyword{classifier}
 
