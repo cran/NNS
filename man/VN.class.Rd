@@ -6,7 +6,7 @@
 \usage{
 VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
-  plot = TRUE, clean.method = NULL)
+  plot = TRUE, clean.method = NULL, dep.order = NULL)
 }
 \arguments{
 \item{x}{Complete dataset in matrix form.}
@@ -28,6 +28,8 @@ VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
 \item{clean.method}{Method to handle missing or NA values.  'omit' uses \code{\link{complete.cases}} function on data while 'zero' replaces missing data with 0 value.  Defaults to NULL assuming user has cleaned data prior to analyzing.}
+
+\item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 }
 \value{
 Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.

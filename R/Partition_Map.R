@@ -65,7 +65,7 @@ partition.map = function(x, y,type=NULL,order= NULL,overide=FALSE){
   }
 
 ### X only partition
-  if(!is.null(type)){
+  if(!is.null(type)&&type!="YONLY"){
     for(i in 1:max.order){
       regression.points = data.frame(matrix(ncol = 2))
 
@@ -99,4 +99,43 @@ partition.map = function(x, y,type=NULL,order= NULL,overide=FALSE){
   }
 
 
+
+
+
+### Y only partition
+if(!is.null(type)&&type=="YONLY"){
+  for(i in 1:max.order){
+    regression.points = data.frame(matrix(ncol = 2))
+
+    for(item in unique(temp_df$master_part)){
+
+      if(nchar(item)==i && length(temp_df[temp_df$master_part == item,'y'])>=min.obs){
+
+        tmp_xbar = mean(temp_df[temp_df$master_part == item,'x'])
+        tmp_ybar = mean(temp_df[temp_df$master_part == item, 'y'])
+
+
+        temp_df[temp_df$y >= tmp_ybar  & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$y >= tmp_ybar  & temp_df$master_part == item,'master_part'], 3, sep = '')
+        temp_df[temp_df$y < tmp_ybar & temp_df$master_part == item,'temp_part'] = paste(temp_df[temp_df$y < tmp_ybar  & temp_df$master_part == item,'master_part'], 4, sep = '')
+
+
+        regression.points[item,] = cbind(tmp_xbar,tmp_ybar)
+
+      }
+    }
+
+    temp_df[,'master_part'] = temp_df[, 'temp_part']
+
+    if(min(nchar(temp_df[,'master_part'] ))<max(nchar(temp_df[,'master_part'] ))){break}
+
+  }
+
+  q=length(regression.points[,1])
+
+
+  return(list("df"=temp_df[, c('x', 'y', 'master_part')],"regression.points"=regression.points[order(regression.points[,2]),][-q,]))
 }
+
+
+}
+

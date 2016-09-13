@@ -64,7 +64,7 @@ VN.dep = function( x, y,order = NULL,
       dupm = c(dupm, D.UPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
 
 
-  }##nchar
+  }
 
   dep.rhos =  abs((clpm+cupm-dlpm-dupm) / (clpm+cupm+dlpm+dupm))
 

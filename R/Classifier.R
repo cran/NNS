@@ -12,6 +12,7 @@
 #' @param print.equation Defaults to FALSE, set to TRUE in order to return the local coefficients
 #' @param plot  To plot regression or not.  Defaults to TRUE.
 #' @param clean.method  Method to handle missing or NA values.  'omit' uses \code{\link{complete.cases}} function on data while 'zero' replaces missing data with 0 value.  Defaults to NULL assuming user has cleaned data prior to analyzing.
+#' @param dep.order Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
 #' @return Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 #' @keywords nonlinear logistic regression, classifier
 #' @author Fred Viole, OVVO Financial Systems
@@ -37,10 +38,11 @@ VN.class = function (x, y,threshold = 0,
                      print.values = FALSE,
                      print.equation = FALSE,
                      plot = TRUE,
-                     clean.method = NULL){
+                     clean.method = NULL,
+                     dep.order=NULL){
 
 
-  type = "LOGIT"
+  type = "CLASS"
 
   preds = numeric()
   x[is.na(x)] <- 0
@@ -56,14 +58,14 @@ VN.class = function (x, y,threshold = 0,
 
     ###  Clean data
     if(!is.null(clean.method)){
-        if(clean.method == 'omit'){
-              new.variable = new.variable[complete.cases(new.variable)]
-              }
+      if(clean.method == 'omit'){
+        new.variable = new.variable[complete.cases(new.variable)]
+      }
 
-        if(clean.method == 'zero'){
-              new.variable[is.na(new.variable)] <- 0
-              }
-        }
+      if(clean.method == 'zero'){
+        new.variable[is.na(new.variable)] <- 0
+      }
+    }
   }
 
   x <- new.variable[, c(-1, -(y + 1))]
@@ -82,9 +84,10 @@ VN.class = function (x, y,threshold = 0,
 
       for (i in 1:ncol(x)){
 
-        x.star.dep[i] = VN.dep(x[,i],y,print.map=FALSE)[1]
-        x.star.coef[i] = x.star.dep[i]-total.cor
+        x.star.dep[i] = VN.dep(x[,i],y,print.map=FALSE,order=dep.order)[1]
 
+        x.star.coef[i] = x.star.dep[i]-total.cor
+        if(is.na(x.star.coef[i])){return("CATEGORICAL VARIABLE, PLEASE SET dep.order=1 ")}
         if(abs(x.star.coef[i])<threshold){x.star.coef[i]=0}
 
         x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*x[,i])
@@ -94,7 +97,7 @@ VN.class = function (x, y,threshold = 0,
 
           print(paste0("Synthetic Independent Variable X* = (",
                        paste(format(x.star.coef[1:i],digits = 4),paste("X",1:i,sep = ''),sep='*',collapse = "  "),")/",sum(abs(x.star.coef)>0)),quote=FALSE)
-          print("",quote=FALSE)
+
         }
       }
 
@@ -112,7 +115,7 @@ VN.class = function (x, y,threshold = 0,
 
   if(is.null(order)){
 
-    reg.output = VN.reg(x,y,type = "XONLY",return.values = TRUE,plot = FALSE,point.est = point.est)
+    reg.output = VN.reg(x,y,type = "CLASS",return.values = TRUE,plot = FALSE,point.est = point.est)
     regression.points = reg.output$regression.points
     Regression.Coefficients= reg.output$derivative
 
@@ -123,27 +126,24 @@ VN.class = function (x, y,threshold = 0,
       point.est.y=reg.output$Point.est
     } else{point.est.y=NULL}
 
-      if(print.equation==TRUE){
-        print(Regression.Coefficients)
-      }
+    if(print.equation==TRUE){
+      print(Regression.Coefficients)
+    }
     Predictions = y.fitted
 
-      Values = (cbind(x,Fitted=y.fitted,Actual=y,Difference=y.fitted-(y),
-                      Accuracy=abs(round(y.fitted)-(y))
-      ))
+    Values = (cbind(x,Fitted=y.fitted,Actual=y,Difference=y.fitted-(y),
+                    Accuracy=abs(round(y.fitted)-(y))
+    ))
 
-      MSE = mean((y.fitted-y)^2)
+    MSE = mean((y.fitted-y)^2)
 
-      R2=(sum((y.fitted-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.fitted-mean(y))^2))
+    R2=(sum((y.fitted-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.fitted-mean(y))^2))
 
-      R2.adj = R2#1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
+    R2.adj = R2
 
-      Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
+    Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
 
-      preds=  MSE #Prediction.Accuracy
-
-
-#  naive.order = min(nchar(part.map$master_part))-1
+    preds=  MSE
   }
 
 
@@ -151,48 +151,49 @@ VN.class = function (x, y,threshold = 0,
 
   if(!is.null(order)){
     if(order=="max"){
-    order=ceiling(log2(length(y)))
+      order=ceiling(log2(length(y)))
     }else{order = order}
 
-  reg.output = VN.reg(x,y,type = "XONLY",order = order,return.values = TRUE,plot = FALSE,point.est=point.est)
+    reg.output = VN.reg(x,y,type = "CLASS",order = order,return.values = TRUE,plot = FALSE,point.est=point.est)
 
-  regression.points = reg.output$regression.points
-  Regression.Coefficients= reg.output$derivative
-  y.fitted = reg.output$fitted[,2]
-  if(!is.null(point.est)){
-    point.est.y=reg.output$Point.est
-  } else{point.est.y=NULL}
+    regression.points = reg.output$regression.points
+    Regression.Coefficients= reg.output$derivative
+    y.fitted = reg.output$fitted[,2]
+    if(!is.null(point.est)){
+      point.est.y=reg.output$Point.est
+    } else{point.est.y=NULL}
 
-  if(print.equation==TRUE){
-    print(Regression.Coefficients)
-  }
+    if(print.equation==TRUE){
+      print(Regression.Coefficients)
+    }
 
-  Values = (cbind(x,Fitted=y.fitted,Actual=y,Difference=y.fitted-(y),
-                  Accuracy=abs(round(y.fitted)-(y))
-  ))
+    Values = (cbind(x,Fitted=y.fitted,Actual=y,Difference=y.fitted-(y),
+                    Accuracy=abs(round(y.fitted)-(y))
+    ))
 
 
 
-  MSE = mean((y.fitted-y)^2)
+    MSE = mean((y.fitted-y)^2)
 
-  Predictions = y.fitted
+    Predictions = y.fitted
 
-  R2=(sum((y.fitted-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.fitted-mean(y))^2))
+    R2=(sum((y.fitted-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.fitted-mean(y))^2))
 
-  R2.adj = R2#1 - (((1-R2)*length(fitted))/(length(fitted)-p-1))
+    R2.adj = R2
 
-  Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
-    #(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
+    Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
+
   }
 
   p = length(reg.output$derivative[,2])
+
   ###Plotting and regression equation
   if(plot==TRUE){
     xmin= min(c(point.est,x))
     xmax= max(c(point.est,x))
     ymin= min(c(point.est.y,y))
     ymax= max(c(point.est.y,y))
-    plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
+    plot(x,y,xlim=c(min(x),max(x)),ylim=c(min(y),max(y)),col='steelblue',
          xlab = if(original.columns>1){"Synthetic X*"}else{"X"},
          ylab="Y",main=paste0("Order = ",order))
 
@@ -227,7 +228,7 @@ VN.class = function (x, y,threshold = 0,
   if(print.values ==FALSE){
     if(is.null(point.est)){
       print(c("Segments" = p-1,"R2"=R2,
-               Prediction.Accuracy=Prediction.Accuracy
+              Prediction.Accuracy=Prediction.Accuracy
 
       ))
       return(list("MSE"=MSE,"Predictions"=Predictions))
@@ -248,7 +249,7 @@ VN.class = function (x, y,threshold = 0,
     if(is.null(point.est)){
       print(Values)
       print(c("Segments" = p-1,"R2"=R2,
-               Prediction.Accuracy=Prediction.Accuracy
+              Prediction.Accuracy=Prediction.Accuracy
       ))
       return(list("MSE"=MSE,"Predictions"=Predictions))
     }}

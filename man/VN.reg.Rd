@@ -7,7 +7,7 @@
 VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
   return.values = FALSE, return.equation = FALSE, plot = TRUE,
-  threshold = 0)
+  residual.plot = TRUE, threshold = 0, dep.order = NULL)
 }
 \arguments{
 \item{x}{Independent Variable(s)}
@@ -32,7 +32,11 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
+\item{residual.plot}{To plot the fitted values of Y and Y.  Defaults to TRUE.}
+
 \item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
+
+\item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -51,14 +55,25 @@ VN.reg(x,y,order='max')
 ## x-only paritioning
 VN.reg(x,y,type="XONLY")
 
-## For Multiple Regression based on Synthetic X*:
+## For Multiple Regression:
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
 VN.reg(x,y,point.est=c(.25,.5,.75))
+
+## For Multiple Regression based on Synthetic X* (Dimension Reduction):
+x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
+VN.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
+
+## IRIS dataset example:
+#Dimension Reduction:
+VN.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
+#Multiple Regression:
+VN.reg(iris[,1:4],iris[,5],order=2)
 
 ## To call fitted values:
 VN.reg(x,y,return.values=TRUE)$fitted
 
-## To call partial derivative:
+## To call partial derivative (univariate regression only):
+x<-rnorm(100); y<-rnorm(100)
 VN.reg(x,y,return.equation=TRUE)$derivative
 
 }

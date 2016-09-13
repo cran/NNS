@@ -78,8 +78,6 @@ Uni.caus <- function(x,y,tau){
   rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,order=cor.order,
                    degree= ifelse(length(x)<100,0,1))
 
-  #rho.x.y = cor(x.norm.to.y,y.norm.to.x)
-  #print(rho.x.y)
   Causation.x.given.y= P.x.given.y*rho.x.y
 
 
