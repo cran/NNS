@@ -32,7 +32,7 @@ VN.class(x, y, threshold = 0, order = NULL, point.est = NULL,
 \item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 }
 \value{
-Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
+Returns two variables, mean squared error "\code{MSE}" and fitted values "\code{Fitted}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 }
 \description{
 Classifies data based on multiple logistic nonlinear regression \code{VN.reg}
@@ -44,8 +44,8 @@ VN.class(iris,5)
 ## To call mean squared error
 VN.class(iris,5)$MSE
 
-## To call predicted values
-VN.class(iris,5)$Predictions
+## To call fitted values
+VN.class(iris,5)$Fitted
 }
 \author{
 Fred Viole, OVVO Financial Systems

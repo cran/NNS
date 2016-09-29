@@ -16,6 +16,7 @@
 #' @param residual.plot To plot the fitted values of Y and Y.  Defaults to TRUE.
 #' @param threshold  Sets the correlation threshold for independent variables.  Defaults to 0.
 #' @param dep.order Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
+#' @param n.best Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to number of independent variables.
 #' @keywords nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -49,7 +50,7 @@
 #' VN.reg(iris[,1:4],iris[,5],order=2)
 #'
 #' ## To call fitted values:
-#' VN.reg(x,y,return.values=TRUE)$fitted
+#' VN.reg(x,y,return.values=TRUE)$Fitted
 #'
 #' ## To call partial derivative (univariate regression only):
 #' x<-rnorm(100); y<-rnorm(100)
@@ -70,7 +71,8 @@ VN.reg = function (x,y,
                    plot = TRUE,
                    residual.plot=TRUE,
                    threshold = 0,
-                   dep.order=NULL){
+                   dep.order=NULL,
+                   n.best=NULL){
 
   R2s = numeric()
   original.columns = ncol(x)
@@ -86,7 +88,7 @@ VN.reg = function (x,y,
       new.variable = matrix(nrow=nrow(x))
       if(is.null(type)){
         if(is.null(order)){order=1}
-        return(VN.M.reg(x,y,point.est=point.est,plot=TRUE,residual.plot=TRUE,order=order))}
+        return(VN.M.reg(x,y,point.est=point.est,plot=TRUE,residual.plot=TRUE,order=order,n.best=n.best))}
 
       else{
         if(type=="CLASS"){
@@ -142,8 +144,8 @@ VN.reg = function (x,y,
   if(is.null(order)){
     if(!is.null(original.columns)|!is.null(type)){
       if(dependence>0.75&length(y)>=100){
-        part.map = partition.map(x,y,overide=TRUE)
-        if(!is.null(type)){part.map=partition.map(x,y,type="XONLY",overide=TRUE)}}
+        part.map = partition.map(x,y,override=TRUE)
+        if(!is.null(type)){part.map=partition.map(x,y,type="XONLY",override=TRUE)}}
 
       if(dependence<0.75|length(y)<100){
         part.map = partition.map(x,y)
@@ -151,8 +153,8 @@ VN.reg = function (x,y,
     } else {
 
       if(dependence>0.75&length(y)>=100){
-        part.map = partition.map(x,y,overide=TRUE)
-        if(!is.null(type)){part.map=partition.map(x,y,overide=TRUE)}}
+        part.map = partition.map(x,y,override=TRUE)
+        if(!is.null(type)){part.map=partition.map(x,y,override=TRUE)}}
 
       if(dependence<0.75|length(y)<100){
         part.map = partition.map(x,y)
@@ -268,7 +270,7 @@ VN.reg = function (x,y,
 
     MSE = mean((fitted[,2]-y)^2)
     y.fitted=fitted[,2]
-    Predictions = y.fitted
+    Fitted.values = y.fitted
     Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
 
     R2=  (sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
@@ -324,7 +326,7 @@ VN.reg = function (x,y,
       order=ceiling(log2(length(y)))
     }else{order = order}
 
-    if(is.null(type)){part.map = partition.map(x,y,overide = TRUE,order = order)}else{part.map=partition.map(x,y,type="XONLY",overide = TRUE,order = order)}
+    if(is.null(type)){part.map = partition.map(x,y,override = TRUE,order = order)}else{part.map=partition.map(x,y,type="XONLY",override = TRUE,order = order)}
 
 
     regression.points = data.frame(matrix(ncol = 2))
@@ -436,7 +438,7 @@ VN.reg = function (x,y,
 
     MSE = mean((fitted[,2]-y)^2)
     y.fitted=fitted[,2]
-    Predictions = y.fitted
+    Fitted.values = y.fitted
     Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)
     R2=  (sum((fitted[,2]-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((fitted[,2]-mean(y))^2))
 
@@ -482,7 +484,7 @@ VN.reg = function (x,y,
 
   ### Print / return Values
   if(return.values == TRUE | return.equation==TRUE ){
-    return(list("fitted"=cbind(x,"fitted values"=fitted[,2]), "derivative"=Regression.Coefficients[-p,],"Point.est"=point.est.y,"regression.points"=regression.points,"R2"=R2))
+    return(list("Fitted"=cbind(x,"fitted values"=fitted[,2]), "derivative"=Regression.Coefficients[-p,],"Point.est"=point.est.y,"regression.points"=regression.points,"R2"=R2))
   }
 
 
@@ -525,7 +527,7 @@ VN.reg = function (x,y,
                   Prediction.Accuracy=Prediction.Accuracy
 
           ))
-          return(list("MSE"=MSE,"Predictions"=Predictions))
+          return(list("MSE"=MSE,"Fitted"=Fitted.values))
         }}
 
       if(print.values ==FALSE){
@@ -534,9 +536,9 @@ VN.reg = function (x,y,
           if(!is.null(original.columns)){if(original.columns>1){
             print(c(Synthetic_Point=point.est, Fitted.value=point.est.y
             ))
-            return(list("MSE"=MSE,"Predictions"=Predictions))}
+            return(list("MSE"=MSE,"Fitted"=Fitted.values))}
           }else{ print(c(Point=point.est, Fitted.value=point.est.y))
-            return(list("MSE"=MSE,"Predictions"=Predictions))}
+            return(list("MSE"=MSE,"Fitted"=Fitted.values))}
         }}
 
       if(print.values ==TRUE){
@@ -545,7 +547,7 @@ VN.reg = function (x,y,
           print(c("Segments" = p-1,"R2"=R2,
                   Prediction.Accuracy=Prediction.Accuracy
           ))
-          return(list("MSE"=MSE,"Predictions"=Predictions))
+          return(list("MSE"=MSE,"Fitted"=Fitted.values))
         }}
 
 
@@ -555,9 +557,9 @@ VN.reg = function (x,y,
           print(c("Segments" = p-1,"R2"=R2))
           if(!is.null(original.columns)){if(original.columns>1){
             print(c(Synthetic_Point=point.est, Fitted.value=point.est.y))
-            return(list("MSE"=MSE,"Predictions"=Predictions))}
+            return(list("MSE"=MSE,"Fitted"=Fitted.values))}
           }else{ print(c(Point=point.est, Fitted.value=point.est.y))
-            return(list("MSE"=MSE,"Predictions"=Predictions))}
+            return(list("MSE"=MSE,"Fitted"=Fitted.values))}
         }}}
 
   }

@@ -4,8 +4,8 @@
 \alias{VN.M.reg}
 \title{VN Multivariate Regression}
 \usage{
-VN.M.reg(B, y, order = 1, type = "XONLY", point.est = NULL,
-  plot = FALSE, residual.plot = TRUE)
+VN.M.reg(B, y, order = 1, n.best = NULL, type = "XONLY",
+  point.est = NULL, plot = FALSE, residual.plot = TRUE)
 }
 \arguments{
 \item{B}{Complete dataset of independent variables (IV) in matrix form.}
@@ -13,6 +13,8 @@ VN.M.reg(B, y, order = 1, type = "XONLY", point.est = NULL,
 \item{y}{Dependent variable (DV).}
 
 \item{order}{Controls the number of the \code{VN.reg}.  Defaults to \code{order=1}.}
+
+\item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
 
 \item{type}{Controls the partitioning in \code{VN.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.}
 

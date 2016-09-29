@@ -20,7 +20,7 @@
 #' @export
 
 LPM<- function(degree,target,variable)
- {sum((target - (variable[variable < target]))^degree)/length(variable)}
+ {sum((target - (variable[variable <= target]))^degree)/length(variable)}
 
 
 
@@ -43,7 +43,7 @@ LPM<- function(degree,target,variable)
 
 
 UPM<- function(degree,target,variable){
-  sum(((variable[variable >= target]) - target)^degree)/length(variable)}
+  sum(((variable[variable > target]) - target)^degree)/length(variable)}
 
 
 #' Co-Upper Partial Moment
@@ -71,7 +71,7 @@ Co.UPM<- function(degree,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if ((variable1[i]>=target1)*(variable2[i]>=target2)==1)
+    if ((variable1[i]>target1)*(variable2[i]>target2)==1)
 
       output[i]<- (((variable1[i]-target1)^degree)*((variable2[i]-target2)^degree))
   }
@@ -105,7 +105,7 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if (variable1[i]<target1 & variable2[i]<target2)
+    if (variable1[i]<=target1 & variable2[i]<=target2)
 
     output[i]<- (((target1-variable1[i])^degree)*((target2-variable2[i])^degree))
   }
@@ -141,7 +141,7 @@ D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
   {
 
 
-    if ((variable1[i]>target1)*(variable2[i]<target2)==1)
+    if ((variable1[i]>target1)*(variable2[i]<=target2)==1)
 
       output[i]<- (((variable1[i]-target1)^degree_q)*((target2-variable2[i])^degree_n))
   }
@@ -175,7 +175,7 @@ D.UPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if ((variable1[i]<target1)*(variable2[i]>target2)==1)
+    if ((variable1[i]<=target1)*(variable2[i]>target2)==1)
 
       output[i]<- (((target1-variable1[i])^degree_n)*((variable2[i]-target2)^degree_q))
   }

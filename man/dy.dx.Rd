@@ -4,7 +4,8 @@
 \alias{dy.dx}
 \title{Partial Derivative dy/dx}
 \usage{
-dy.dx(x, y, order = NULL, local.point = median(x))
+dy.dx(x, y, order = NULL, local.point = median(x), deriv.order = 1,
+  h = 0.05, n.best = NULL)
 }
 \arguments{
 \item{x}{Independent Variable}
@@ -14,6 +15,12 @@ dy.dx(x, y, order = NULL, local.point = median(x))
 \item{order}{Controls the number of partial moment quadrant means.  Defaults to NULL to allow \link{VN.reg} to determine optimal order based on R2 of regression.  \code{order='max'} generates a more accurate derivative for well specified cases.}
 
 \item{local.point}{Independent variable point to be evaluated.  Defaults to \code{median(x)}.}
+
+\item{deriv.order}{For second derivative estimate of \code{f(x)}, set \code{deriv.order=2}.  Defaults to first derivative.}
+
+\item{h}{Percentage step used for finite step method.  Defaults to \code{h=.05} representing a 5 percent step from the value of the independent variable.}
+
+\item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
 }
 \description{
 Returns the numerical partial derivate of y wrt x for a point of interest.

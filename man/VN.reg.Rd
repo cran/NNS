@@ -7,7 +7,7 @@
 VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
   location = "top", print.values = FALSE, print.equation = FALSE,
   return.values = FALSE, return.equation = FALSE, plot = TRUE,
-  residual.plot = TRUE, threshold = 0, dep.order = NULL)
+  residual.plot = TRUE, threshold = 0, dep.order = NULL, n.best = NULL)
 }
 \arguments{
 \item{x}{Independent Variable(s)}
@@ -37,6 +37,8 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 \item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
 
 \item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
+
+\item{n.best}{Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to number of independent variables.}
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -70,7 +72,7 @@ VN.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
 VN.reg(iris[,1:4],iris[,5],order=2)
 
 ## To call fitted values:
-VN.reg(x,y,return.values=TRUE)$fitted
+VN.reg(x,y,return.values=TRUE)$Fitted
 
 ## To call partial derivative (univariate regression only):
 x<-rnorm(100); y<-rnorm(100)

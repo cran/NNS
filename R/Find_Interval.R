@@ -15,9 +15,9 @@
 findInterval2 <- function(x,v) {
   n = length(v)
   if (x<=v[1])
-    return (0)
+    return (1)
   if (x>=v[n])
-    return (n)
+    return (n+1)
   i=1
   k=n
   while({j = (k-i) %/% 2 + i; !(v[j] <= x && x < v[j+1])}) {

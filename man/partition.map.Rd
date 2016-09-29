@@ -4,7 +4,7 @@
 \alias{partition.map}
 \title{Partition Map}
 \usage{
-partition.map(x, y, type = NULL, order = NULL, overide = FALSE)
+partition.map(x, y, type = NULL, order = NULL, override = FALSE)
 }
 \arguments{
 \item{x}{Variable 1}
@@ -15,7 +15,10 @@ partition.map(x, y, type = NULL, order = NULL, overide = FALSE)
 
 \item{order}{Number of partial moment quadrants to be generated.}
 
-\item{overide}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{overide=TRUE}.}
+\item{override}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{override=TRUE}.}
+}
+\value{
+Returns both a dataframe ("df") of X and Y observations with their partition assignment in the 3d column; and the regression points ("regression.points") for that given \code{order}.
 }
 \description{
 Creates partitions based on quadrant means, assigning observations to those quadrants.  Needed for correlation, dependence, regression routines.  Default degree = 1 for area, but routines have their own conditional degree specifications built in
@@ -24,6 +27,10 @@ Creates partitions based on quadrant means, assigning observations to those quad
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 partition.map(x,y)
+## Dataframe of observations and partitions
+partition.map(x,y,order=1)$df
+## Regression points
+partition.map(x,y,order=1)$regression.points
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -4,7 +4,7 @@
 \alias{Feature.probability}
 \title{Feature Probability}
 \usage{
-Feature.probability(x, y, threshold = 0)
+Feature.probability(x, y, threshold = 0, point.est = NULL)
 }
 \arguments{
 \item{x}{Complete cleaned dataset in matrix form.}
@@ -12,6 +12,8 @@ Feature.probability(x, y, threshold = 0)
 \item{y}{Column of data to be classified.}
 
 \item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
+
+\item{point.est}{IV data point(s) to be classified, in matrix form.}
 }
 \value{
 Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as Prediction Accuracy measured by percentage of exact classifications.
@@ -26,8 +28,14 @@ Feature.probability(iris,5)
 ## To call mean squared error
 Feature.probability(iris,5)$MSE
 
-## To call predicted values
-Feature.probability(iris,5)$Predictions
+## To call fitted values
+Feature.probability(iris,5)$Fitted
+
+## To generate a single predicted value
+Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$prediction
+
+## To generate multiple predicted values
+Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$prediction
 }
 \author{
 Fred Viole, OVVO Financial Systems

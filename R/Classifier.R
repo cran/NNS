@@ -13,7 +13,7 @@
 #' @param plot  To plot regression or not.  Defaults to TRUE.
 #' @param clean.method  Method to handle missing or NA values.  'omit' uses \code{\link{complete.cases}} function on data while 'zero' replaces missing data with 0 value.  Defaults to NULL assuming user has cleaned data prior to analyzing.
 #' @param dep.order Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
-#' @return Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
+#' @return Returns two variables, mean squared error "\code{MSE}" and fitted values "\code{Fitted}" as well as the number of predictors, R2, R2 Adjusted, and Prediction Accuracy measured by percentage of exact classifications.
 #' @keywords nonlinear logistic regression, classifier
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -25,8 +25,8 @@
 #' ## To call mean squared error
 #' VN.class(iris,5)$MSE
 #'
-#' ## To call predicted values
-#' VN.class(iris,5)$Predictions
+#' ## To call fitted values
+#' VN.class(iris,5)$Fitted
 #' @export
 
 
@@ -119,7 +119,7 @@ VN.class = function (x, y,threshold = 0,
     regression.points = reg.output$regression.points
     Regression.Coefficients= reg.output$derivative
 
-    y.fitted = reg.output$fitted[,2]
+    y.fitted = reg.output$Fitted[,2]
 
 
     if(!is.null(point.est)){
@@ -129,7 +129,7 @@ VN.class = function (x, y,threshold = 0,
     if(print.equation==TRUE){
       print(Regression.Coefficients)
     }
-    Predictions = y.fitted
+    Fitted.values = y.fitted
 
     Values = (cbind(x,Fitted=y.fitted,Actual=y,Difference=y.fitted-(y),
                     Accuracy=abs(round(y.fitted)-(y))
@@ -158,7 +158,7 @@ VN.class = function (x, y,threshold = 0,
 
     regression.points = reg.output$regression.points
     Regression.Coefficients= reg.output$derivative
-    y.fitted = reg.output$fitted[,2]
+    y.fitted = reg.output$Fitted[,2]
     if(!is.null(point.est)){
       point.est.y=reg.output$Point.est
     } else{point.est.y=NULL}
@@ -175,7 +175,7 @@ VN.class = function (x, y,threshold = 0,
 
     MSE = mean((y.fitted-y)^2)
 
-    Predictions = y.fitted
+    Fitted.values = y.fitted
 
     R2=(sum((y.fitted-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.fitted-mean(y))^2))
 
@@ -231,7 +231,7 @@ VN.class = function (x, y,threshold = 0,
               Prediction.Accuracy=Prediction.Accuracy
 
       ))
-      return(list("MSE"=MSE,"Predictions"=Predictions))
+      return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))
     }}
 
   if(print.values ==FALSE){
@@ -240,9 +240,9 @@ VN.class = function (x, y,threshold = 0,
       if(!is.null(original.columns)){if(original.columns>1){
         print(c(Synthetic_Point=point.est, Fitted.value=point.est.y
         ))
-        return(list("MSE"=MSE,"Predictions"=Predictions))}
+        return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))}
       }else{ print(c(Point=point.est, Fitted.value=point.est.y))
-        return(list("MSE"=MSE,"Predictions"=Predictions))}
+        return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))}
     }}
 
   if(print.values ==TRUE){
@@ -251,7 +251,7 @@ VN.class = function (x, y,threshold = 0,
       print(c("Segments" = p-1,"R2"=R2,
               Prediction.Accuracy=Prediction.Accuracy
       ))
-      return(list("MSE"=MSE,"Predictions"=Predictions))
+      return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))
     }}
 
 
@@ -261,9 +261,9 @@ VN.class = function (x, y,threshold = 0,
       print(c("Segments" = p-1,"R2"=R2))
       if(!is.null(original.columns)){if(original.columns>1){
         print(c(Synthetic_Point=point.est, Fitted.value=point.est.y))
-        return(list("MSE"=MSE,"Predictions"=Predictions))}
+        return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))}
       }else{ print(c(Point=point.est, Fitted.value=point.est.y))
-        return(list("MSE"=MSE,"Predictions"=Predictions))}
+        return(list("MSE"=MSE,"Fitted"=as.numeric(Fitted.values)))}
     }}
 
 
