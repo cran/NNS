@@ -4,8 +4,8 @@
 \alias{dy.d_}
 \title{Partial Derivative dy/d[wrt]}
 \usage{
-dy.d_(B, y, wrt, local.points, order = "max", h = 0.1, n.best = NULL,
-  mixed = FALSE)
+dy.d_(B, y, wrt, local.points, order = "max", s.t.n = 0.9, h = 0.1,
+  n.best = NULL, mixed = FALSE)
 }
 \arguments{
 \item{B}{Complete dataset of independent variables (IV) in matrix form.}
@@ -18,11 +18,16 @@ dy.d_(B, y, wrt, local.points, order = "max", h = 0.1, n.best = NULL,
 
 \item{order}{VN.reg order, defaults to 'max'.}
 
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+
 \item{h}{Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the IV.}
 
 \item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
 
 \item{mixed}{If mixed derivative is to be evaluated, set \code{mixed=TRUE}.  Defaults to FALSE.}
+}
+\value{
+Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
 }
 \description{
 Returns the numerical partial derivate of y with respect to [wrt] any independent variable for a point of interest.
@@ -30,7 +35,7 @@ Returns the numerical partial derivate of y with respect to [wrt] any independen
 \examples{
 set.seed(123);x_1<-runif(100);x_2<-runif(100); y<-x_1^2*x_2^2
 B=cbind(x_1,x_2)
-## To find derivative of y wrt 1st independent variable
+## To find derivatives of y wrt 1st independent variable
 dy.d_(B,y,wrt=1,local.points=c(.5,.5))
 }
 \author{

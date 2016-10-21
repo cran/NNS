@@ -13,6 +13,9 @@ VN.ANOVA.bin(control, treatment, confidence.interval = NULL)
 
 \item{confidence.interval}{The confidence interval surrounding the control mean.  Defaults to NULL.}
 }
+\value{
+Returns the effect size of the treatment for a specified confidence interval with \code{"Lower.Bound.Effect"} and \code{"Upperr.Bound.Effect"}.
+}
 \description{
 Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.
 }

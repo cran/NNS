@@ -11,6 +11,9 @@ VN.norm(A, chart.type = NULL)
 
 \item{chart.type}{Defaults to NULL.  'l' for line, 'b' for boxplot}
 }
+\value{
+Returns a matrix of normalized values.
+}
 \description{
 Normalizes a matrix of variables based on nonlinear scaling normalization method.
 }

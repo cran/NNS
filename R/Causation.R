@@ -124,6 +124,7 @@ Uni.caus <- function(x,y,tau){
 #' @param x Variable
 #' @param y Variable
 #' @param tau Number of lagged observations to consider
+#' @return Returns the directional causation and quantity of association.
 #' @keywords causation
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"

@@ -11,6 +11,9 @@ VN.ANOVA(A, pairwise = FALSE)
 
 \item{pairwise}{Returns pairwise certainty tests when set to TRUE.  Defaults to FALSE.}
 }
+\value{
+Returns the degree certainty the samples belong to the same population [0,1].
+}
 \description{
 Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple variables.  Returns a degree of certainty the samples belong to the same population, not a p-value.
 }

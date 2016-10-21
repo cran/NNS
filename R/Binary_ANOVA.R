@@ -15,15 +15,11 @@
 
 LPM.VaR <- function(percentile,degree,x){
 
-  x.sort <- sort(x, decreasing=FALSE)
-  start <- max(1,as.integer((1-percentile)*length(x)))
-  for (i in start:length(x)){
+  f<- function(tgt) LPM(degree,tgt,x)/(LPM(degree,tgt,x)+UPM(degree,tgt,x)) - (1-percentile)
 
-    if(LPM(degree,x.sort[i],x)/(LPM(degree,x.sort[i],x)+UPM(degree,x.sort[i],x))>=(1-percentile)){
+  return(uniroot(f,lower=min(x),upper = max(x))$root)
 
-      return((x.sort[i-1]))
-
-    }}}
+  }
 
 #' UPM VaR
 #'
@@ -39,15 +35,12 @@ LPM.VaR <- function(percentile,degree,x){
 
 UPM.VaR <- function(percentile,degree,x){
 
-  x.sort <- sort(x, decreasing=TRUE)
-  start <- max(1,as.integer((1-percentile)*length(x)))
-    for (i in start:length(x)){
 
-    if(UPM(degree,x.sort[i],x)/(LPM(degree,x.sort[i],x)+UPM(degree,x.sort[i],x))>=(1-percentile)){
+  f<- function(tgt) UPM(degree,tgt,x)/(LPM(degree,tgt,x)+UPM(degree,tgt,x)) - (1-percentile)
 
-      return((x.sort[i-1]))
+  return(uniroot(f,lower=min(x),upper = max(x))$root)
 
-    }}}
+ }
 
 
 
@@ -57,6 +50,7 @@ UPM.VaR <- function(percentile,degree,x){
 #' @param control The control group sample
 #' @param treatment The treatment group sample
 #' @param confidence.interval The confidence interval surrounding the control mean.  Defaults to NULL.
+#' @return Returns the effect size of the treatment for a specified confidence interval with \code{"Lower.Bound.Effect"} and \code{"Upperr.Bound.Effect"}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)

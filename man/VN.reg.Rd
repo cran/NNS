@@ -4,9 +4,8 @@
 \alias{VN.reg}
 \title{VN Regression}
 \usage{
-VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
-  location = "top", print.values = FALSE, print.equation = FALSE,
-  return.values = FALSE, return.equation = FALSE, plot = TRUE,
+VN.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
+  location = "top", return.values = TRUE, plot = TRUE,
   residual.plot = TRUE, threshold = 0, dep.order = NULL, n.best = NULL)
 }
 \arguments{
@@ -16,19 +15,15 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 
 \item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.}
 
-\item{type}{To perform logistic regression, set to \code{type = "LOGIT"}.  Defualts to NULL.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+
+\item{type}{To perform logistic regression, set to \code{type = "LOGIT"}.  To perform a classification, set to \code{type = "CLASS"}.  Defualts to NULL.}
 
 \item{point.est}{Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.}
 
 \item{location}{Sets the legend location within the plot}
 
-\item{print.values}{Defaults to FALSE, set to TRUE in order to print all fitted values for independent variable}
-
-\item{print.equation}{Defaults to FALSE, set to TRUE in order to print the local coefficients (partial derivative wrt independen variable) for a given range of the independent variable}
-
-\item{return.values}{Defaults to FALSE, set to TRUE in order to return fitted values into a vector.}
-
-\item{return.equation}{Defaults to FALSE, set to TRUE in order to return the local coefficients (partial derivative wrt independent variable) for a given range of the independent variable}
+\item{return.values}{Defaults to TRUE, set to FALSE in order to avoid displaing all \code{VALUE} outputs.}
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
@@ -39,6 +34,11 @@ VN.reg(x, y, order = NULL, type = NULL, point.est = NULL,
 \item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 
 \item{n.best}{Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to number of independent variables.}
+}
+\value{
+UNIVARIATE regression returns the values: \code{"Fitted"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
+
+MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -67,16 +67,16 @@ VN.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
 
 ## IRIS dataset example:
 #Dimension Reduction:
-VN.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
+VN.reg(iris[,1:4],iris[,5],type="CLASS",order=5,dep.order=1)
 #Multiple Regression:
 VN.reg(iris[,1:4],iris[,5],order=2)
 
 ## To call fitted values:
-VN.reg(x,y,return.values=TRUE)$Fitted
+VN.reg(x,y)$Fitted
 
 ## To call partial derivative (univariate regression only):
 x<-rnorm(100); y<-rnorm(100)
-VN.reg(x,y,return.equation=TRUE)$derivative
+VN.reg(x,y)$derivative
 
 }
 \author{

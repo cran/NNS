@@ -2,6 +2,7 @@
 #'
 #' Determines higher dimension correlation coefficients based on degree 0 co-partial moments.
 #' @param A data.frame of variables.
+#' @return Returns multivariate nonlinear correlation coefficient
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Beyond Correlation: Using the Elements of Variance for Conditional Means and Probabilities"  \url{http://ssrn.com/abstract=2745308}.
 #' @examples

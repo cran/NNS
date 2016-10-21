@@ -11,6 +11,9 @@ TSD(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns (1) if \code{"X TSD Y"}, else (0).
+}
 \description{
 Uni-directional test of third degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 }

@@ -1,4 +1,4 @@
-#' VN Multivariate Regression
+#' VN Multivariate Regression (INTERNAL CALL FOR \link{VN.reg})
 #'
 #' Called by \code{VN.reg} for multivariate regression analysis.
 #'
@@ -6,25 +6,25 @@
 #' @param B Complete dataset of independent variables (IV) in matrix form.
 #' @param y Dependent variable (DV).
 #' @param order Controls the number of the \code{VN.reg}.  Defaults to \code{order=1}.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param n.best Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.
 #' @param type Controls the partitioning in \code{VN.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.
 #' @param point.est Generates a fitted value of \code{y} for a vector or matrix of IV coordinates.
 #' @param plot Generates a 3d scatter plot with regression points using \link{plot3d}
 #' @param residual.plot Generates a \code{matplot} for Y.hat and Y
+#' @param location Sets the location of the legend
+#' @return Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.
 #' @keywords  multiple nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
-#' @examples
-#' set.seed(123);size=30;x_1=rnorm(size,mean=5,sd=1);x_2=rnorm(size,mean=1,sd=5); x_3=runif(size)
-#' y=x_1^2+x_2+x_3
-#' B=cbind(x_1,x_2,x_3)
-#' VN.M.reg(B,y)
-#' @export
 
-VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=FALSE,residual.plot=TRUE){
 
+VN.M.reg <- function (B,y,order=1,s.t.n=0.9,n.best=NULL,type="XONLY",point.est=NULL, plot=FALSE,residual.plot=TRUE,location=location){
+
+  if(is.null(ncol(B))){B=t(t(B))}
   n=ncol(B)
+
   if(is.null(n.best)){n.best=n}else{n.best=n.best}
   np=nrow(point.est)
 
@@ -51,7 +51,7 @@ VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=
   ###  Regression Point Matrix
   reg.points.matrix = matrix(ncol=n)
   for(i in 1:n){
-    reg.points[[i]] = VN.reg(B[,i],y,return.equation = TRUE,plot = FALSE,order=order,type = "XONLY")$regression.points[,1]
+    reg.points[[i]] = VN.reg(B[,i],y,plot = FALSE,order=order,type = "XONLY",s.t.n=s.t.n)$regression.points[,1]
   }
 
   reg.points.matrix=do.call('cbind',reg.points)
@@ -101,7 +101,7 @@ VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=
       }
   }
   REGRESSION.POINT.MATRIX=na.omit(REGRESSION.POINT.MATRIX)
-  
+
 
   ### DISTANCES
   ## Calculate distance from each point in REGRESSION.POINT.MATRIX
@@ -122,7 +122,7 @@ VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=
       total.row.sums = sum(1/row.sums)
 
       weights = (1/row.sums)/total.row.sums
-      
+
       which_nth_highest <- function(xx, n)
       {
         ux <- unique(xx)
@@ -130,11 +130,11 @@ VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=
         which(xx == sort(ux, partial = nux - n + 1)[nux - n + 1])
       }
 
+
       highest=numeric()
       for(k in 1:n.best){
-          highest[k]=which_nth_highest(weights,k)
+          highest[k]=which_nth_highest(weights,k)[1]
           }
-
 
       weights[-c(highest)]<-0
       weights.sum=sum(weights)
@@ -190,17 +190,21 @@ VN.M.reg <- function (B,y,order=1,n.best=NULL,type="XONLY",point.est=NULL, plot=
   }
 
   if(residual.plot==TRUE){
-    matplot(cbind(y,y.hat),type = 'l',ylab="Y and Y.hat")
-    legend('top',legend = c("Y (black)","NNS Fit (red)",paste("R2= ",format(R2,digits = 6),sep = '')),col=c('black','red'),bty = 'n')
+    r2.leg=bquote(bold(R^2 == .(format(R2,digits=4))))
+    matplot(cbind(y,y.hat),type = 'l',xlab="Index",ylab="Y (black) and Y.hat (red)",cex.lab=1.5,mgp=c(2,.5,0))
+
+    title(main = paste0("NNS Order = ",order),cex.main=2)
+    legend('top',legend =r2.leg,bty = 'n')
+
   }
 
   if(n==2){
     if(!is.null(point.est)){
-      return(list(R2=R2,fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier,prediction=predict.fit))} else {return(list(R2=R2,fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier))}
+      return(list(R2=R2,Fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier,Point.est=predict.fit))} else {return(list(R2=R2,Fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier))}
   }
 
   else{if(!is.null(point.est)){
-    return(list(R2=R2,fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier,prediction=predict.fit))} else {return(list(R2=R2,fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier))}
+    return(list(R2=R2,Fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier,Point.est=predict.fit))} else {return(list(R2=R2,Fitted=y.hat,rhs.partitions=reg.points.matrix, regression.points=REGRESSION.POINT.MATRIX[,(1:(n+1))] ,partition=y.identifier))}
   }
 
 

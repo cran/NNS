@@ -9,6 +9,9 @@ Co.PM.cor(A)
 \arguments{
 \item{A}{data.frame of variables.}
 }
+\value{
+Returns multivariate nonlinear correlation coefficient
+}
 \description{
 Determines higher dimension correlation coefficients based on degree 0 co-partial moments.
 }

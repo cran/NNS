@@ -11,6 +11,9 @@ FSD(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns (1) if \code{"X FSD Y"}, else (0).
+}
 \description{
 Uni-directional test of first degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 }

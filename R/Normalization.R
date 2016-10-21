@@ -3,6 +3,7 @@
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
 #' @param A Matrix of variables.
 #' @param chart.type  Defaults to NULL.  'l' for line, 'b' for boxplot
+#' @return Returns a matrix of normalized values.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}

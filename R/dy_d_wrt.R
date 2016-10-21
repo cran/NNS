@@ -6,10 +6,12 @@
 #' @param y Dependent Variable
 #' @param wrt Selects the IV to differentiate with respect to.
 #' @param order VN.reg order, defaults to 'max'.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param local.points IV points to be evaluated.
 #' @param h Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the IV.
 #' @param n.best Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.
 #' @param mixed If mixed derivative is to be evaluated, set \code{mixed=TRUE}.  Defaults to FALSE.
+#' @return Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
 #' @keywords partial derivative, nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -17,12 +19,12 @@
 #' @examples
 #' set.seed(123);x_1<-runif(100);x_2<-runif(100); y<-x_1^2*x_2^2
 #' B=cbind(x_1,x_2)
-#' ## To find derivative of y wrt 1st independent variable
+#' ## To find derivatives of y wrt 1st independent variable
 #' dy.d_(B,y,wrt=1,local.points=c(.5,.5))
 #' @export
 
 
-dy.d_<- function(B,y,wrt,local.points,order='max',h=.1,n.best=NULL,mixed=FALSE){
+dy.d_<- function(B,y,wrt,local.points,order='max',s.t.n=0.9,h=.1,n.best=NULL,mixed=FALSE){
   original.local.points.min=local.points
   original.local.points.max=local.points
 
@@ -31,7 +33,7 @@ dy.d_<- function(B,y,wrt,local.points,order='max',h=.1,n.best=NULL,mixed=FALSE){
 
   deriv.points = matrix(c(original.local.points.min,local.points,original.local.points.max),ncol=length(local.points),byrow = TRUE)
 
-  estimates = VN.reg(B,y,order=order,point.est = deriv.points,n.best=n.best)$prediction
+  estimates = VN.reg(B,y,order=order,point.est = deriv.points,n.best=n.best,s.t.n = s.t.n)$prediction
   lower=estimates[1]
   two.f.x = 2*estimates[2]
   upper=estimates[3]
@@ -47,7 +49,7 @@ dy.d_<- function(B,y,wrt,local.points,order='max',h=.1,n.best=NULL,mixed=FALSE){
                                 (1-h)*local.points),ncol=2,byrow = TRUE)
 
 
-  mixed.estimates = VN.reg(B,y,order=order,point.est=mixed.deriv.points,n.best = n.best)$prediction
+  mixed.estimates = VN.reg(B,y,order=order,point.est=mixed.deriv.points,n.best = n.best,s.t.n = s.t.n)$prediction
   mixed.first = mixed.estimates[1]
 
   mixed.second = mixed.estimates[2]

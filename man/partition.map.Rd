@@ -18,7 +18,7 @@ partition.map(x, y, type = NULL, order = NULL, override = FALSE)
 \item{override}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{override=TRUE}.}
 }
 \value{
-Returns both a dataframe ("df") of X and Y observations with their partition assignment in the 3d column; and the regression points ("regression.points") for that given \code{order}.
+Returns both a dataframe \code{"df"} of X and Y observations with their partition assignment in the 3d column; and the regression points \code{"regression.points"} for that given \code{order}.
 }
 \description{
 Creates partitions based on quadrant means, assigning observations to those quadrants.  Needed for correlation, dependence, regression routines.  Default degree = 1 for area, but routines have their own conditional degree specifications built in

@@ -11,6 +11,9 @@ VN.SSD.uni(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns (1) if \code{"X SSD Y"}, else (0).
+}
 \description{
 Uni-directional test of second degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 }

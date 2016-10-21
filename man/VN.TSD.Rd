@@ -11,6 +11,9 @@ VN.TSD(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns one of the following TSD results: \code{"X TSD Y"}, \code{"Y TSD X"}, or \code{"NO TSD EXISTS"}.
+}
 \description{
 Bi-directional test of third degree stochastic dominance using lower partial moments.
 }

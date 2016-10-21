@@ -11,6 +11,9 @@ VN.SSD(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns one of the following SSD results: \code{"X SSD Y"}, \code{"Y SSD X"}, or \code{"NO SSD EXISTS"}.
+}
 \description{
 Bi-directional test of second degree stochastic dominance using lower partial moments.
 }

@@ -3,13 +3,15 @@
 #' Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
 #'
 #' @param variable Variable
+#' @return Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' VN.seas(x)
+#' ## To call strongest period based on coefficient of variance
+#' VN.seas(x)$best.period
 #' @export
 
 
@@ -50,10 +52,10 @@ VN.seas <- function(variable){
 
 
     colnames(M) <- c("Period","Coefficient of Variance","Variable Coefficient of Variance")
-    print(M)
+
     }
 
-    if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}
+   return(list("all.periods"=M,"best.period"=if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}))
 
 
   }

@@ -11,6 +11,9 @@ VN.SD.Efficient.Set(A, degree)
 
 \item{degree}{Degree of stochastic dominance test}
 }
+\value{
+Returns set of stochastic dominant variable names.
+}
 \description{
 Determines the set of stochastic dominant variables for various degrees.
 }

@@ -7,7 +7,7 @@
 #' @return LPM of variable
 #' @keywords partial moments
 #' @importFrom grDevices adjustcolor rainbow
-#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot
+#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title
 #' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot
 #' @importFrom rgl plot3d points3d
 #' @author Fred Viole, OVVO Financial Systems
@@ -105,7 +105,7 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
   output <- vector("numeric", length(variable1))
   for (i in 1:length(variable1))
   {
-    if (variable1[i]<=target1 & variable2[i]<=target2)
+    if ((variable1[i]<=target1)*(variable2[i]<=target2)==1)
 
     output[i]<- (((target1-variable1[i])^degree)*((target2-variable2[i])^degree))
   }

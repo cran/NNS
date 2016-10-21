@@ -11,6 +11,9 @@ findInterval2(x, v)
 
 \item{v}{Vector}
 }
+\value{
+Returns interval number
+}
 \description{
 Internal Function Only.
 Removes the sort check from the base function \link{findInterval}

@@ -6,14 +6,22 @@
 #' @param y Variable 2
 #' @param order Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).
 #' @param degree Defaults to 0 for smaller number of observations
+#' @return Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.
 #' @keywords correlation
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
+#' ## Pairwise Correlation
 #' x<-rnorm(100); y<-rnorm(100)
 #' VN.cor(x,y)
+#'
+#' ## Correlation Matrix
+#' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
+#' B<-cbind(x,y,z)
+#' VN.cor(B)
+#'
 #' @export
 
 VN.cor = function( x, y, order = NULL,
@@ -23,7 +31,7 @@ VN.cor = function( x, y, order = NULL,
 
   if(!missing(y)){
 
-  return(VN.dep(x,y,print.map = FALSE)[1])
+  return(VN.dep(x,y,print.map = FALSE)$Correlation)
 
 }
 
@@ -36,8 +44,8 @@ if(missing(y)){
 
   for(j in 0:(n-1)){
     for(i in 1:(n-j)){
-      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = FALSE)[1]
-      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = FALSE)[1]
+      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = FALSE)$Correlation
+      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = FALSE)$Correlation
     }
   }
   colnames(rhos) = colnames(x)

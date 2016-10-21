@@ -9,7 +9,9 @@
 #' @param Negative_Values If the variable can be negative, set to TRUE.  Defaults to FALSE.
 #' @param Linear To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.
 #' @param Dynamic To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.
-#' @keywords Autoressive model
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @return Returns a vector of forecasts of length \code{(h)}.
+#' @keywords Autoregressive model
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -22,7 +24,7 @@
 
 
 # Autoregressive Model
-VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE){
+VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE,s.t.n=0.9){
 
   original.original.variable = variable
 
@@ -114,7 +116,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
    for (i in 1:length(lag)){
-    Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE)$Point.est
+    Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n=s.t.n)$Point.est
       }
     }
 
@@ -220,7 +222,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
       for (i in 1:length(lag)){
-        Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE)$Point.est
+        Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n = s.t.n)$Point.est
         }
       }
 
@@ -247,8 +249,9 @@ if(Dynamic == TRUE){
   }}  # ELSE {}
 
 #### PLOTTING
-  par(mfrow=c(2,1))
+
   if(sum(instances[instances>0])>0){
+   par(mfrow=c(2,1))
   plot(instances[instances>0],output[output>0],
        xlab="Period", ylab="Coefficient of Variance", main = "Seasonality Test",
        ylim = c(0,2*abs(sd(original.variable)/mean(original.variable))),
@@ -269,8 +272,9 @@ if(Dynamic == TRUE){
   points(Training_set,variable[Training_set],col="green",pch=18)
   points(Training_set+h,sum(Regression.Estimates*Weights),col="green",pch=18)
 
+  par(mfrow=c(1,1))
 
-return(Estimates)
+  return(Estimates)
 
 }
 

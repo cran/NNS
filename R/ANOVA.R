@@ -3,6 +3,7 @@
 #' Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple variables.  Returns a degree of certainty the samples belong to the same population, not a p-value.
 #' @param A Matrix of variables.
 #' @param pairwise Returns pairwise certainty tests when set to TRUE.  Defaults to FALSE.
+#' @return Returns the degree certainty the samples belong to the same population [0,1].
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}

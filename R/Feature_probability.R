@@ -5,12 +5,10 @@
 #' @param x Complete cleaned dataset in matrix form.
 #' @param y Column of data to be classified.
 #' @param threshold Sets the correlation threshold for independent variables.  Defaults to 0.
-#' @return Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as Prediction Accuracy measured by percentage of exact classifications.
 #' @param point.est IV data point(s) to be classified, in matrix form.
+#' @return Returns variables, \code{"MSE"} mean squared error, \code{"Fitted"} for only the fitted values of the DV, and  \code{"Point.est"} for predicted values.
 #' @keywords classifier
 #' @author Fred Viole, OVVO Financial Systems
-#' @references Annotated code is available at
-#' \url{https://github.com/OVVO-Financial/NNS/blob/Prelim/R/Feature_probability.R}
 #' @examples
 #' ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
 #' Feature.probability(iris,5)
@@ -22,10 +20,10 @@
 #' Feature.probability(iris,5)$Fitted
 #'
 #' ## To generate a single predicted value
-#' Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$prediction
+#' Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$Point.est
 #'
 #' ## To generate multiple predicted values
-#' Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$prediction
+#' Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$Point.est
 #' @export
 
 
@@ -48,7 +46,8 @@ Feature.probability = function (x, y,threshold = 0,point.est=NULL) {
   corr <- numeric()
   ###  Find correlations for all features and output variable
   for(i in 1:ncol(x)){
-    corr[i] = (VN.dep(x[,i],y,1,print.map = FALSE)[1])
+    corr[i] = VN.dep(x[,i],y,degree=0,print.map = FALSE)$Correlation
+   # corr[i]=cor(x[,i],y)
     if(abs(corr[i])<threshold){corr[i]=0}
   }
 
@@ -187,7 +186,7 @@ Feature.probability = function (x, y,threshold = 0,point.est=NULL) {
 
   MSE = mean((y.fitted-y)^2)
   if(!is.null(point.est)){
-    return(list("MSE"=MSE,"Fitted"=y.fitted,'prediction'=y.estimate))} else {
+    return(list("MSE"=MSE,"Fitted"=y.fitted,'Point.est'=y.estimate))} else {
       return(list("MSE"=MSE,"Fitted"=y.fitted))
     }
 }

@@ -2,10 +2,11 @@
 % Please edit documentation in R/Multivariate_Regression.R
 \name{VN.M.reg}
 \alias{VN.M.reg}
-\title{VN Multivariate Regression}
+\title{VN Multivariate Regression (INTERNAL CALL FOR \link{VN.reg})}
 \usage{
-VN.M.reg(B, y, order = 1, n.best = NULL, type = "XONLY",
-  point.est = NULL, plot = FALSE, residual.plot = TRUE)
+VN.M.reg(B, y, order = 1, s.t.n = 0.9, n.best = NULL, type = "XONLY",
+  point.est = NULL, plot = FALSE, residual.plot = TRUE,
+  location = location)
 }
 \arguments{
 \item{B}{Complete dataset of independent variables (IV) in matrix form.}
@@ -13,6 +14,8 @@ VN.M.reg(B, y, order = 1, n.best = NULL, type = "XONLY",
 \item{y}{Dependent variable (DV).}
 
 \item{order}{Controls the number of the \code{VN.reg}.  Defaults to \code{order=1}.}
+
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
 
@@ -23,15 +26,14 @@ VN.M.reg(B, y, order = 1, n.best = NULL, type = "XONLY",
 \item{plot}{Generates a 3d scatter plot with regression points using \link{plot3d}}
 
 \item{residual.plot}{Generates a \code{matplot} for Y.hat and Y}
+
+\item{location}{Sets the location of the legend}
+}
+\value{
+Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.
 }
 \description{
 Called by \code{VN.reg} for multivariate regression analysis.
-}
-\examples{
-set.seed(123);size=30;x_1=rnorm(size,mean=5,sd=1);x_2=rnorm(size,mean=1,sd=5); x_3=runif(size)
-y=x_1^2+x_2+x_3
-B=cbind(x_1,x_2,x_3)
-VN.M.reg(B,y)
 }
 \author{
 Fred Viole, OVVO Financial Systems

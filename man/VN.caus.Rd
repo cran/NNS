@@ -13,6 +13,9 @@ VN.caus(x, y, tau)
 
 \item{tau}{Number of lagged observations to consider}
 }
+\value{
+Returns the directional causation and quantity of association.
+}
 \description{
 Returns the causality from observational data between two variables
 }

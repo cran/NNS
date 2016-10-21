@@ -5,7 +5,7 @@
 \title{VN ARMA}
 \usage{
 VN.ARMA(variable, h = 1, Training_set = NULL, Seasonal_Factor = TRUE,
-  Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE)
+  Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE, s.t.n = 0.9)
 }
 \arguments{
 \item{variable}{Variable}
@@ -21,6 +21,11 @@ VN.ARMA(variable, h = 1, Training_set = NULL, Seasonal_Factor = TRUE,
 \item{Linear}{To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.}
 
 \item{Dynamic}{To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.}
+
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+}
+\value{
+Returns a vector of forecasts of length \code{(h)}.
 }
 \description{
 Autoregressive model incorporating nonlinear regressions of component series.
@@ -37,6 +42,6 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
-\keyword{Autoressive}
+\keyword{Autoregressive}
 \keyword{model}
 

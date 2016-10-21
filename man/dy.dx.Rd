@@ -4,8 +4,8 @@
 \alias{dy.dx}
 \title{Partial Derivative dy/dx}
 \usage{
-dy.dx(x, y, order = NULL, local.point = median(x), deriv.order = 1,
-  h = 0.05, n.best = NULL)
+dy.dx(x, y, order = NULL, s.t.n = 0.9, local.point = median(x),
+  deriv.order = 1, h = 0.05, n.best = NULL)
 }
 \arguments{
 \item{x}{Independent Variable}
@@ -14,6 +14,8 @@ dy.dx(x, y, order = NULL, local.point = median(x), deriv.order = 1,
 
 \item{order}{Controls the number of partial moment quadrant means.  Defaults to NULL to allow \link{VN.reg} to determine optimal order based on R2 of regression.  \code{order='max'} generates a more accurate derivative for well specified cases.}
 
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+
 \item{local.point}{Independent variable point to be evaluated.  Defaults to \code{median(x)}.}
 
 \item{deriv.order}{For second derivative estimate of \code{f(x)}, set \code{deriv.order=2}.  Defaults to first derivative.}
@@ -21,6 +23,9 @@ dy.dx(x, y, order = NULL, local.point = median(x), deriv.order = 1,
 \item{h}{Percentage step used for finite step method.  Defaults to \code{h=.05} representing a 5 percent step from the value of the independent variable.}
 
 \item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
+}
+\value{
+Returns the value of the partial derivative estimate for the given order.
 }
 \description{
 Returns the numerical partial derivate of y wrt x for a point of interest.

@@ -9,13 +9,17 @@ VN.seas(variable)
 \arguments{
 \item{variable}{Variable}
 }
+\value{
+Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.
+}
 \description{
 Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
 }
 \examples{
 set.seed(123)
 x<-rnorm(100)
-VN.seas(x)
+## To call strongest period based on coefficient of variance
+VN.seas(x)$best.period
 }
 \author{
 Fred Viole, OVVO Financial Systems

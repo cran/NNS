@@ -11,11 +11,14 @@ VN.dep(x, y, order = NULL, degree = NULL, print.map = TRUE)
 
 \item{y}{Variable 2}
 
-\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL to have data determine maximum partitions.  Setting a specific order will activate \code{overide=TRUE} from \link{partition.map}}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL to have data determine maximum partitions.  Setting a specific order will activate \code{override=TRUE} from \link{partition.map}}
 
 \item{degree}{Defaults to NULL to allow number of observations to be \code{degree} determinant.}
 
 \item{print.map}{Displays partition mapping onto plot.  Defaults to TRUE.}
+}
+\value{
+Returns the \code{"Correlation"} and \code{"Dependence"}
 }
 \description{
 Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.

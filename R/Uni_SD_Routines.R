@@ -3,6 +3,7 @@
 #' Uni-directional test of first degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
 #' @param y variable
+#' @return Returns (1) if \code{"X FSD Y"}, else (0).
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #' @examples
@@ -57,6 +58,7 @@ FSD <- function(x,y){
 #' Uni-directional test of second degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
 #' @param y variable
+#' @return Returns (1) if \code{"X SSD Y"}, else (0).
 #' @author Fred Viole, OVVO Financial Systems
 #' @examples
 #' set.seed(123)
@@ -112,6 +114,7 @@ VN.SSD.uni <- function(x,y){
 #' Uni-directional test of third degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
 #' @param y variable
+#' @return Returns (1) if \code{"X TSD Y"}, else (0).
 #' @author Fred Viole, OVVO Financial Systems
 #' @examples
 #' set.seed(123)

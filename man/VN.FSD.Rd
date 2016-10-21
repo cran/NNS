@@ -11,6 +11,9 @@ VN.FSD(x, y)
 
 \item{y}{variable}
 }
+\value{
+Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
+}
 \description{
 Bi-directional test of first degree stochastic dominance using lower partial moments.
 }

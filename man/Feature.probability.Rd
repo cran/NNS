@@ -16,7 +16,7 @@ Feature.probability(x, y, threshold = 0, point.est = NULL)
 \item{point.est}{IV data point(s) to be classified, in matrix form.}
 }
 \value{
-Returns two variables, mean squared error "\code{MSE}" and predicted values "\code{Predictions}" as well as Prediction Accuracy measured by percentage of exact classifications.
+Returns variables, \code{"MSE"} mean squared error, \code{"Fitted"} for only the fitted values of the DV, and  \code{"Point.est"} for predicted values.
 }
 \description{
 Classifies data based on feature probabilities
@@ -32,17 +32,13 @@ Feature.probability(iris,5)$MSE
 Feature.probability(iris,5)$Fitted
 
 ## To generate a single predicted value
-Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$prediction
+Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$Point.est
 
 ## To generate multiple predicted values
-Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$prediction
+Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$Point.est
 }
 \author{
 Fred Viole, OVVO Financial Systems
-}
-\references{
-Annotated code is available at
-\url{https://github.com/OVVO-Financial/NNS/blob/Prelim/R/Feature_probability.R}
 }
 \keyword{classifier}
 
