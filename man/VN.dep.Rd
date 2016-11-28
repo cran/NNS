@@ -4,18 +4,18 @@
 \alias{VN.dep}
 \title{VN Dependence}
 \usage{
-VN.dep(x, y, order = NULL, degree = NULL, print.map = TRUE)
+VN.dep(x, y, order = 2, degree = NULL, print.map = FALSE)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL to have data determine maximum partitions.  Setting a specific order will activate \code{override=TRUE} from \link{partition.map}}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.}
 
 \item{degree}{Defaults to NULL to allow number of observations to be \code{degree} determinant.}
 
-\item{print.map}{Displays partition mapping onto plot.  Defaults to TRUE.}
+\item{print.map}{Plots quadrant means.  Defaults to FALSE.}
 }
 \value{
 Returns the \code{"Correlation"} and \code{"Dependence"}

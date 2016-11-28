@@ -4,9 +4,9 @@
 #'
 #' @param x Variable 1
 #' @param y Variable 2
-#' @param order Controls the level of quadrant partitioning.  Defualts to NULL to have data determine maximum partitions.  Setting a specific order will activate \code{override=TRUE} from \link{partition.map}
+#' @param order Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.
 #' @param degree Defaults to NULL to allow number of observations to be \code{degree} determinant.
-#' @param print.map  Displays partition mapping onto plot.  Defaults to TRUE.
+#' @param print.map  Plots quadrant means.  Defaults to FALSE.
 #' @return Returns the \code{"Correlation"} and \code{"Dependence"}
 #' @keywords dependence, correlation
 #' @author Fred Viole, OVVO Financial Systems
@@ -18,13 +18,17 @@
 #' VN.dep(x,y)
 #' @export
 
-VN.dep = function( x, y,order = NULL,
+VN.dep = function( x, y,order = 2,
                    degree=NULL,
-                   print.map=TRUE){
+                   print.map=FALSE){
+
 
   if(is.null(degree)){degree=ifelse(length(x)<100,0,1)}else{degree=degree}
 
-  part.map = partition.map(x,y,order=order)
+  if(print.map==T){
+  part.map = partition.map(x,y,order=order, Voronoi=T)} else {
+    part.map = partition.map(x,y,order=order)
+  }
 
   partitioned_df = part.map$df
   reg.points = part.map$regression.points
@@ -36,34 +40,29 @@ VN.dep = function( x, y,order = NULL,
   cor.rhos = numeric(0)
   dep.rhos = numeric(0)
 
-  if(print.map==TRUE){
-    plot(x,y,col='blue',pch=20,cex.lab=2,xlab = "X",ylab="Y")
-    abline(h=mean(y),v=mean(x),lwd=3,col='azure4')
-    points(reg.points[,1],reg.points[,2],pch=15,lwd=2,col='red')}
 
 
   max.part = min(nchar(partitioned_df$quadrant))
+  max.actual = max(nchar(partitioned_df$quadrant))
   part = nchar(partitioned_df$quadrant)
 
+  if(max.part==max.actual){reduction=max.part-1}else{reduction=max.part}
 
   prior.partitioned_df=partitioned_df
 
-  prior.partitioned_df[,'quadrant']=substr(partitioned_df$quadrant,1,max.part)
+  prior.partitioned_df[,'quadrant']=substr(partitioned_df$quadrant,1,reduction)
 
 
   for(item in unique(prior.partitioned_df$quadrant)){
 
-      sub_x = prior.partitioned_df[prior.partitioned_df$quadrant == item, 'x']
-      sub_y = prior.partitioned_df[prior.partitioned_df$quadrant == item, 'y']
+    sub_x=prior.partitioned_df[prior.partitioned_df$quadrant == item,'x']
+    sub_y=prior.partitioned_df[prior.partitioned_df$quadrant == item,'y']
 
-
-      clpm = c(clpm, Co.LPM(degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      cupm = c(cupm, Co.UPM(degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      dlpm = c(dlpm, D.LPM(degree,degree, mean(sub_x),mean(sub_y),sub_x,sub_y))
-      dupm = c(dupm, D.UPM(degree,degree, mean(sub_x),mean(sub_y),sub_x, sub_y))
-
-
-  }
+      clpm = c(clpm, Co.LPM(degree,sub_x,sub_y))
+      cupm = c(cupm, Co.UPM(degree,sub_x,sub_y))
+      dlpm = c(dlpm, D.LPM(degree,degree,sub_x,sub_y))
+      dupm = c(dupm, D.UPM(degree,degree,sub_x,sub_y))
+}
 
   dep.rhos =  abs((clpm+cupm-dlpm-dupm) / (clpm+cupm+dlpm+dupm))
 

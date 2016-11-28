@@ -4,12 +4,14 @@
 \alias{NNS.term.matrix}
 \title{NNS Term Matrix}
 \usage{
-NNS.term.matrix(x, oos = NULL)
+NNS.term.matrix(x, oos = NULL, names = FALSE)
 }
 \arguments{
 \item{x}{Text A two column dataset should be used.  Concatenate text from original sources to comply with format.  Also note the possiblity of factors in \code{"DV"}, so \code{"as.numeric(as.character(...))"} is used to avoid issues.}
 
-\item{oos}{Out-of-sample text dataset to be classified}
+\item{oos}{Out-of-sample text dataset to be classified.}
+
+\item{names}{Column names for \code{"IV"}.  Defaults to FALSE.}
 }
 \value{
 Returns the text as independent variables \code{"IV"} and the classification as the dependent variable \code{"DV"}.  Out-of-sample independent variables are returned with \code{"OOS"}.
@@ -25,6 +27,17 @@ NNS.term.matrix(x)
 x<- data.frame(cbind(c("sunny","rainy"),c("windy","cloudy"),c(1,-1)))
 x<- data.frame(cbind(paste(x[,1],x[,2],sep=" "),as.numeric(as.character(x[,3]))))
 NNS.term.matrix(x)
+
+
+## NYT Example
+\dontrun{
+require(RTextTools)
+data(NYTimes)
+
+## Concatenate Columns 3 and 4 containing text, with column 5 as DV
+NYT=data.frame(cbind(paste(NYTimes[,3],NYTimes[,4],sep = " "),
+                     as.numeric(as.character(NYTimes[,5]))))
+NNS.term.matrix(NYT)}
 }
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"

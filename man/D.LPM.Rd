@@ -5,20 +5,21 @@
 \title{Divergent-Lower Partial Moment
 (Lower Right Quadrant 3)}
 \usage{
-D.LPM(degree_n, degree_q, target1, target2, variable1, variable2)
+D.LPM(degree_n, degree_q, variable1, variable2, target1 = mean(variable1),
+  target2 = mean(variable2))
 }
 \arguments{
 \item{degree_n}{Degree = 0 is frequency, degree = 1 is area}
 
 \item{degree_q}{Degree = 0 is frequency, degree = 1 is area}
 
-\item{target1}{Typically set to mean of Variable 1, but does not have to be}
-
-\item{target2}{Typically set to mean of Variable 2, but does not have to be}
-
 \item{variable1}{Variable 1}
 
 \item{variable2}{Variable 2}
+
+\item{target1}{Defaults to mean of Variable 1, but does not have to be...}
+
+\item{target2}{Defualts to mean of Variable 2, but does not have to be...}
 }
 \value{
 Divergent LPM of two variables
@@ -38,6 +39,7 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
-\keyword{moments}
+\keyword{covariance}
+\keyword{moments,}
 \keyword{partial}
 

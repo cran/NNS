@@ -4,8 +4,8 @@
 \alias{dy.dx}
 \title{Partial Derivative dy/dx}
 \usage{
-dy.dx(x, y, order = NULL, s.t.n = 0.9, local.point = median(x),
-  deriv.order = 1, h = 0.05, n.best = NULL)
+dy.dx(x, y, order = NULL, s.t.n = 0.9, eval.point = median(x),
+  deriv.order = 1, h = 0.05, noise.reduction = NULL)
 }
 \arguments{
 \item{x}{Independent Variable}
@@ -16,13 +16,13 @@ dy.dx(x, y, order = NULL, s.t.n = 0.9, local.point = median(x),
 
 \item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
-\item{local.point}{Independent variable point to be evaluated.  Defaults to \code{median(x)}.}
+\item{eval.point}{Independent variable point to be evaluated.  Defaults to \code{median(x)}.}
 
 \item{deriv.order}{For second derivative estimate of \code{f(x)}, set \code{deriv.order=2}.  Defaults to first derivative.}
 
 \item{h}{Percentage step used for finite step method.  Defaults to \code{h=.05} representing a 5 percent step from the value of the independent variable.}
 
-\item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
+\item{noise.reduction}{In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction=NULL}  (Default setting) allows for maximum possible fit in \link{VN.reg}.}
 }
 \value{
 Returns the value of the partial derivative estimate for the given order.
@@ -32,7 +32,7 @@ Returns the numerical partial derivate of y wrt x for a point of interest.
 }
 \examples{
 x<-seq(0,2*pi,pi/100); y<-sin(x)
-dy.dx(x,y,local.point=1.75)
+dy.dx(x,y,eval.point=1.75)
 }
 \author{
 Fred Viole, OVVO Financial Systems

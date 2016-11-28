@@ -3,7 +3,8 @@
 #' Generates a term matrix for text classification use in \link{VN.reg}.
 #'
 #' @param x Text A two column dataset should be used.  Concatenate text from original sources to comply with format.  Also note the possiblity of factors in \code{"DV"}, so \code{"as.numeric(as.character(...))"} is used to avoid issues.
-#' @param oos Out-of-sample text dataset to be classified
+#' @param oos Out-of-sample text dataset to be classified.
+#' @param names Column names for \code{"IV"}.  Defaults to FALSE.
 #' @return Returns the text as independent variables \code{"IV"} and the classification as the dependent variable \code{"DV"}.  Out-of-sample independent variables are returned with \code{"OOS"}.
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -15,31 +16,82 @@
 #' x<- data.frame(cbind(c("sunny","rainy"),c("windy","cloudy"),c(1,-1)))
 #' x<- data.frame(cbind(paste(x[,1],x[,2],sep=" "),as.numeric(as.character(x[,3]))))
 #' NNS.term.matrix(x)
+#'
+#'
+#' ## NYT Example
+#' \dontrun{
+#' require(RTextTools)
+#' data(NYTimes)
+#'
+#' ## Concatenate Columns 3 and 4 containing text, with column 5 as DV
+#' NYT=data.frame(cbind(paste(NYTimes[,3],NYTimes[,4],sep = " "),
+#'                      as.numeric(as.character(NYTimes[,5]))))
+#' NNS.term.matrix(NYT)}
 #' @export
 
 
-NNS.term.matrix <- function(x, oos=NULL){
+NNS.term.matrix <- function(x, oos=NULL,names=FALSE){
 
   p=length(oos)
   x=t(t(x))
   n=nrow(x)
+
+  #Remove commas, etc.
+  mgsub <- function(pattern, x, ...) {
+    result <- x
+    for (i in 1:length(pattern)) {
+      result <- gsub(pattern[i], "", result, ...)
+    }
+    result
+  }
+
+  #Use all lowercase to simplify instances
+  x[,1]=tolower(mgsub(c(",",";",":","'s"),x[,1]))
+
   unique.vocab=unique(unlist(strsplit(as.character(x[,1]), " ", fixed = TRUE)))
+
+  #Sub with a longer .csv to be called to reduce IVs
+  prepositions = c("a","in", "of", "our", "the", "is", "for","with", "we", "this", "it","but","was",
+                   "at","to","on","aboard","aside","by","means","spite","about","as", "concerning",
+                   "instead","above", "at", "considering", "into","according", "atop", "despite", "view",
+                   "across", "because", "during", "near", "like","across","after","against","ahead","along",
+                   "alongside","amid","among","apart","around","out","outside","over","owing","past","prior",
+                   "before","behind","below","beneath","beside","besides","between", "beyond","regarding",
+                   "round", "since", "through", "throughout", "till", "down", "except","from", "addition",
+                   "back","front","place","regard","inside","together","toward","under","underneath","until",
+                   "nearby","next","off","account","onto", "top","opposite","out","unto","up","within",
+                   "without")
+
+  #Remove prepositions
+  z=length(which(unique.vocab%in%c(prepositions)))
+  if(z>0){unique.vocab=unique.vocab[-which(unique.vocab%in%c(prepositions))]}else{
+    unique.vocab=unique.vocab
+  }
+
+  if(!is.null(oos)){
+    zz=length(which(oos%in%c(prepositions)))
+    if(zz>0){oos=oos[-which(oos%in%c(prepositions))]}else{
+      oos=oos
+    }}
+
+
 
   NNS.TM=data.frame()
   OOS.TM=data.frame()
 
   for(vocab in unique.vocab){
-      for(i in 1:n){
-          NNS.TM[i,which(unique.vocab==vocab)]=sum(unlist(strsplit(as.character(x[i,1]), " ", fixed = TRUE))==vocab)
-      }
-      for(i in 1:p){
-          OOS.TM[i,which(unique.vocab==vocab)]=sum(unlist(strsplit(as.character(oos[i]), " ", fixed = TRUE))==vocab)
-      }
+    for(i in 1:n){
+      NNS.TM[i,which(unique.vocab==vocab)]=sum(unlist(strsplit(as.character(x[i,1]), " ", fixed = TRUE))==vocab)
+    }
+    for(i in 1:p){
+      OOS.TM[i,which(unique.vocab==vocab)]=sum(unlist(strsplit(as.character(oos[i]), " ", fixed = TRUE))==vocab)
+    }
   }
-  NNS.TM=cbind(NNS.TM,x[,2])
-  colnames(NNS.TM)=c(unique.vocab,colnames(x)[2])
 
-  return(list("IV"=NNS.TM[,1:length(unique.vocab)],"DV"=as.numeric(as.character(NNS.TM[,length(unique.vocab)+1])),"OOS"=OOS.TM))
+  if(names==TRUE){
+  colnames(NNS.TM)=c(unique.vocab)}
+
+  return(list("IV"=NNS.TM,"DV"=as.numeric(as.character(x[,2])),"OOS"=OOS.TM))
 
 
 }

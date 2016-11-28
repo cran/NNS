@@ -1,8 +1,8 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.2.3
-Date: 2016-10-20
+Version: 0.2.4
+Date: 2016-11-27
 Author: Fred Viole
 Maintainer: Fred Viole <viole.nawrocki@gmail.com>
 Description: Nonlinear nonparametric statistics using partial moments.  Partial moments are the elements of variance and asymptotically approximate the area of f(x).  These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
@@ -11,6 +11,6 @@ LazyData: TRUE
 RoxygenNote: 5.0.1
 Depends: rgl
 NeedsCompilation: no
-Packaged: 2016-10-21 16:34:45 UTC; Fred Viole
+Packaged: 2016-11-28 01:36:15 UTC; Fred Viole
 Repository: CRAN
-Date/Publication: 2016-10-21 18:41:26
+Date/Publication: 2016-11-28 08:21:01

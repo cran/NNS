@@ -35,10 +35,9 @@ Uni.caus <- function(x,y,tau){
       x.vectors[[i+1]] = x[start:end]
     }
 
-  x.vectors.tau = do.call(cbind.data.frame, x.vectors)
+  x.vectors.tau = cbind.data.frame(x.vectors)
 
   x.norm.tau <- VN.norm(x.vectors.tau)[,1]
-
 
   ## Normalize y to y.tau
   for (i in 0:tau){
@@ -52,31 +51,23 @@ Uni.caus <- function(x,y,tau){
     y.vectors[[i+1]] = y[start:end]
   }
 
-  y.vectors.tau = do.call(cbind.data.frame, y.vectors)
+  y.vectors.tau = cbind.data.frame(y.vectors)
 
   y.norm.tau <- VN.norm(y.vectors.tau)[,1]
 
 
   ## Normalize x.norm.tau to y.norm.tau
-  x.tau.y.tau = cbind(x.norm.tau,y.norm.tau)
-  x.norm.to.y = VN.norm(x.tau.y.tau)[,1]
-  y.norm.to.x = VN.norm(x.tau.y.tau)[,2]
+  x.tau.y.tau = VN.norm(cbind(x.norm.tau,y.norm.tau))
+  x.norm.to.y = x.tau.y.tau[,1]
+  y.norm.to.x = x.tau.y.tau[,2]
 
 
-  ## Conditional Probability from Normalized Variables P(x.norm.to.y |y.norm.to.x)
+  ## Conditional Probability from Normalized Variables P(x.norm.to.y | y.norm.to.x)
   P.x.given.y = UPM(0,min(x.norm.to.y),y.norm.to.x) - UPM(0,max(x.norm.to.y),y.norm.to.x)
 
 
   ## Correlation of Normalized Variables
-  for (i in 1:floor(log(length(x),4))){
-    if(is.na(VN.cor(x.norm.to.y,y.norm.to.x,order=i))){
-      cor.order=i-1
-      break}}
-
-  cor.order=1
-
-  rho.x.y = VN.cor(x.norm.to.y,y.norm.to.x,order=cor.order,
-                   degree= ifelse(length(x)<100,0,1))
+  rho.x.y = VN.dep(x.norm.to.y,y.norm.to.x)$Dependence
 
   Causation.x.given.y= P.x.given.y*rho.x.y
 

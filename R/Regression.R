@@ -4,7 +4,7 @@
 #'
 #' @param x Independent Variable(s)
 #' @param y Dependent Variable
-#' @param order Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.
+#' @param order Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction=NULL}.
 #' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param type  To perform logistic regression, set to \code{type = "LOGIT"}.  To perform a classification, set to \code{type = "CLASS"}.  Defualts to NULL.
 #' @param point.est Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.
@@ -14,10 +14,14 @@
 #' @param residual.plot To plot the fitted values of Y and Y.  Defaults to TRUE.
 #' @param threshold  Sets the correlation threshold for independent variables.  Defaults to 0.
 #' @param dep.order Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
-#' @param n.best Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to number of independent variables.
-#' @return UNIVARIATE regression returns the values: \code{"Fitted"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
+#' @param n.best Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to 1.
+#' @param precision  Increases speed of computation at the expense of precision.  3 settings offered: \code{"LOW"} (Default setting), \code{"MED"}, and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.
+#' @param text If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.
+#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{VN.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{VN.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{VN.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
+#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.
+#' @return UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
 #'
-#' MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
+#' MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
 #' @keywords nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -33,8 +37,11 @@
 #' ## Maximum {order} selection
 #' VN.reg(x,y,order='max')
 #'
-#' ## x-only paritioning
+#' ## x-only paritioning (Univariate only)
 #' VN.reg(x,y,type="XONLY")
+#'
+#' ## Logistic Regression (Univariate only)
+#' VN.reg(x,y,type="LOGIT")
 #'
 #' ## For Multiple Regression:
 #' x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
@@ -71,12 +78,17 @@ VN.reg = function (x,y,
                    residual.plot=TRUE,
                    threshold = 0,
                    dep.order=NULL,
-                   n.best=NULL){
+                   precision="LOW",
+                   n.best=2,
+                   text=FALSE,
+                   noise.reduction=NULL,
+                   norm=NULL){
 
   R2s = numeric()
   original.columns = ncol(x)
   original.variable = x
   np = nrow(point.est)
+
 
   if(class(x)=='factor' | class(y)=='factor'){dep.order=1}
 
@@ -84,35 +96,30 @@ VN.reg = function (x,y,
     if (ncol(original.variable)==1){
       x=original.variable
     }else{
-      new.variable = matrix(nrow=nrow(x))
+
       if(is.null(type)){
-        if(is.null(order)){order=1}  ## Defaul Multivariate Order
-        return(VN.M.reg(x,y,point.est=point.est,plot=TRUE,residual.plot=TRUE,order=order,n.best=n.best))}
+        return(VN.M.reg(x,y,point.est=point.est,plot=plot,residual.plot=plot,order=order,n.best=n.best,type=type,location=location,precision=precision,text=text,noise.reduction=noise.reduction,norm = norm))}
 
       else{
         if(type=="CLASS"){
-          for (i in 1:ncol(original.variable)){
-            x = cbind(x,as.numeric(x[,i]))
-          }
-
-          y=as.numeric(y)
+          dep.order=1
+          x<- data.matrix(x)
+          y= as.numeric(y)
 
           x.star.dep = numeric()
           x.star.coef = numeric()
           x.star.matrix = matrix(nrow=length(y))
 
-          total.cor = Co.PM.cor(cbind(x,y))
+
 
           for (i in 1:ncol(original.variable)){
+
             x.star.structure = VN.dep(as.numeric(x[,i]),y,print.map = FALSE,order = dep.order)
 
             x.star.dep[i] = x.star.structure$Dependence
-            x.star.coef[i]=  x.star.structure$Correlation-total.cor
-            if(is.na(x.star.coef[i])){
-              x.star.coef[i]= cor(as.numeric(x[,i]),y)
-              #return("CATEGORICAL VARIABLE, PLEASE SET dep.order=1")
-              }
-            if(abs(x.star.coef[i])<threshold){x.star.coef[i]=0}
+            x.star.coef[i]=  x.star.structure$Correlation
+
+            if(abs(x.star.coef[i])<=threshold){x.star.coef[i]=0}
             x.star.matrix =  cbind(x.star.matrix,x.star.coef[i]*as.numeric(original.variable[,i]))
 
             if(i == ncol(original.variable)){
@@ -125,20 +132,24 @@ VN.reg = function (x,y,
 
 
           if(!is.null(point.est)){
-            if(is.null(np)){point.est= sum(point.est*x.star.coef)/sum(abs(x.star.coef)>0)}
+
+            new.point.est=numeric()
+            if(is.null(np)){new.point.est= sum(point.est*x.star.coef)/sum(abs(x.star.coef)>0)}
             else{
               for(i in 1:np){
-                  point.est[i] = sum(point.est[i,]*x.star.coef)/sum(abs(x.star.coef)>0)
+
+                new.point.est[i] = sum(point.est[i,]*x.star.coef)/sum(abs(x.star.coef)>0)
               }
-              point.est=as.vector(point.est[,1])
+
+              point.est=new.point.est
+
             }
 
           }
 
-
           x = rowSums(x.star.matrix[,2:(1+ncol(original.variable))])/ncol(original.variable)
 
-          } #"CLASS"
+        } #"CLASS"
 
       }
     }
@@ -148,45 +159,75 @@ VN.reg = function (x,y,
   if (is.null(original.columns)){
     synthetic.x.equation=NULL
 
-    dependence = VN.dep(x,y,print.map = FALSE,order=dep.order)$Dependence}else{if(type=="CLASS") dependence=mean(x.star.dep)}
+    if(length(y)<100){dep.order=1}else{dep.order=dep.order}
+    dependence = VN.dep(x,y,print.map = FALSE)$Dependence #,order=dep.order
+
+  }else{if(type=="CLASS") dependence=mean(x.star.dep)}
 
   if(is.null(order)){
 
-    if(dependence>s.t.n & length(y)>=100){
-      part.map = partition.map(x,y,override = TRUE); part.map.1=partition.map(x,y,override = TRUE,type = "XONLY")
-      if(min(nchar(part.map$df[,3]))>=min(nchar(part.map.1$df[,3]))){part.map=part.map}else{part.map=part.map.1}
-      if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,order = min(nchar(part.map$df[,3]))-1)}else {part.map=part.map}
-      if(!is.null(original.columns)|!is.null(type)){part.map=partition.map(x,y,type = "XONLY",override = TRUE)
-      if(length(part.map$regression.points[,1])==0){
-        part.map=partition.map(x,y,type="XONLY",order = min(nchar(part.map$df[,3]))-1)
-      } else {part.map=part.map}
-      }}
+    if(dependence>s.t.n ){
+      if(is.null(type)){
+        part.map = partition.map(x,y,noise.reduction=NULL)
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,noise.reduction=NULL,order = min(nchar(part.map$df[,3])))
+        }else {part.map=part.map
+        }}
 
-    if(dependence<s.t.n | length(y)<100){
-      part.map = partition.map(x,y); part.map.1=partition.map(x,y,override = TRUE,type = "XONLY")
-      if(min(nchar(part.map$df[,3]))>=min(nchar(part.map.1$df[,3]))){part.map=part.map}else{part.map=part.map.1}
-      if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,order = min(nchar(part.map$df[,3]))-1)}else {part.map=part.map}
-      if(!is.null(original.columns)|!is.null(type)){part.map=partition.map(x,y,type = "XONLY")
-      if(length(part.map$regression.points[,1])==0){
-        part.map=partition.map(x,y,type="XONLY",order = min(nchar(part.map$df[,3]))-1)
-      } else {part.map=part.map}
-      }
-    }
+      if(!is.null(type)){part.map=partition.map(x,y,type = "XONLY",noise.reduction=NULL)
 
+      if(length(part.map$regression.points[,1])==0){
+        part.map=partition.map(x,y,noise.reduction=NULL,type="XONLY",order = min(nchar(part.map$df[,3])))
+      } else {part.map=part.map
+      }}}
+
+    if(dependence<=s.t.n){
+      if(is.null(type)){
+        part.map = partition.map(x,y,noise.reduction=NULL)
+
+        max.char=max(nchar(part.map$df[,3]))
+        minimum.char=ceiling(dependence*max.char)
+
+        part.map=partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char)
+
+        if(!is.null(noise.reduction)){part.map=partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char,type = "XONLY")}
+
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,noise.reduction=noise.reduction,order = min(nchar(part.map$df[,3])))
+        }else {part.map=part.map
+        }}
+
+      if(!is.null(type)){
+        part.map = partition.map(x,y,type = "XONLY",noise.reduction=NULL)
+
+        max.char=max(nchar(part.map$df[,3]))
+        minimum.char=ceiling(dependence*max.char)
+
+        part.map = partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char,type = "XONLY")
+
+
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$df[,3])))
+        } else {part.map=part.map
+      }}}
+
+    naive.order =min(nchar(part.map$df[,3]))-1
 
     Regression.Coefficients = data.frame(matrix(ncol=3))
-
     colnames(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
 
     regression.points=part.map$regression.points
-    naive.order =min(nchar(part.map$df[,3]))
+
 
     min.range = min(regression.points[,1])
     max.range = max(regression.points[,1])
 
+    mode=function(x) {
+      if(length(x)>1){
+        d <- density(x)
+        d$x[which.max(d$y)]
+      }else{x}
+    }
 
-    Dynamic.average.min = median(y[x<min.range])
-    Dynamic.average.max = median(y[x>max.range])
+    Dynamic.average.min = mean(y[x<min.range])
+    Dynamic.average.max = mean(y[x>max.range])
 
     ###Endpoints
     if(is.null(type)){
@@ -239,6 +280,7 @@ VN.reg = function (x,y,
     fitted = numeric()
     fitted.new = numeric()
 
+    point.est.y=numeric()
 
     for (i in 1:p){
 
@@ -256,20 +298,21 @@ VN.reg = function (x,y,
       ###
       if(is.null(point.est)){point.est.y = NULL} else{
 
-        if(point.est>=Regression.Coefficients[i,2] & point.est<Regression.Coefficients[i,3]){
+        for(j in 1:length(point.est)){
+          if(point.est[j]>=Regression.Coefficients[i,2] & point.est[j]<Regression.Coefficients[i,3]){
 
-          point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]
-        }
-
-        else{if(point.est<Regression.Coefficients[1,2]){
-          point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
-        }
-
-          else{if(point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+            point.est.y[j] = (point.est[j] - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]
           }
+
+          else{if(point.est[j]<Regression.Coefficients[1,2]){
+            point.est.y[j] = ((point.est[j] - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
           }
-        }
-      }
+
+            else{if(point.est[j]>Regression.Coefficients[p,2]){point.est.y[j] = ((point.est[j] - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+            }
+            }
+          }
+        }     } #j in point.est
 
 
 
@@ -297,15 +340,16 @@ VN.reg = function (x,y,
       xmax= max(c(point.est,x))
       ymin= min(c(point.est.y,y))
       ymax= max(c(point.est.y,y))
-      plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',
+
+      plot(x,y,xlim=c(xmin,xmax),ylim=c(ymin,ymax),col='steelblue',main=paste(paste0("NNS Order = ",naive.order)
+                                                                              ,sep="\n"),
            xlab = if(!is.null(original.columns))
            {if(original.columns>1){paste0("Synthetic X* ","(Segments = ",(p-1),')')}}else{paste0("X  ","(Segments = ",(p-1),")",sep='')},
            ylab="Y",mgp=c(2.5,0.5,0),
-           main=paste(paste0("NNS Order = ",naive.order)
-                      ,sep="\n"),cex.lab=2,cex.main=2)
+           cex.lab=2,cex.main=2)
 
       ### Plot Regression points and fitted values and legend
-      points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
+      points(na.omit(regression.points[order(regression.points),]),col='red',pch=15)
       lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
 
 
@@ -319,9 +363,10 @@ VN.reg = function (x,y,
       }
 
       if(!is.null(point.est)){
-        if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p+ceiling(abs(p-q)/2),1],regression.points[p+ceiling(abs(p-q)/2),2],col="green",lty=2)
-        if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
-      }
+        for(i in 1:length(point.est)){
+          if(point.est[i]>max(x)) segments(point.est[i],point.est.y[i],regression.points[p+ceiling(abs(p-q)/2),1],regression.points[p+ceiling(abs(p-q)/2),2],col="green",lty=2)
+          if(point.est[i]<min(x)) segments(point.est[i],point.est.y[i],regression.points[1,1],regression.points[1,2],col="green",lty=2)
+        } }
 
     }# plot TRUE bracket
     optimal.order = min(nchar(part.map$df[,3]))-1
@@ -333,11 +378,30 @@ VN.reg = function (x,y,
 
   ###  FOR RUNNING WITH OPTIMAL ORDER
   if(!is.null(order)){
+
+    ###return(point.est)
     if(order=="max"){
       order=ceiling(log2(length(y)))
     }else{order = order}
 
-    if(is.null(type)){part.map = partition.map(x,y,override = TRUE,order = order)}else{part.map=partition.map(x,y,type="XONLY",override = TRUE,order = order)}
+    if(is.null(type)){
+
+      if(dependence<=s.t.n){
+      if(!is.null(noise.reduction)){
+      part.map = partition.map(x,y,order = order,noise.reduction=noise.reduction)}
+      else{part.map = partition.map(x,y,order = order,noise.reduction=NULL)}
+      }else{
+      part.map = partition.map(x,y,order = order,noise.reduction=NULL)
+      }}
+
+    else{
+      if(dependence<=s.t.n){
+        if(!is.null(noise.reduction)){
+          part.map = partition.map(x,y,order = order,noise.reduction=noise.reduction,type = "XONLY")}
+        else{part.map = partition.map(x,y,order = order,noise.reduction=NULL,type = "XONLY")}
+      }else{
+        part.map = partition.map(x,y,order = order,noise.reduction=NULL,type = "XONLY")
+      }}
 
 
     regression.points = data.frame(matrix(ncol = 2))
@@ -351,8 +415,15 @@ VN.reg = function (x,y,
     min.range = min(regression.points[,1])
     max.range = max(regression.points[,1])
 
-    Dynamic.average.min = median(y[x<min.range])
-    Dynamic.average.max = median(y[x>max.range])
+    mode=function(x) {
+      if(length(x)>1){
+        d <- density(x)
+        d$x[which.max(d$y)]
+      }else{x}
+    }
+
+    Dynamic.average.min = mean(y[x<min.range])
+    Dynamic.average.max = mean(y[x>max.range])
 
     ###Endpoints
     if(is.null(type)){
@@ -409,6 +480,8 @@ VN.reg = function (x,y,
     fitted = numeric()
     fitted.new = numeric()
 
+    point.est.y = numeric()
+
     for (i in 1:p){
 
       z=(which(x>=Regression.Coefficients[i,2] & x<Regression.Coefficients[(i),3]))
@@ -417,16 +490,22 @@ VN.reg = function (x,y,
 
 
       if(is.null(point.est)){point.est.y = NULL} else{
-        if( point.est>=Regression.Coefficients[i,2] && point.est<Regression.Coefficients[i,3]){ point.est.y = (point.est - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]
-        }
-        else{if( point.est<Regression.Coefficients[1,2]){
-          point.est.y = ((point.est - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
-        }
-          else{if( point.est>Regression.Coefficients[p,2]){point.est.y = ((point.est - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+
+        for(j in 1:length(point.est)){
+
+          if(point.est[j]>=Regression.Coefficients[i,2] & point.est[j]<Regression.Coefficients[i,3]){
+
+            point.est.y[j] = (point.est[j] - Regression.Coefficients[i,2])*(Regression.Coefficients[i,1])+regression.points[i,2]
+
           }
+          else{if( point.est[j]<Regression.Coefficients[1,2]){
+            point.est.y[j] = ((point.est[j] - Regression.Coefficients[1,2])*(Regression.Coefficients[1,1]))+(regression.points[1,2])
           }
-        }
-      }
+            else{if( point.est[j]>Regression.Coefficients[p,2]){point.est.y[j] = ((point.est[j] - Regression.Coefficients[(p-0),2])*(Regression.Coefficients[(p-1),1]))+(regression.points[(p),2])
+            }
+            }
+          }
+        } }#j in point.est
 
 
       fitted.new =  cbind(z,z.diff)
@@ -464,7 +543,7 @@ VN.reg = function (x,y,
            ylab="Y", mgp=c(2.5,.5,0),main=paste0("NNS Order = ",order),cex.lab=2,cex.main=2)
 
       ### Plot Regression points and fitted values and legend
-      points(na.omit(regression.points[order(regression.points),]),col='red',pch=19)
+      points(na.omit(regression.points[order(regression.points),]),col='red',pch=15)
       lines(na.omit(regression.points[order(regression.points),]),col='red',lwd=2,lty = 2)
 
 
@@ -478,9 +557,10 @@ VN.reg = function (x,y,
       }
 
       if(!is.null(point.est)){
-        if(point.est>max(x)) segments(point.est,point.est.y,regression.points[p,1],regression.points[p,2],col="green",lty=2)
-        if(point.est<min(x)) segments(point.est,point.est.y,regression.points[1,1],regression.points[1,2],col="green",lty=2)
-      }
+        for(i in 1:length(point.est)){
+          if(point.est[i]>max(x)) segments(point.est[i],point.est.y[i],regression.points[p,1],regression.points[p,2],col="green",lty=2)
+          if(point.est[i]<min(x)) segments(point.est[i],point.est.y[i],regression.points[1,1],regression.points[1,2],col="green",lty=2)
+        }     }
 
     }# plot TRUE bracket
   }
@@ -488,8 +568,9 @@ VN.reg = function (x,y,
   ### Return Values
 
   if(return.values == TRUE){
-    return(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation,"Segments" = p-1, "derivative"=Regression.Coefficients[-p,],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points,"Fitted"=cbind(x,"fitted value"=as.numeric(y.fitted) ),"partition"=cbind(part.map$df[,2:3],"fitted value"=as.numeric(y.fitted))))
+    return(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation,"Segments" = p-1, "derivative"=Regression.Coefficients[-p,],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points,"partition"=cbind(part.map$df[,2:3],"Y.hat"=as.numeric(y.fitted)),"Fitted"=as.numeric(y.fitted),"Fitted.xy"=cbind(x,"Y.hat"=as.numeric(y.fitted))))
   }
+
 
 
 

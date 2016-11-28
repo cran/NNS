@@ -4,20 +4,20 @@
 \alias{VN.M.reg}
 \title{VN Multivariate Regression (INTERNAL CALL FOR \link{VN.reg})}
 \usage{
-VN.M.reg(B, y, order = 1, s.t.n = 0.9, n.best = NULL, type = "XONLY",
-  point.est = NULL, plot = FALSE, residual.plot = TRUE,
-  location = location)
+VN.M.reg(B, y, order = NULL, s.t.n = 0.9, n.best = 1, type = NULL,
+  point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL,
+  precision = "LOW", text = FALSE, noise.reduction = FALSE, norm = NULL)
 }
 \arguments{
 \item{B}{Complete dataset of independent variables (IV) in matrix form.}
 
 \item{y}{Dependent variable (DV).}
 
-\item{order}{Controls the number of the \code{VN.reg}.  Defaults to \code{order=1}.}
+\item{order}{Controls the number of the \code{VN.reg}.}
 
 \item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
-\item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to number of independent variables.}
+\item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to 1.  Should be validated on hold-out set in conjunction with \code{"precision"} parameter.}
 
 \item{type}{Controls the partitioning in \code{VN.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.}
 
@@ -28,6 +28,14 @@ VN.M.reg(B, y, order = 1, s.t.n = 0.9, n.best = NULL, type = "XONLY",
 \item{residual.plot}{Generates a \code{matplot} for Y.hat and Y}
 
 \item{location}{Sets the location of the legend}
+
+\item{precision}{Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} (Default setting), and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.}
+
+\item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
+
+\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{VN.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{VN.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{VN.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.}
+
+\item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.}
 }
 \value{
 Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.

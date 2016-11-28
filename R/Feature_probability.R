@@ -1,6 +1,6 @@
-#' Feature Probability
+#' NNS Feature Probability
 #'
-#' Classifies data based on feature probabilities
+#' Classifies data based on feature probabilities.
 #'
 #' @param x Complete cleaned dataset in matrix form.
 #' @param y Column of data to be classified.
@@ -11,25 +11,25 @@
 #' @author Fred Viole, OVVO Financial Systems
 #' @examples
 #' ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
-#' Feature.probability(iris,5)
+#' NNS.Feature.prob(iris,5)
 #'
 #' ## To call mean squared error
-#' Feature.probability(iris,5)$MSE
+#' NNS.Feature.prob(iris,5)$MSE
 #'
 #' ## To call fitted values
-#' Feature.probability(iris,5)$Fitted
+#' NNS.Feature.prob(iris,5)$Fitted
 #'
 #' ## To generate a single predicted value
-#' Feature.probability(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$Point.est
+#' NNS.Feature.prob(iris,5, point.est=cbind(5.1,3.5,1.4,0.2))$Point.est
 #'
 #' ## To generate multiple predicted values
-#' Feature.probability(iris,5, point.est=(iris[1:10,1:4]))$Point.est
+#' NNS.Feature.prob(iris,5, point.est=(iris[1:10,1:4]))$Point.est
 #' @export
 
 
 
 
-Feature.probability = function (x, y,threshold = 0,point.est=NULL) {
+NNS.Feature.prob = function (x, y,threshold = 0,point.est=NULL) {
 
   original.columns  <-  ncol(x)
   original.variable <-  x
@@ -46,7 +46,7 @@ Feature.probability = function (x, y,threshold = 0,point.est=NULL) {
   corr <- numeric()
   ###  Find correlations for all features and output variable
   for(i in 1:ncol(x)){
-    corr[i] = VN.dep(x[,i],y,degree=0,print.map = FALSE)$Correlation
+    corr[i] = VN.dep(x[,i],y,print.map = FALSE)$Correlation
    # corr[i]=cor(x[,i],y)
     if(abs(corr[i])<threshold){corr[i]=0}
   }

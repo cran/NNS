@@ -5,18 +5,19 @@
 \title{Co-Lower Partial Moment
 (Lower Left Quadrant 4)}
 \usage{
-Co.LPM(degree, target1, target2, variable1, variable2)
+Co.LPM(degree, variable1, variable2, target1 = mean(variable1),
+  target2 = mean(variable2))
 }
 \arguments{
 \item{degree}{Degree = 0 is frequency, degree = 1 is area}
 
-\item{target1}{Typically set to mean of Variable 1, but does not have to be}
-
-\item{target2}{Typically set to mean of Variable 2, but does not have to be}
-
 \item{variable1}{Variable 1}
 
 \item{variable2}{Variable 2}
+
+\item{target1}{Defaults to mean of Variable 1, but does not have to be...}
+
+\item{target2}{Defualts to mean of Variable 2, but does not have to be...}
 }
 \value{
 Co-LPM of two variables
@@ -36,6 +37,7 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
-\keyword{moments}
+\keyword{covariance}
+\keyword{moments,}
 \keyword{partial}
 

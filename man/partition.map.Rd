@@ -4,18 +4,23 @@
 \alias{partition.map}
 \title{Partition Map}
 \usage{
-partition.map(x, y, type = NULL, order = NULL, override = FALSE)
+partition.map(x, y, Voronoi = FALSE, type = NULL, order = NULL,
+  overfit = FALSE, noise.reduction = NULL)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
+\item{Voronoi}{Displays a Voronoi type diagram using partial moment quadrants.  Defaults to FALSE.}
+
 \item{type}{Controls the partitioning basis.  Set to \code{type="XONLY"} for X-axis based partitioning.  Defaults to NULL for both X and Y-axis partitioning.}
 
-\item{order}{Number of partial moment quadrants to be generated.}
+\item{order}{Number of partial moment quadrants to be generated.  \code{order="max"} will institute a perfect fit.}
 
-\item{override}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{override=TRUE}.}
+\item{overfit}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{overfit=TRUE}.}
+
+\item{noise.reduction}{\code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to NULL for means.}
 }
 \value{
 Returns both a dataframe \code{"df"} of X and Y observations with their partition assignment in the 3d column; and the regression points \code{"regression.points"} for that given \code{order}.
@@ -31,6 +36,8 @@ partition.map(x,y)
 partition.map(x,y,order=1)$df
 ## Regression points
 partition.map(x,y,order=1)$regression.points
+## Voronoi style plot
+partition.map(x,y,Voronoi=TRUE)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -4,8 +4,8 @@
 #'
 #' @param x Variable 1
 #' @param y Variable 2
-#' @param order Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).
-#' @param degree Defaults to 0 for smaller number of observations
+#' @param order Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.
+#' @param degree Defaults to 0 for smaller number of observations.
 #' @return Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.
 #' @keywords correlation
 #' @author Fred Viole, OVVO Financial Systems
@@ -24,14 +24,14 @@
 #'
 #' @export
 
-VN.cor = function( x, y, order = NULL,
+VN.cor = function( x, y, order = 2,
                    degree= ifelse(length(x)<100,0,1)){
 
 
 
   if(!missing(y)){
 
-  return(VN.dep(x,y,print.map = FALSE)$Correlation)
+  return(VN.dep(x,y,print.map = F,order=order)$Correlation)
 
 }
 
@@ -44,8 +44,8 @@ if(missing(y)){
 
   for(j in 0:(n-1)){
     for(i in 1:(n-j)){
-      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = FALSE)$Correlation
-      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = FALSE)$Correlation
+      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
     }
   }
   colnames(rhos) = colnames(x)

@@ -5,10 +5,10 @@
 #' @param target Typically set to mean, but does not have to be
 #' @param variable Variable
 #' @return LPM of variable
-#' @keywords partial moments
+#' @keywords partial moments, mean, variance, CDF
 #' @importFrom grDevices adjustcolor rainbow
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title
-#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot
+#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density
 #' @importFrom rgl plot3d points3d
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -31,7 +31,7 @@ LPM<- function(degree,target,variable)
 #' @param target Typically set to mean, but does not have to be
 #' @param variable Variable
 #' @return UPM of variable
-#' @keywords partial moments
+#' @keywords partial moments, mean, variance, upper CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -51,12 +51,12 @@ UPM<- function(degree,target,variable){
 #'
 #' This function generates a multivariate co-upper partial moment for any degree or target.
 #' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param target1 Typically set to mean of Variable 1, but does not have to be
-#' @param target2 Typically set to mean of Variable 2, but does not have to be
 #' @param variable1 Variable 1
 #' @param variable2 Variable 2
+#' @param target1 Defaults to mean of Variable 1, but does not have to be...
+#' @param target2 Defualts to mean of Variable 2, but does not have to be...
 #' @return Co-UPM of two variables
-#' @keywords partial moments
+#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -67,30 +67,25 @@ UPM<- function(degree,target,variable){
 #' @export
 
 
-Co.UPM<- function(degree,target1,target2,variable1,variable2){
-  output <- vector("numeric", length(variable1))
-  for (i in 1:length(variable1))
-  {
-    if ((variable1[i]>target1)*(variable2[i]>target2)==1)
-
-      output[i]<- (((variable1[i]-target1)^degree)*((variable2[i]-target2)^degree))
+Co.UPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
+  x=variable1-target1;y=variable2-target2
+  x[x<=0]<- 0;y[y<=0]<- 0
+  x[x>0]<- x[x>0]^degree
+  y[y>0]<- y[y>0]^degree
+  return(sum(x*y)/length(x))
   }
-
-  return(sum(output)/length(variable1))
-
-}
 
 #' Co-Lower Partial Moment
 #' (Lower Left Quadrant 4)
 #'
 #' This function generates a multivariate co-lower partial moment for any degree or target.
 #' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param target1 Typically set to mean of Variable 1, but does not have to be
-#' @param target2 Typically set to mean of Variable 2, but does not have to be
 #' @param variable1 Variable 1
 #' @param variable2 Variable 2
+#' @param target1 Defaults to mean of Variable 1, but does not have to be...
+#' @param target2 Defualts to mean of Variable 2, but does not have to be...
 #' @return Co-LPM of two variables
-#' @keywords partial moments
+#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -100,18 +95,13 @@ Co.UPM<- function(degree,target1,target2,variable1,variable2){
 #' Co.LPM(0,mean(x),mean(y),x,y)
 #' @export
 
-Co.LPM<- function(degree,target1,target2,variable1,variable2){
-
-  output <- vector("numeric", length(variable1))
-  for (i in 1:length(variable1))
-  {
-    if ((variable1[i]<=target1)*(variable2[i]<=target2)==1)
-
-    output[i]<- (((target1-variable1[i])^degree)*((target2-variable2[i])^degree))
+Co.LPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
+  x=target1-variable1;y=target2-variable2
+  x[x<0]<- 0;y[y<0]<- 0
+  x[x>0]<- x[x>0]^degree
+  y[y>0]<- y[y>0]^degree
+  return(sum(x*y)/length(x))
   }
-
-  return(sum(output)/length(variable1))
-}
 
 #' Divergent-Lower Partial Moment
 #' (Lower Right Quadrant 3)
@@ -119,12 +109,12 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
 #' This function generates a multivariate divergent lower partial moment for any degree or target.
 #' @param degree_n Degree = 0 is frequency, degree = 1 is area
 #' @param degree_q Degree = 0 is frequency, degree = 1 is area
-#' @param target1 Typically set to mean of Variable 1, but does not have to be
-#' @param target2 Typically set to mean of Variable 2, but does not have to be
 #' @param variable1 Variable 1
 #' @param variable2 Variable 2
+#' @param target1 Defaults to mean of Variable 1, but does not have to be...
+#' @param target2 Defualts to mean of Variable 2, but does not have to be...
 #' @return Divergent LPM of two variables
-#' @keywords partial moments
+#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -134,19 +124,13 @@ Co.LPM<- function(degree,target1,target2,variable1,variable2){
 #' D.LPM(0,0,mean(x),mean(y),x,y)
 #' @export
 
-D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
-
-  output <- vector("numeric", length(variable1))
-  for (i in 1:length(variable1))
-  {
-
-
-    if ((variable1[i]>target1)*(variable2[i]<=target2)==1)
-
-      output[i]<- (((variable1[i]-target1)^degree_q)*((target2-variable2[i])^degree_n))
+D.LPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
+  x=variable1-target1;y=target2-variable2
+  x[x<=0]<- 0;y[y<0]<- 0
+  x[x>0]<- x[x>0]^degree_n
+  y[y>0]<- y[y>0]^degree_q
+  return(sum(x*y)/length(x))
   }
-  return(c(sum(output)/length(variable1)))
-}
 
 
 #' Divergent-Upper Partial Moment
@@ -155,12 +139,12 @@ D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 #' This function generates a multivariate divergent upper partial moment for any degree or target.
 #' @param degree_n Degree = 0 is frequency, degree = 1 is area
 #' @param degree_q Degree = 0 is frequency, degree = 1 is area
-#' @param target1 Typically set to mean of Variable 1, but does not have to be
-#' @param target2 Typically set to mean of Variable 2, but does not have to be
 #' @param variable1 Variable 1
 #' @param variable2 Variable 2
+#' @param target1 Defaults to mean of Variable 1, but does not have to be...
+#' @param target2 Defualts to mean of Variable 2, but does not have to be...
 #' @return Divergent UPM of two variables
-#' @keywords partial moments
+#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -170,15 +154,11 @@ D.LPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
 #' D.UPM(0,0,mean(x),mean(y),x,y)
 #' @export
 
-D.UPM<- function(degree_n,degree_q,target1,target2,variable1,variable2){
-
-  output <- vector("numeric", length(variable1))
-  for (i in 1:length(variable1))
-  {
-    if ((variable1[i]<=target1)*(variable2[i]>target2)==1)
-
-      output[i]<- (((target1-variable1[i])^degree_n)*((variable2[i]-target2)^degree_q))
-  }
-  return(c(sum(output)/length(variable1)))
-}
+D.UPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
+  x=target1-variable1;y=variable2-target2
+  x[x<0]<- 0;y[y<=0]<- 0
+  x[x>0]<- x[x>0]^degree_n
+  y[y>0]<- y[y>0]^degree_q
+  return(sum(x*y)/length(x))
+ }
 

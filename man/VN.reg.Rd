@@ -6,14 +6,16 @@
 \usage{
 VN.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
   location = "top", return.values = TRUE, plot = TRUE,
-  residual.plot = TRUE, threshold = 0, dep.order = NULL, n.best = NULL)
+  residual.plot = TRUE, threshold = 0, dep.order = NULL,
+  precision = "LOW", n.best = 2, text = FALSE, noise.reduction = NULL,
+  norm = NULL)
 }
 \arguments{
 \item{x}{Independent Variable(s)}
 
 \item{y}{Dependent Variable}
 
-\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} settings.  \code{order='max'} will use maximum suggested possible order based on number of observations.}
+\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction=NULL}.}
 
 \item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
@@ -33,12 +35,20 @@ VN.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
 
 \item{dep.order}{Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 
-\item{n.best}{Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to number of independent variables.}
+\item{precision}{Increases speed of computation at the expense of precision.  3 settings offered: \code{"LOW"} (Default setting), \code{"MED"}, and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.}
+
+\item{n.best}{Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to 1.}
+
+\item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
+
+\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{VN.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{VN.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{VN.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.}
+
+\item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.}
 }
 \value{
-UNIVARIATE regression returns the values: \code{"Fitted"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
+UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
 
-MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
+MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -54,8 +64,11 @@ VN.reg(x,y,order=2)
 ## Maximum {order} selection
 VN.reg(x,y,order='max')
 
-## x-only paritioning
+## x-only paritioning (Univariate only)
 VN.reg(x,y,type="XONLY")
+
+## Logistic Regression (Univariate only)
+VN.reg(x,y,type="LOGIT")
 
 ## For Multiple Regression:
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)

@@ -4,16 +4,16 @@
 \alias{VN.cor}
 \title{VN Correlation}
 \usage{
-VN.cor(x, y, order = NULL, degree = ifelse(length(x) < 100, 0, 1))
+VN.cor(x, y, order = 2, degree = ifelse(length(x) < 100, 0, 1))
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Controls the level of quadrant partitioning.  Defualts to NULL, but lower levels should be called for large (n).}
+\item{order}{Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.}
 
-\item{degree}{Defaults to 0 for smaller number of observations}
+\item{degree}{Defaults to 0 for smaller number of observations.}
 }
 \value{
 Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.

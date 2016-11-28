@@ -25,7 +25,7 @@
 
 # Autoregressive Model
 VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE,s.t.n=0.9){
-
+  variable=sapply(variable,as.numeric)
   original.original.variable = variable
 
   if(!is.null(Training_set)){
