@@ -1,4 +1,4 @@
-#' VN SD Efficient Set
+#' NNS SD Efficient Set
 #'
 #' Determines the set of stochastic dominant variables for various degrees.
 #' @param A data.frame of variables.
@@ -10,12 +10,12 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 #' A<-data.frame(x,y,z)
-#' VN.SD.Efficient.Set(A,1)
+#' NNS.SD.Efficient.Set(A,1)
 #' @export
 
 
 
-VN.SD.Efficient.Set <- function(A,degree) {
+NNS.SD.Efficient.Set <- function(A,degree) {
   n <- ncol(A)
   max_target <- max(A)
   LPM_order<- numeric(0)
@@ -65,14 +65,14 @@ VN.SD.Efficient.Set <- function(A,degree) {
 
      challenger <- final_ranked[,i+1]
 
-     if (VN.SSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
+     if (NNS.SSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
 
 
-     if (VN.SSD.uni(base,challenger)==0){
+     if (NNS.SSD.uni(base,challenger)==0){
 
        for (j in current_base){
          base<- final_ranked[,j]
-         if (VN.SSD.uni(base,challenger)==0){ next }
+         if (NNS.SSD.uni(base,challenger)==0){ next }
          else
          {Dominated_set[i] <- i+1  }
        }

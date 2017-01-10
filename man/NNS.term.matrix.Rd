@@ -17,7 +17,7 @@ NNS.term.matrix(x, oos = NULL, names = FALSE)
 Returns the text as independent variables \code{"IV"} and the classification as the dependent variable \code{"DV"}.  Out-of-sample independent variables are returned with \code{"OOS"}.
 }
 \description{
-Generates a term matrix for text classification use in \link{VN.reg}.
+Generates a term matrix for text classification use in \link{NNS.reg}.
 }
 \examples{
 x<- data.frame(cbind(c("sunny","rainy"),c(1,-1)))

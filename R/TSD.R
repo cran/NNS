@@ -1,4 +1,4 @@
-#' VN TSD Test
+#' NNS TSD Test
 #'
 #' Bi-directional test of third degree stochastic dominance using lower partial moments.
 #' @param x variable
@@ -9,10 +9,10 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.TSD(x,y)
+#' NNS.TSD(x,y)
 #' @export
 
-VN.TSD <- function(x,y){
+NNS.TSD <- function(x,y){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)

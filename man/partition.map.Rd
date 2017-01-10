@@ -5,7 +5,7 @@
 \title{Partition Map}
 \usage{
 partition.map(x, y, Voronoi = FALSE, type = NULL, order = NULL,
-  overfit = FALSE, noise.reduction = NULL)
+  overfit = FALSE, noise.reduction = "mean")
 }
 \arguments{
 \item{x}{Variable 1}
@@ -20,7 +20,7 @@ partition.map(x, y, Voronoi = FALSE, type = NULL, order = NULL,
 
 \item{overfit}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{overfit=TRUE}.}
 
-\item{noise.reduction}{\code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to NULL for means.}
+\item{noise.reduction}{\code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to \code{noise.reduction="mean"}, while \code{noise.reduction=NULL} will partition quadrant to a single observation for a given \code{order}.}
 }
 \value{
 Returns both a dataframe \code{"df"} of X and Y observations with their partition assignment in the 3d column; and the regression points \code{"regression.points"} for that given \code{order}.

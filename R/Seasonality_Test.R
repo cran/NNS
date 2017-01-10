@@ -1,4 +1,4 @@
-#' VN Seasonality Test
+#' NNS Seasonality Test
 #'
 #' Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
 #'
@@ -11,11 +11,11 @@
 #' set.seed(123)
 #' x<-rnorm(100)
 #' ## To call strongest period based on coefficient of variance
-#' VN.seas(x)$best.period
+#' NNS.seas(x)$best.period
 #' @export
 
 
-VN.seas <- function(variable){
+NNS.seas <- function(variable){
 
   output <- vector("numeric", length(variable)/4)
   instances <- vector("numeric", length(variable)/4)

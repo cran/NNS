@@ -44,7 +44,7 @@ UPM.VaR <- function(percentile,degree,x){
 
 
 
-#' VN ANOVA Binary
+#' NNS ANOVA Binary
 #'
 #' Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.
 #' @param control The control group sample
@@ -54,10 +54,9 @@ UPM.VaR <- function(percentile,degree,x){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.ANOVA.bin(x,y,0.95)
+#' NNS.ANOVA.bin(x,y,0.95)
 #' @export
-
-VN.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
+NNS.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
 
         mean.of.means <- mean(c(mean(control),mean(treatment)))
 
@@ -72,9 +71,9 @@ VN.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
 
 
   #Certainty associated with samples
-        VN.ANOVA.rho <- (0.5 - MAD.CDF)/0.5
+        NNS.ANOVA.rho <- (0.5 - MAD.CDF)/0.5
 
-    print(c("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Continuous CDF of Control" =LPM_ratio.1,"Continuous CDF of Treatment" = LPM_ratio.2, "Certainty of Same Population" = VN.ANOVA.rho))
+    print(c("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Continuous CDF of Control" =LPM_ratio.1,"Continuous CDF of Treatment" = LPM_ratio.2, "Certainty of Same Population" = NNS.ANOVA.rho))
 
   #Graphs
         boxplot(list(control,treatment), las=2, names=c("Control","Treatment"),

@@ -1,4 +1,4 @@
-#' VN Correlation
+#' NNS Correlation
 #'
 #' Returns the nonlinear correlation coefficient based on partial moment quadrants measured by frequency or area.  Degree = 0 is frequency, degree = 1 is area.
 #'
@@ -15,23 +15,23 @@
 #' set.seed(123)
 #' ## Pairwise Correlation
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.cor(x,y)
+#' NNS.cor(x,y)
 #'
 #' ## Correlation Matrix
 #' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 #' B<-cbind(x,y,z)
-#' VN.cor(B)
+#' NNS.cor(B)
 #'
 #' @export
 
-VN.cor = function( x, y, order = 2,
+NNS.cor = function( x, y, order = 2,
                    degree= ifelse(length(x)<100,0,1)){
 
 
 
   if(!missing(y)){
 
-  return(VN.dep(x,y,print.map = F,order=order)$Correlation)
+  return(NNS.dep(x,y,print.map = F,order=order)$Correlation)
 
 }
 
@@ -44,8 +44,15 @@ if(missing(y)){
 
   for(j in 0:(n-1)){
     for(i in 1:(n-j)){
-      rhos[i+j,i]=VN.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
-      rhos[i,i+j]=VN.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+
+      if((i+j)==i){
+        rhos[i+j,i]=1
+        rhos[i,i+j]=1
+      } else {
+
+      rhos[i+j,i]=NNS.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+      rhos[i,i+j]=NNS.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+      }
     }
   }
   colnames(rhos) = colnames(x)

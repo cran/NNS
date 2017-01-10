@@ -1,4 +1,4 @@
-#' VN ARMA
+#' NNS ARMA
 #'
 #' Autoregressive model incorporating nonlinear regressions of component series.
 #'
@@ -9,7 +9,7 @@
 #' @param Negative_Values If the variable can be negative, set to TRUE.  Defaults to FALSE.
 #' @param Linear To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.
 #' @param Dynamic To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @return Returns a vector of forecasts of length \code{(h)}.
 #' @keywords Autoregressive model
 #' @author Fred Viole, OVVO Financial Systems
@@ -18,13 +18,13 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
-#' VN.ARMA(x)
+#' NNS.ARMA(x)
 #' @export
 
 
 
 # Autoregressive Model
-VN.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE,s.t.n=0.9){
+NNS.ARMA <- function(variable,h=1,Training_set = NULL, Seasonal_Factor = TRUE ,Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE,s.t.n=0.9){
   variable=sapply(variable,as.numeric)
   original.original.variable = variable
 
@@ -116,7 +116,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
    for (i in 1:length(lag)){
-    Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n=s.t.n)$Point.est
+    Regression.Estimates[i]=NNS.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n=s.t.n)$Point.est
       }
     }
 
@@ -222,7 +222,7 @@ if(Dynamic == TRUE){
 
     if(Linear==FALSE){
       for (i in 1:length(lag)){
-        Regression.Estimates[i]=VN.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n = s.t.n)$Point.est
+        Regression.Estimates[i]=NNS.reg(Component.index[[i]],Component.series[[i]],point.est = (length(Component.series[[i]])+1),return.values = TRUE,order = 'max',plot = FALSE,s.t.n = s.t.n)$Point.est
         }
       }
 

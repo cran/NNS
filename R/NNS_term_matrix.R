@@ -1,6 +1,6 @@
 #' NNS Term Matrix
 #'
-#' Generates a term matrix for text classification use in \link{VN.reg}.
+#' Generates a term matrix for text classification use in \link{NNS.reg}.
 #'
 #' @param x Text A two column dataset should be used.  Concatenate text from original sources to comply with format.  Also note the possiblity of factors in \code{"DV"}, so \code{"as.numeric(as.character(...))"} is used to avoid issues.
 #' @param oos Out-of-sample text dataset to be classified.

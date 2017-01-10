@@ -1,4 +1,4 @@
-#' VN SSD Test
+#' NNS SSD Test
 #'
 #' Bi-directional test of second degree stochastic dominance using lower partial moments.
 #' @param x variable
@@ -9,11 +9,11 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.SSD(x,y)
+#' NNS.SSD(x,y)
 #' @export
 
 
-VN.SSD <- function(x,y){
+NNS.SSD <- function(x,y){
 
 
   x_sort <- sort(x, decreasing=FALSE)

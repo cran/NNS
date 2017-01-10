@@ -12,9 +12,9 @@ dy.dx(x, y, order = NULL, s.t.n = 0.9, eval.point = median(x),
 
 \item{y}{Dependent Variable}
 
-\item{order}{Controls the number of partial moment quadrant means.  Defaults to NULL to allow \link{VN.reg} to determine optimal order based on R2 of regression.  \code{order='max'} generates a more accurate derivative for well specified cases.}
+\item{order}{Controls the number of partial moment quadrant means.  Defaults to NULL to allow \link{NNS.reg} to determine optimal order based on R2 of regression.  \code{order='max'} generates a more accurate derivative for well specified cases.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{eval.point}{Independent variable point to be evaluated.  Defaults to \code{median(x)}.}
 
@@ -22,7 +22,7 @@ dy.dx(x, y, order = NULL, s.t.n = 0.9, eval.point = median(x),
 
 \item{h}{Percentage step used for finite step method.  Defaults to \code{h=.05} representing a 5 percent step from the value of the independent variable.}
 
-\item{noise.reduction}{In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction=NULL}  (Default setting) allows for maximum possible fit in \link{VN.reg}.}
+\item{noise.reduction}{In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction=NULL}  (Default setting) allows for maximum possible fit in \link{NNS.reg}.}
 }
 \value{
 Returns the value of the partial derivative estimate for the given order.

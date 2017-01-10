@@ -7,7 +7,7 @@
 #' @param type Controls the partitioning basis.  Set to \code{type="XONLY"} for X-axis based partitioning.  Defaults to NULL for both X and Y-axis partitioning.
 #' @param order Number of partial moment quadrants to be generated.  \code{order="max"} will institute a perfect fit.
 #' @param overfit Reduces minimum number of necessary observations in a quadrant to 1 when \code{overfit=TRUE}.
-#' @param noise.reduction \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to NULL for means.
+#' @param noise.reduction \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to \code{noise.reduction="mean"}, while \code{noise.reduction=NULL} will partition quadrant to a single observation for a given \code{order}.
 #' @return Returns both a dataframe \code{"df"} of X and Y observations with their partition assignment in the 3d column; and the regression points \code{"regression.points"} for that given \code{order}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -24,7 +24,7 @@
 #' partition.map(x,y,Voronoi=TRUE)
 #' @export
 
-partition.map = function(x, y,Voronoi=FALSE,type=NULL,order= NULL,overfit=FALSE,noise.reduction=NULL){
+partition.map = function(x, y,Voronoi=FALSE,type=NULL,order= NULL,overfit=FALSE,noise.reduction="mean"){
 
   if(!is.null(order)){if(order==0) order=1}
 
@@ -49,7 +49,7 @@ partition.map = function(x, y,Voronoi=FALSE,type=NULL,order= NULL,overfit=FALSE,
     plot(x,y,col='steelblue',cex.lab=2,xlab = "X",ylab="Y")}
 
 
-  if(!is.null(order)&overfit==T){min.obs=1}else{min.obs=4}
+  if(!is.null(order) | overfit==T){min.obs=1}else{min.obs=4}
   if(is.null(noise.reduction)){min.obs=1}
   if(is.null(order)){max.order = ceiling(log(length(x),2))}
   else{max.order=order}

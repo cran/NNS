@@ -1,19 +1,19 @@
 #' Partial Derivative dy/d[wrt]
 #'
-#' Returns the numerical partial derivate of y with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{VN.reg} estimates as f(x+h) and f(x-h) values.
+#' Returns the numerical partial derivate of y with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as f(x+h) and f(x-h) values.
 #'
 #' @param B Complete dataset of regressors in matrix form.
 #' @param y Dependent Variable
 #' @param wrt Selects the regressor to differentiate with respect to.
-#' @param order VN.reg order, defaults to 1 for multivariate regressions.  If error, make sure \code{order=1}.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param order NNS.reg order, defaults to 1 for multivariate regressions.  If error, make sure \code{order=1}.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param eval.points Regressor points to be evaluated.  Set to \code{eval.points="median"} to find partial derivatives at the median of every variable.  Set to \code{eval.points="last"} to find partial derivatives at the last value of every variable.
 #' @param h Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the regressor.
 #' @param n.best Sets the number of closest regression points to use in kernel weighting.  Defaults to 2.
 #' @param mixed If mixed derivative is to be evaluated, set \code{mixed=TRUE}.  Defaults to FALSE.
 #' @param plot Set to \code{plot=TRUE} to view plot, defaults to FALSE.
 #' @param precision Sets the number of regression points for estimates.  Set to \code{"HIGH"} where the limit condition of every observation as a regression point. Defaults to \code{"LOW"}.
-#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.
+#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.
 #' @param noise.reduction In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} (Default setting) uses modes instead of means for partitions.  \code{noise.reduction=NULL} allows for maximum possible fit.
 #' @return Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
 #' @keywords partial derivative, nonlinear regression
@@ -45,7 +45,7 @@ dy.d_<- function(B,y,wrt,eval.points="median",order=NULL,s.t.n=0.9,h=.1,n.best=2
   deriv.points = matrix(c(original.eval.points.min,eval.points,original.eval.points.max),ncol=length(eval.points),byrow = TRUE)
 
 
-  estimates = VN.reg(B,y,order=order,point.est = deriv.points,n.best=n.best,s.t.n = s.t.n,plot=plot,precision = precision,norm=norm,noise.reduction=noise.reduction)$Point.est
+  estimates = NNS.reg(B,y,order=order,point.est = deriv.points,n.best=n.best,s.t.n = s.t.n,plot=plot,precision = precision,norm=norm,noise.reduction=noise.reduction)$Point.est
 
   lower=estimates[1]
   two.f.x = 2*estimates[2]
@@ -65,7 +65,7 @@ dy.d_<- function(B,y,wrt,eval.points="median",order=NULL,s.t.n=0.9,h=.1,n.best=2
                                 (1-h)*eval.points),ncol=2,byrow = TRUE)
 
 
-  mixed.estimates = VN.reg(B,y,order=order,point.est=mixed.deriv.points,n.best = n.best,s.t.n = s.t.n,plot=plot,precision = precision,noise.reduction=noise.reduction)$Point.est
+  mixed.estimates = NNS.reg(B,y,order=order,point.est=mixed.deriv.points,n.best = n.best,s.t.n = s.t.n,plot=plot,precision = precision,noise.reduction=noise.reduction)$Point.est
   mixed.first = mixed.estimates[1]
 
   mixed.second = mixed.estimates[2]

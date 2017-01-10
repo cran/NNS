@@ -1,4 +1,4 @@
-#' VN FSD Test
+#' NNS FSD Test
 #'
 #' Bi-directional test of first degree stochastic dominance using lower partial moments.
 #' @param x variable
@@ -9,12 +9,12 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.FSD(x,y)
+#' NNS.FSD(x,y)
 #' @export
 
 
 
-VN.FSD <- function(x,y){
+NNS.FSD <- function(x,y){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)

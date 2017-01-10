@@ -17,9 +17,9 @@ dy.d_(B, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
 
 \item{eval.points}{Regressor points to be evaluated.  Set to \code{eval.points="median"} to find partial derivatives at the median of every variable.  Set to \code{eval.points="last"} to find partial derivatives at the last value of every variable.}
 
-\item{order}{VN.reg order, defaults to 1 for multivariate regressions.  If error, make sure \code{order=1}.}
+\item{order}{NNS.reg order, defaults to 1 for multivariate regressions.  If error, make sure \code{order=1}.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{h}{Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the regressor.}
 
@@ -31,7 +31,7 @@ dy.d_(B, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
 
 \item{precision}{Sets the number of regression points for estimates.  Set to \code{"HIGH"} where the limit condition of every observation as a regression point. Defaults to \code{"LOW"}.}
 
-\item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.}
+\item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.}
 
 \item{noise.reduction}{In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} (Default setting) uses modes instead of means for partitions.  \code{noise.reduction=NULL} allows for maximum possible fit.}
 }
@@ -39,7 +39,7 @@ dy.d_(B, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
 Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
 }
 \description{
-Returns the numerical partial derivate of y with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{VN.reg} estimates as f(x+h) and f(x-h) values.
+Returns the numerical partial derivate of y with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as f(x+h) and f(x-h) values.
 }
 \examples{
 set.seed(123);x_1<-runif(100);x_2<-runif(100); y<-x_1^2*x_2^2

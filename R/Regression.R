@@ -1,11 +1,11 @@
-#' VN Regression
+#' NNS Regression
 #'
 #' Generates a nonlinear regression based on partial moment quadrant means.
 #'
 #' @param x Independent Variable(s)
 #' @param y Dependent Variable
 #' @param order Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction=NULL}.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param type  To perform logistic regression, set to \code{type = "LOGIT"}.  To perform a classification, set to \code{type = "CLASS"}.  Defualts to NULL.
 #' @param point.est Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.
 #' @param location Sets the legend location within the plot
@@ -13,12 +13,12 @@
 #' @param plot  To plot regression or not.  Defaults to TRUE.
 #' @param residual.plot To plot the fitted values of Y and Y.  Defaults to TRUE.
 #' @param threshold  Sets the correlation threshold for independent variables.  Defaults to 0.
-#' @param dep.order Sets the internal order for \link{VN.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
+#' @param dep.order Sets the internal order for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.
 #' @param n.best Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to 1.
 #' @param precision  Increases speed of computation at the expense of precision.  3 settings offered: \code{"LOW"} (Default setting), \code{"MED"}, and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.
 #' @param text If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.
-#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{VN.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{VN.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{VN.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
-#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.
+#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
+#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.
 #' @return UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
 #'
 #' MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
@@ -29,45 +29,45 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.reg(x,y)
+#' NNS.reg(x,y)
 #'
 #' ## Manual {order} selection
-#' VN.reg(x,y,order=2)
+#' NNS.reg(x,y,order=2)
 #'
 #' ## Maximum {order} selection
-#' VN.reg(x,y,order='max')
+#' NNS.reg(x,y,order='max')
 #'
 #' ## x-only paritioning (Univariate only)
-#' VN.reg(x,y,type="XONLY")
+#' NNS.reg(x,y,type="XONLY")
 #'
 #' ## Logistic Regression (Univariate only)
-#' VN.reg(x,y,type="LOGIT")
+#' NNS.reg(x,y,type="LOGIT")
 #'
 #' ## For Multiple Regression:
 #' x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
-#' VN.reg(x,y,point.est=c(.25,.5,.75))
+#' NNS.reg(x,y,point.est=c(.25,.5,.75))
 #'
 #' ## For Multiple Regression based on Synthetic X* (Dimension Reduction):
 #' x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
-#' VN.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
+#' NNS.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
 #'
 #' ## IRIS dataset example:
 #' #Dimension Reduction:
-#' VN.reg(iris[,1:4],iris[,5],type="CLASS",order=5,dep.order=1)
+#' NNS.reg(iris[,1:4],iris[,5],type="CLASS",order=5,dep.order=1)
 #' #Multiple Regression:
-#' VN.reg(iris[,1:4],iris[,5],order=2)
+#' NNS.reg(iris[,1:4],iris[,5],order=2)
 #'
 #' ## To call fitted values:
-#' VN.reg(x,y)$Fitted
+#' NNS.reg(x,y)$Fitted
 #'
 #' ## To call partial derivative (univariate regression only):
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.reg(x,y)$derivative
+#' NNS.reg(x,y)$derivative
 #'
 #' @export
 
 
-VN.reg = function (x,y,
+NNS.reg = function (x,y,
                    order=NULL,
                    s.t.n=.9,
                    type = NULL,
@@ -98,7 +98,7 @@ VN.reg = function (x,y,
     }else{
 
       if(is.null(type)){
-        return(VN.M.reg(x,y,point.est=point.est,plot=plot,residual.plot=plot,order=order,n.best=n.best,type=type,location=location,precision=precision,text=text,noise.reduction=noise.reduction,norm = norm))}
+        return(NNS.M.reg(x,y,point.est=point.est,plot=plot,residual.plot=plot,order=order,n.best=n.best,type=type,location=location,precision=precision,text=text,noise.reduction=noise.reduction,norm = norm))}
 
       else{
         if(type=="CLASS"){
@@ -114,7 +114,7 @@ VN.reg = function (x,y,
 
           for (i in 1:ncol(original.variable)){
 
-            x.star.structure = VN.dep(as.numeric(x[,i]),y,print.map = FALSE,order = dep.order)
+            x.star.structure = NNS.dep(as.numeric(x[,i]),y,print.map = FALSE,order = dep.order)
 
             x.star.dep[i] = x.star.structure$Dependence
             x.star.coef[i]=  x.star.structure$Correlation
@@ -160,7 +160,7 @@ VN.reg = function (x,y,
     synthetic.x.equation=NULL
 
     if(length(y)<100){dep.order=1}else{dep.order=dep.order}
-    dependence = VN.dep(x,y,print.map = FALSE)$Dependence #,order=dep.order
+    dependence = NNS.dep(x,y,print.map = FALSE)$Dependence
 
   }else{if(type=="CLASS") dependence=mean(x.star.dep)}
 
@@ -169,46 +169,51 @@ VN.reg = function (x,y,
     if(dependence>s.t.n ){
       if(is.null(type)){
         part.map = partition.map(x,y,noise.reduction=NULL)
-        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,noise.reduction=NULL,order = min(nchar(part.map$df[,3])))
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,noise.reduction=NULL,order = min(nchar(part.map$df$quadrant)))
         }else {part.map=part.map
         }}
 
       if(!is.null(type)){part.map=partition.map(x,y,type = "XONLY",noise.reduction=NULL)
 
       if(length(part.map$regression.points[,1])==0){
-        part.map=partition.map(x,y,noise.reduction=NULL,type="XONLY",order = min(nchar(part.map$df[,3])))
+        part.map=partition.map(x,y,noise.reduction=NULL,type="XONLY",order = min(nchar(part.map$df$quadrant)))
       } else {part.map=part.map
       }}}
 
     if(dependence<=s.t.n){
       if(is.null(type)){
-        part.map = partition.map(x,y,noise.reduction=NULL)
+        part.map = partition.map(x,y,noise.reduction=noise.reduction,type = "XONLY")
 
-        max.char=max(nchar(part.map$df[,3]))
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$df$quadrant)))
+        }else {part.map=part.map
+        }
+
+        max.char=max(nchar(part.map$df$quadrant))
         minimum.char=ceiling(dependence*max.char)
 
-        part.map=partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char)
+        part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order=minimum.char)
 
         if(!is.null(noise.reduction)){part.map=partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char,type = "XONLY")}
+      }
 
-        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,noise.reduction=noise.reduction,order = min(nchar(part.map$df[,3])))
-        }else {part.map=part.map
-        }}
 
       if(!is.null(type)){
-        part.map = partition.map(x,y,type = "XONLY",noise.reduction=NULL)
+        part.map = partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction)
 
-        max.char=max(nchar(part.map$df[,3]))
+      if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$df$quadrant)))
+        } else {part.map=part.map
+      }
+        max.char=max(nchar(part.map$df$quadrant))
         minimum.char=ceiling(dependence*max.char)
 
         part.map = partition.map(x,y,noise.reduction=noise.reduction,order=minimum.char,type = "XONLY")
-
-
-        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$df[,3])))
+        if(length(part.map$regression.points[,1])==0){part.map=partition.map(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$df$quadrant)))
         } else {part.map=part.map
-      }}}
+        }
 
-    naive.order =min(nchar(part.map$df[,3]))-1
+      }}
+
+    naive.order =min(nchar(part.map$df$quadrant))-1
 
     Regression.Coefficients = data.frame(matrix(ncol=3))
     colnames(Regression.Coefficients) = c('Coefficient','X Lower Range','X Upper Range')
@@ -226,11 +231,10 @@ VN.reg = function (x,y,
       }else{x}
     }
 
-    Dynamic.average.min = mean(y[x<min.range])
-    Dynamic.average.max = mean(y[x>max.range])
+    Dynamic.average.min = mean(y[x<=min.range])
+    Dynamic.average.max = mean(y[x>=max.range])
 
     ###Endpoints
-    if(is.null(type)){
       if(length(x[x<min.range])>0){
         if(dependence<s.t.n){
           x0 = Dynamic.average.min} else {
@@ -238,15 +242,7 @@ VN.reg = function (x,y,
 
       if(length(x[x>max.range])>0){
         if(dependence<s.t.n){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
-    }
 
-    if(!is.null(type)){
-      x0 = unique(y[x==min(x)])
-      x.max = unique(y[x==max(x)])
-
-      if(length(x0)>1){x0 = mean(x0)}
-      if(length(x.max)>1){x.max = mean(x.max)}
-    }
 
     regression.points = rbind(regression.points,c(min(x),x0))
     regression.points = rbind(regression.points,c(max(x),x.max))
@@ -369,7 +365,7 @@ VN.reg = function (x,y,
         } }
 
     }# plot TRUE bracket
-    optimal.order = min(nchar(part.map$df[,3]))-1
+    optimal.order = min(nchar(part.map$df$quadrant))-1
 
   }
 
@@ -422,11 +418,10 @@ VN.reg = function (x,y,
       }else{x}
     }
 
-    Dynamic.average.min = mean(y[x<min.range])
-    Dynamic.average.max = mean(y[x>max.range])
+    Dynamic.average.min = mean(y[x<=min.range])
+    Dynamic.average.max = mean(y[x>=max.range])
 
     ###Endpoints
-    if(is.null(type)){
       if(length(x[x<min.range])>0){
         if(dependence<s.t.n){
           x0 = Dynamic.average.min} else {
@@ -434,16 +429,7 @@ VN.reg = function (x,y,
 
       if(length(x[x>max.range])>0){
         if(dependence<s.t.n){x.max = Dynamic.average.max} else {x.max = unique(y[x==max(x)])}}  else { x.max = unique(y[x==max(x)])}
-    }
 
-    if(!is.null(type)){
-      x0 = unique(y[x==min(x)])
-      x.max = unique(y[x==max(x)])
-
-      if(length(x0)>1){x0 = mean(x0)}
-      if(length(x.max)>1){x.max = mean(x.max)}
-
-    }
 
     regression.points = rbind(regression.points,c(min(x),x0))
     regression.points = rbind(regression.points,c(max(x),x.max))

@@ -18,9 +18,4 @@ Returns interval number
 Internal Function Only.
 Removes the sort check from the base function \link{findInterval}
 }
-\examples{
-x <- 2:18;v <- c(5, 10, 15)
-findInterval2(x,v)
-
-}
 

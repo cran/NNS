@@ -53,7 +53,7 @@ FSD <- function(x,y){
   }
 }
 
-#' VN.SSD.uni
+#' NNS.SSD.uni
 #'
 #' Uni-directional test of second degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
@@ -63,11 +63,11 @@ FSD <- function(x,y){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' VN.SSD.uni(x,y)
+#' NNS.SSD.uni(x,y)
 #' @export
 
 
-VN.SSD.uni <- function(x,y){
+NNS.SSD.uni <- function(x,y){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)

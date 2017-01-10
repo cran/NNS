@@ -37,7 +37,7 @@ Uni.caus <- function(x,y,tau){
 
   x.vectors.tau = cbind.data.frame(x.vectors)
 
-  x.norm.tau <- VN.norm(x.vectors.tau)[,1]
+  x.norm.tau <- NNS.norm(x.vectors.tau)[,1]
 
   ## Normalize y to y.tau
   for (i in 0:tau){
@@ -53,11 +53,11 @@ Uni.caus <- function(x,y,tau){
 
   y.vectors.tau = cbind.data.frame(y.vectors)
 
-  y.norm.tau <- VN.norm(y.vectors.tau)[,1]
+  y.norm.tau <- NNS.norm(y.vectors.tau)[,1]
 
 
   ## Normalize x.norm.tau to y.norm.tau
-  x.tau.y.tau = VN.norm(cbind(x.norm.tau,y.norm.tau))
+  x.tau.y.tau = NNS.norm(cbind(x.norm.tau,y.norm.tau))
   x.norm.to.y = x.tau.y.tau[,1]
   y.norm.to.x = x.tau.y.tau[,2]
 
@@ -67,7 +67,7 @@ Uni.caus <- function(x,y,tau){
 
 
   ## Correlation of Normalized Variables
-  rho.x.y = VN.dep(x.norm.to.y,y.norm.to.x)$Dependence
+  rho.x.y = NNS.dep(x.norm.to.y,y.norm.to.x)$Dependence
 
   Causation.x.given.y= P.x.given.y*rho.x.y
 
@@ -108,7 +108,7 @@ Uni.caus <- function(x,y,tau){
 
 }
 
-#' VN Causation
+#' NNS Causation
 #'
 #' Returns the causality from observational data between two variables
 #'
@@ -123,10 +123,10 @@ Uni.caus <- function(x,y,tau){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' \dontrun{VN.caus(x,y,3)}
+#' \dontrun{NNS.caus(x,y,3)}
 #' @export
 
-VN.caus <- function(x,y,tau){
+NNS.caus <- function(x,y,tau){
 
   if(abs(Uni.caus(x,y,tau))<abs(Uni.caus(y,x,tau))){
     return(c(Causation.x.given.y = Uni.caus(x,y,tau),

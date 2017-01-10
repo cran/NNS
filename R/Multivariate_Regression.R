@@ -1,22 +1,22 @@
-#' VN Multivariate Regression (INTERNAL CALL FOR \link{VN.reg})
+#' NNS Multivariate Regression (INTERNAL CALL FOR \link{NNS.reg})
 #'
-#' Called by \code{VN.reg} for multivariate regression analysis.
+#' Called by \code{NNS.reg} for multivariate regression analysis.
 #'
 #'
 #' @param B Complete dataset of independent variables (IV) in matrix form.
 #' @param y Dependent variable (DV).
-#' @param order Controls the number of the \code{VN.reg}.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{VN.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param order Controls the number of the \code{NNS.reg}.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param n.best Sets the number of closest regression points to use in kernel weighting.  Defaults to 1.  Should be validated on hold-out set in conjunction with \code{"precision"} parameter.
-#' @param type Controls the partitioning in \code{VN.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.
+#' @param type Controls the partitioning in \code{NNS.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.
 #' @param point.est Generates a fitted value of \code{y} for a vector or matrix of IV coordinates.
 #' @param plot Generates a 3d scatter plot with regression points using \link{plot3d}
 #' @param residual.plot Generates a \code{matplot} for Y.hat and Y
 #' @param location Sets the location of the legend
 #' @param precision  Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} (Default setting), and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.
 #' @param text If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.
-#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{VN.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{VN.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{VN.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
-#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{VN.norm} when set to \code{norm="VN"}. Defaults to NULL.
+#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
+#' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.
 #' @return Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.
 #' @keywords  multiple nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
@@ -24,7 +24,7 @@
 #' \url{http://amzn.com/1490523995}
 
 
-VN.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,precision="LOW",text=FALSE,noise.reduction=FALSE,norm=NULL){
+NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,precision="LOW",text=FALSE,noise.reduction=FALSE,norm=NULL){
 
   if(is.null(ncol(B))){B=t(t(B))}
   n=ncol(B)
@@ -42,11 +42,11 @@ VN.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL
   if(!is.null(norm)){
   if(norm=='std'){
   B=apply(B,2,function(b) (b-min(b))/(max(b)-min(b)))}else{
-  B=VN.norm(B)}
+  B=NNS.norm(B)}
   if(!is.null(point.est)){
   if(norm=='std'){
   point.est=apply(point.est,2,function(c) (c-min(rbind(c,original.variable)))/(max(rbind(c,original.variable))-min(rbind(c,original.variable))))}else{
-  point.est=VN.norm(rbind(point.est,original.variable))[1:np,]}
+  point.est=NNS.norm(rbind(point.est,original.variable))[1:np,]}
   }}else{B=B
   point.est=point.est
   }
@@ -62,10 +62,7 @@ VN.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL
   ###  Regression Point Matrix
 
   for(i in 1:n){
-    dep=VN.dep(B[,i],y,order=1)$Dependence
-    if(dep>s.t.n){
-    reg.points[[i]] = partition.map(B[,i],y,order=order,type=type,noise.reduction=NULL)$regression.points[,1]}
-    else{reg.points[[i]] = partition.map(B[,i],y,order=order,noise.reduction=noise.reduction,type="XONLY")$regression.points[,1]}
+      reg.points[[i]] = NNS.reg(B[,i],y,order=order,type=type,noise.reduction=NULL,precision = precision,plot = F)$regression.points[,1]
   }
 
   reg.points.matrix=do.call('cbind',lapply(reg.points, `length<-`, max(lengths(reg.points))))
@@ -73,7 +70,7 @@ VN.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL
   if(length(reg.points.matrix[,1])==0){
     for(i in 1:n){
       part.map=partition.map(B[,i],y,order=order,type=type,noise.reduction=noise.reduction)
-      dep=VN.dep(B[,i],y,order=1)$Dependence
+      dep=NNS.dep(B[,i],y,order=1)$Dependence
     if(dep>s.t.n){
         reg.points[[i]] = partition.map(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),type=type,noise.reduction=NULL)$regression.points[,1]}
       else{reg.points[[i]] = partition.map(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),noise.reduction=noise.reduction,type="XONLY")$regression.points[,1]}
@@ -107,7 +104,7 @@ VN.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL
   intervals = apply(intervals, 1 , paste , collapse = "" )
   y.identifier = cbind(as.numeric(y),as.numeric(intervals))
   if(text==TRUE){
-   if(n<15){y.identifier = cbind(as.numeric(y),as.numeric(intervals))}else
+   if(n<10){y.identifier = cbind(as.numeric(y),as.numeric(intervals))}else
      {y.identifier = cbind(as.numeric(y),as.numeric(y))}
   }
 

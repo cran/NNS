@@ -7,7 +7,7 @@
 #' @return LPM of variable
 #' @keywords partial moments, mean, variance, CDF
 #' @importFrom grDevices adjustcolor rainbow
-#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title
+#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis
 #' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density
 #' @importFrom rgl plot3d points3d
 #' @author Fred Viole, OVVO Financial Systems

@@ -46,7 +46,7 @@ NNS.Feature.prob = function (x, y,threshold = 0,point.est=NULL) {
   corr <- numeric()
   ###  Find correlations for all features and output variable
   for(i in 1:ncol(x)){
-    corr[i] = VN.dep(x[,i],y,print.map = FALSE)$Correlation
+    corr[i] = NNS.dep(x[,i],y,print.map = FALSE)$Correlation
    # corr[i]=cor(x[,i],y)
     if(abs(corr[i])<threshold){corr[i]=0}
   }
@@ -78,7 +78,7 @@ NNS.Feature.prob = function (x, y,threshold = 0,point.est=NULL) {
         point.prob.kurt <- numeric()
 
         sub_x   <- z[z[,(ncol(x)+1)] == item, j]
-        ###  VN.ANOVA adaptation for a single point probability
+        ###  NNS.ANOVA adaptation for a single point probability
         intm    <- abs(LPM(1, x[k, j], sub_x)/(LPM(1, x[k, j], sub_x) + UPM(1, x[k, j], sub_x)) - 0.5)
         prob.cor[j] <- corr[j]*((0.5- intm) / 0.5)
 

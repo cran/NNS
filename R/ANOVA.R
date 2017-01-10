@@ -1,4 +1,4 @@
-#' VN ANOVA
+#' NNS ANOVA
 #'
 #' Analysis of variance (ANOVA) based on lower partial moment CDFs for multiple variables.  Returns a degree of certainty the samples belong to the same population, not a p-value.
 #' @param A Matrix of variables.
@@ -11,12 +11,12 @@
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' A<-cbind(x,y)
-#' VN.ANOVA(A,pairwise=TRUE)
-#' mean(na.omit(VN.ANOVA(A,pairwise = TRUE)$x))
+#' NNS.ANOVA(A,pairwise=TRUE)
+#' mean(na.omit(NNS.ANOVA(A,pairwise = TRUE)$x))
 #' @export
 
 
-VN.ANOVA<- function(A,pairwise=FALSE){
+NNS.ANOVA<- function(A,pairwise=FALSE){
 
 
   mean.of.means <- mean(colMeans(A))
@@ -41,7 +41,7 @@ if(pairwise==FALSE){
 
 
   #Certainty associated with samples
-  VN.ANOVA.rho <- (0.5 - Mean.MAD.CDF)/0.5
+  NNS.ANOVA.rho <- (0.5 - Mean.MAD.CDF)/0.5
 
 
 
@@ -54,7 +54,7 @@ if(pairwise==FALSE){
   abline(v=mean.of.means,col="red",lwd=4)
 
 
-  return(c("Certainty of Same Population"=VN.ANOVA.rho))
+  return(c("Certainty of Same Population"=NNS.ANOVA.rho))
 
 } else {
 
@@ -62,8 +62,8 @@ certainties = data.frame()
 
 for(j in 1:(n-1)){
   for(i in 1:(n-j)){
-    certainties[i+j,i]=VN.ANOVA(cbind(A[,i],A[,i+j]))
-    certainties[i,i+j]=VN.ANOVA(cbind(A[,i],A[,i+j]))
+    certainties[i+j,i]=NNS.ANOVA(cbind(A[,i],A[,i+j]))
+    certainties[i,i+j]=NNS.ANOVA(cbind(A[,i],A[,i+j]))
   }
 }
 colnames(certainties) = colnames(A)[1:n-1]
