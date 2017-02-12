@@ -5,19 +5,20 @@
 \title{Co-Upper Partial Moment
 (Upper Right Quadrant 1)}
 \usage{
-Co.UPM(degree, variable1, variable2, target1 = mean(variable1),
-  target2 = mean(variable2))
+Co.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
 }
 \arguments{
-\item{degree}{Degree = 0 is frequency, degree = 1 is area}
+\item{degree.x}{Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.}
 
-\item{variable1}{Variable 1}
+\item{degree.y}{Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.}
 
-\item{variable2}{Variable 2}
+\item{x}{Variable X}
 
-\item{target1}{Defaults to mean of Variable 1, but does not have to be...}
+\item{y}{Variable Y}
 
-\item{target2}{Defualts to mean of Variable 2, but does not have to be...}
+\item{target.x}{Typically the mean of Variable X, but does not have to be.}
+
+\item{target.y}{Typically the mean of Variable Y, but does not have to be.}
 }
 \value{
 Co-UPM of two variables
@@ -28,7 +29,7 @@ This function generates a multivariate co-upper partial moment for any degree or
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-Co.UPM(0,mean(x),mean(y),x,y)
+Co.UPM(0,0,x,y,mean(x),mean(y))
 }
 \author{
 Fred Viole, OVVO Financial Systems

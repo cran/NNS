@@ -7,9 +7,9 @@
 UPM(degree, target, variable)
 }
 \arguments{
-\item{degree}{Degree = 0 is frequency, degree = 1 is area}
+\item{degree}{\code{degree = 0} is frequency, \code{degree = 1} is area.}
 
-\item{target}{Typically set to mean, but does not have to be}
+\item{target}{Typically set to mean, but does not have to be.}
 
 \item{variable}{Variable}
 }

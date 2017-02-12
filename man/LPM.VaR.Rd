@@ -9,7 +9,7 @@ LPM.VaR(percentile, degree, x)
 \arguments{
 \item{percentile}{The percentile for VaR}
 
-\item{degree}{Degree = 0 for discrete distributions, degree = 1 for continuous distributions}
+\item{degree}{\code{degree=0} for discrete distributions, \code{degree=1} for continuous distributions.}
 
 \item{x}{Variable}
 }
@@ -28,4 +28,5 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\keyword{VaR}
 

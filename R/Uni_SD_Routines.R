@@ -1,18 +1,19 @@
-#' FSD
+#' NNS FSD Test uni-directional
 #'
 #' Uni-directional test of first degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
 #' @param y variable
 #' @return Returns (1) if \code{"X FSD Y"}, else (0).
+#' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' FSD(x,y)
+#' NNS.FSD.uni(x,y)
 #' @export
 
-FSD <- function(x,y){
+NNS.FSD.uni <- function(x,y){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)
@@ -53,7 +54,7 @@ FSD <- function(x,y){
   }
 }
 
-#' NNS.SSD.uni
+#' NNS SSD Test uni-directional
 #'
 #' Uni-directional test of second degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
@@ -109,7 +110,7 @@ NNS.SSD.uni <- function(x,y){
 }
 
 
-#' TSD
+#' NNS TSD Test uni-directional
 #'
 #' Uni-directional test of third degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x variable
@@ -119,11 +120,11 @@ NNS.SSD.uni <- function(x,y){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' TSD(x,y)
+#' NNS.TSD.uni(x,y)
 #' @export
 
 
-TSD <- function(x,y){
+NNS.TSD.uni <- function(x,y){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)

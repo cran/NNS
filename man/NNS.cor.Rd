@@ -13,13 +13,13 @@ NNS.cor(x, y, order = 2, degree = ifelse(length(x) < 100, 0, 1))
 
 \item{order}{Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.}
 
-\item{degree}{Defaults to 0 for smaller number of observations.}
+\item{degree}{\code{degree = 0} is frequency based correlations, while \code{degree = 1} is for area based correlations.  Defaults to 0 for smaller number of observations.}
 }
 \value{
 Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.
 }
 \description{
-Returns the nonlinear correlation coefficient based on partial moment quadrants measured by frequency or area.  Degree = 0 is frequency, degree = 1 is area.
+Returns the nonlinear correlation coefficient based on partial moment quadrants.
 }
 \examples{
 set.seed(123)

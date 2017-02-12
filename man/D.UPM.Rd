@@ -5,21 +5,20 @@
 \title{Divergent-Upper Partial Moment
 (Upper Left Quadrant 2)}
 \usage{
-D.UPM(degree_n, degree_q, variable1, variable2, target1 = mean(variable1),
-  target2 = mean(variable2))
+D.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
 }
 \arguments{
-\item{degree_n}{Degree = 0 is frequency, degree = 1 is area}
+\item{degree.x}{Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.}
 
-\item{degree_q}{Degree = 0 is frequency, degree = 1 is area}
+\item{degree.y}{Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.}
 
-\item{variable1}{Variable 1}
+\item{x}{Variable X}
 
-\item{variable2}{Variable 2}
+\item{y}{Variable Y}
 
-\item{target1}{Defaults to mean of Variable 1, but does not have to be...}
+\item{target.x}{Typically the mean of Variable X, but does not have to be.}
 
-\item{target2}{Defualts to mean of Variable 2, but does not have to be...}
+\item{target.y}{Typically the mean of Variable Y, but does not have to be.}
 }
 \value{
 Divergent UPM of two variables
@@ -30,7 +29,7 @@ This function generates a multivariate divergent upper partial moment for any de
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
-D.UPM(0,0,mean(x),mean(y),x,y)
+D.UPM(0,0,x,y,mean(x),mean(y))
 }
 \author{
 Fred Viole, OVVO Financial Systems

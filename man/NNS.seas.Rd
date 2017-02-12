@@ -28,4 +28,5 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\keyword{seasonality}
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Uni_SD_Routines.R
 \name{NNS.SSD.uni}
 \alias{NNS.SSD.uni}
-\title{NNS.SSD.uni}
+\title{NNS SSD Test uni-directional}
 \usage{
 NNS.SSD.uni(x, y)
 }

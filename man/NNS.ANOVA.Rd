@@ -9,7 +9,7 @@ NNS.ANOVA(A, pairwise = FALSE)
 \arguments{
 \item{A}{Matrix of variables.}
 
-\item{pairwise}{Returns pairwise certainty tests when set to TRUE.  Defaults to FALSE.}
+\item{pairwise}{Returns pairwise certainty tests when set to \code{pairwise=TRUE}.  Defaults to \code{pairwise=FALSE}.}
 }
 \value{
 Returns the degree certainty the samples belong to the same population [0,1].
@@ -31,4 +31,5 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\keyword{ANOVA}
 

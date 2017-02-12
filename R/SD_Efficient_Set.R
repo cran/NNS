@@ -4,6 +4,7 @@
 #' @param A data.frame of variables.
 #' @param degree Degree of stochastic dominance test
 #' @return Returns set of stochastic dominant variable names.
+#' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #' @examples
@@ -39,14 +40,14 @@ NNS.SD.Efficient.Set <- function(A,degree) {
 
       challenger <- final_ranked[,i+1]
 
-      if (FSD(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
+      if (NNS.FSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
 
 
-      if (FSD(base,challenger)==0){
+      if (NNS.FSD.uni(base,challenger)==0){
 
         for (j in current_base){
           base<- final_ranked[,j]
-          if (FSD(base,challenger)==0){ next }
+          if (NNS.FSD.uni(base,challenger)==0){ next }
           else
             {Dominated_set[i] <- i+1  }
           }
@@ -91,14 +92,14 @@ NNS.SD.Efficient.Set <- function(A,degree) {
 
      challenger <- final_ranked[,i+1]
 
-     if (TSD(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
+     if (NNS.TSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
 
 
-     if (TSD(base,challenger)==0){
+     if (NNS.TSD.uni(base,challenger)==0){
 
        for (j in current_base){
          base<- final_ranked[,j]
-         if (TSD(base,challenger)==0){ next }
+         if (NNS.TSD.uni(base,challenger)==0){ next }
          else
          {Dominated_set[i] <- i+1  }
        }
@@ -111,7 +112,7 @@ NNS.SD.Efficient.Set <- function(A,degree) {
 
 
   if(length(Dominated_set)>0){
-    SD_A  = (data.frame((final_ranked[-na.omit(Dominated_set)])))
+    SD_A  = data.frame(final_ranked[-na.omit(Dominated_set)])
     return(SD_A)
     }
 

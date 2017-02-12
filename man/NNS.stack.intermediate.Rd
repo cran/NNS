@@ -5,7 +5,8 @@
 \title{NNS.stack.intermediate (INTERNAL CALL FOR \link{NNS.stack})}
 \usage{
 NNS.stack.intermediate(IVs.train, DV.train, IVs.test = NULL, DV.test = NULL,
-  CV.size = 0.2, weight = "MSE", text = F, precision = NULL)
+  CV.size = 0.2, weight = "MSE", text = F, precision = NULL,
+  method = c(1, 2, 3), threshold = 0)
 }
 \arguments{
 \item{IVs.train}{Training set of independent variables.}
@@ -23,6 +24,10 @@ NNS.stack.intermediate(IVs.train, DV.train, IVs.test = NULL, DV.test = NULL,
 \item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
 
 \item{precision}{Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.  \code{precision=NULL} (Defualt) compares both precision types and then returns the best model parameters.}
+
+\item{method}{Select the NNS method to include in stack.  \code{method=1} selects \link{NNS.reg}; \code{method=2} selects \link{NNS.reg} dimension reduction regression; \code{method=3} selects \link{NNS.Feature.prob}.  Defaults to \code{method=c(1,2,3)}, including all 3 NNS methods in the stack.}
+
+\item{threshold}{Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{threshold=0}.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set for all models.  \code{"NNS.reg.n.best"} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"NNS.logistic.order"} returns the optimum \code{"order"} from the \link{NNS.reg} logistic regression.  \code{"reg"} returns \link{NNS.reg} output, \code{"logistic"} returns \link{NNS.reg} logistic regression output, \code{"Feature.prob"} returns \link{NNS.Feature.prob} output, and \code{"stack"} returns the output of the stacked model.  \code{"CV.test"} returns the random cross-validation dependent variable used and \code{"MSE"} returns the MSE from cross-validation.

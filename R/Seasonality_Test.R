@@ -4,6 +4,7 @@
 #'
 #' @param variable Variable
 #' @return Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.
+#' @keywords seasonality
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -21,31 +22,30 @@ NNS.seas <- function(variable){
   instances <- vector("numeric", length(variable)/4)
 
   for (i in 1:(length(variable)/4)){
+      if (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])) < abs(sd(variable)/mean(variable))){
 
-    if (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])) <
-          abs(sd(variable)/mean(variable))){
+          instances[i] <- i
 
-                            instances[i] <- i
+          output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
+      } else {
+            instances[i] <- 0
+            output[i]<- 0
+        }
+  }
 
-                            output[i]<- (abs(sd(variable[seq(length(variable),1,-i)])/mean(variable[seq(length(variable),1,-i)])))
+  if(sum(instances[instances>0])==0) {return(1)}
 
-    }
-    else{instances[i] <- 0
-    output[i]<- 0
-    }
-    }
- if(sum(instances[instances>0])==0) {return(1)}
-
-    if(length(instances[instances]>0)>0){
-    plot(instances[instances>0],output[output>0],
+  if(length(instances[instances]>0)>0){
+      plot(instances[instances>0],output[output>0],
          xlab="Period", ylab="Coefficient of Variance", main = "Seasonality Test",
          ylim = c(0,2*abs(sd(variable)/mean(variable))),
          col=ifelse(output[output>0]==min(output[output>0]), "red", "black"), pch =ifelse(output[output>0]==min(output[output>0]), 19, 1))
 
-         abline(h=abs(sd(variable)/mean(variable)), col="red",lty=5)
-          text(length(instances[instances>0])/2,abs(sd(variable)/mean(variable)),adj=c(0,-.25),"Variable Coefficient of Variance",col='red')
+      abline(h=abs(sd(variable)/mean(variable)), col="red",lty=5)
+      text(mean(instances[instances>0]),abs(sd(variable)/mean(variable)),pos=3,
+               "Variable Coefficient of Variance",col='red')
 
-        n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
+      n<- rep(abs(sd(variable)/mean(variable)),length(instances[instances>0]))
 
       M<- matrix(c(instances[instances>0], output[output>0],n),
                      nrow=length(instances[instances>0]),  byrow= FALSE)
@@ -58,4 +58,4 @@ NNS.seas <- function(variable){
    return(list("all.periods"=M,"best.period"=if(length(instances[instances>0])>0) {M[which.min(M[,2]),1]} else {1}))
 
 
-  }
+}

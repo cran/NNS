@@ -1,14 +1,3 @@
-#' Find Interval
-#'
-#' Internal Function Only.
-#' Removes the sort check from the base function \link{findInterval}
-#' @param x Variable / Vector
-#' @param v Vector
-#' @return Returns interval number
-
-
-
-
 findInterval2 <- function(x,v) {
   n = length(v)
   if (x<=v[1])

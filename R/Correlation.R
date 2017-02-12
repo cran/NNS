@@ -1,11 +1,11 @@
 #' NNS Correlation
 #'
-#' Returns the nonlinear correlation coefficient based on partial moment quadrants measured by frequency or area.  Degree = 0 is frequency, degree = 1 is area.
+#' Returns the nonlinear correlation coefficient based on partial moment quadrants.
 #'
 #' @param x Variable 1
 #' @param y Variable 2
 #' @param order Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.
-#' @param degree Defaults to 0 for smaller number of observations.
+#' @param degree \code{degree = 0} is frequency based correlations, while \code{degree = 1} is for area based correlations.  Defaults to 0 for smaller number of observations.
 #' @return Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.
 #' @keywords correlation
 #' @author Fred Viole, OVVO Financial Systems
@@ -24,7 +24,7 @@
 #'
 #' @export
 
-NNS.cor = function( x, y, order = 2,
+NNS.cor = function(x, y, order = 2,
                    degree= ifelse(length(x)<100,0,1)){
 
 
@@ -50,8 +50,9 @@ if(missing(y)){
         rhos[i,i+j]=1
       } else {
 
-      rhos[i+j,i]=NNS.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
-      rhos[i,i+j]=NNS.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+      rho=NNS.dep(x[,i],x[,i+j],print.map = F,order=order)$Correlation
+      rhos[i+j,i]=rho
+      rhos[i,i+j]=rho
       }
     }
   }

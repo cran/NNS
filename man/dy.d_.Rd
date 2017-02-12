@@ -6,7 +6,7 @@
 \usage{
 dy.d_(B, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
   h = 0.1, n.best = 2, mixed = FALSE, plot = FALSE, precision = "LOW",
-  norm = NULL, noise.reduction = NULL)
+  norm = NULL, noise.reduction = "mean")
 }
 \arguments{
 \item{B}{Complete dataset of regressors in matrix form.}
@@ -33,7 +33,7 @@ dy.d_(B, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
 
 \item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.}
 
-\item{noise.reduction}{In low signal:noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} (Default setting) uses modes instead of means for partitions.  \code{noise.reduction=NULL} allows for maximum possible fit.}
+\item{noise.reduction}{IIn low signal to noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction="off"}  allows for maximum possible fit in \link{NNS.reg}. Default setting is \code{noise.reduction="mean"}.}
 }
 \value{
 Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
@@ -41,11 +41,19 @@ Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Seco
 \description{
 Returns the numerical partial derivate of y with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as f(x+h) and f(x-h) values.
 }
+\note{
+For known function testing and analysis, regressors should be transformed via \link{expand.grid} to fill the dimensions with \code{precision="HIGH"}.  Example provided below.
+}
 \examples{
 set.seed(123);x_1<-runif(100);x_2<-runif(100); y<-x_1^2*x_2^2
 B=cbind(x_1,x_2)
 ## To find derivatives of y wrt 1st regressor
 dy.d_(B,y,wrt=1,eval.points=c(.5,.5))
+
+## Known function analysis
+x_1<-seq(0,1,.1);x_2<-seq(0,1,.1)
+B=expand.grid(x_1,x_2); y<-B[,1]^2*B[,2]^2
+dy.d_(B,y,wrt=1,eval.points=c(.5,.5),precision="HIGH")
 }
 \author{
 Fred Viole, OVVO Financial Systems
@@ -54,8 +62,7 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
-\keyword{derivative,}
-\keyword{nonlinear}
+\keyword{derivative}
+\keyword{multivaiate}
 \keyword{partial}
-\keyword{regression}
 

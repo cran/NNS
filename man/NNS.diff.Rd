@@ -39,9 +39,6 @@ Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Par
 \url{http://amzn.com/1490523995}
 }
 \keyword{differentiation,}
-\keyword{finite}
-\keyword{method,}
 \keyword{numerical}
 \keyword{secant}
-\keyword{step}
 

@@ -29,4 +29,6 @@ Fred Viole, OVVO Financial Systems
 \references{
 Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 }
+\keyword{dominance}
+\keyword{stochastic}
 

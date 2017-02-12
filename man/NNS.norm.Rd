@@ -9,9 +9,9 @@ NNS.norm(A, chart.type = NULL, Linear = F)
 \arguments{
 \item{A}{Matrix of variables.}
 
-\item{chart.type}{Defaults to NULL.  'l' for line, 'b' for boxplot}
+\item{chart.type}{Defaults to \code{chart.type=NULL}.  \code{chart.type='l'} for line, \code{chart.type='b'} for boxplot.}
 
-\item{Linear}{Performs a linear scaling normalization, resulting in eqaul means for all variables.  Defaults to FALSE.}
+\item{Linear}{Performs a linear scaling normalization, resulting in eqaul means for all variables.  Defaults to \code{Linear=FALSE}.}
 }
 \value{
 Returns a matrix of normalized values.
@@ -32,4 +32,5 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\keyword{normalization}
 

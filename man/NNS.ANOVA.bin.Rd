@@ -11,10 +11,10 @@ NNS.ANOVA.bin(control, treatment, confidence.interval = NULL)
 
 \item{treatment}{The treatment group sample}
 
-\item{confidence.interval}{The confidence interval surrounding the control mean.  Defaults to NULL.}
+\item{confidence.interval}{The confidence interval surrounding the control mean.  Defaults to \code{confidence.interval=NULL}.}
 }
 \value{
-Returns the effect size of the treatment for a specified confidence interval with \code{"Lower.Bound.Effect"} and \code{"Upperr.Bound.Effect"}.
+Returns \code{"Control Mean"}, \code{"Treatment Mean"}, \code{"Grand Mean"}, \code{"Control CDF"}, \code{"Treatment CDF"}, the certainty of the same population statistic \code{"Certainty"}, the effect size of the treatment for a specified confidence interval with \code{"Lower Bound Effect"} and \code{"Upper Bound Effect"}.
 }
 \description{
 Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.
@@ -24,4 +24,7 @@ set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 NNS.ANOVA.bin(x,y,0.95)
 }
+\keyword{ANOVA,}
+\keyword{effect}
+\keyword{size}
 

@@ -4,9 +4,10 @@
 \alias{NNS.M.reg}
 \title{NNS Multivariate Regression (INTERNAL CALL FOR \link{NNS.reg})}
 \usage{
-NNS.M.reg(B, y, order = NULL, s.t.n = 0.9, n.best = 1, type = NULL,
+NNS.M.reg(B, y, order = NULL, s.t.n = 0.99, n.best = 1, type = NULL,
   point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL,
-  precision = "LOW", text = FALSE, noise.reduction = FALSE, norm = NULL)
+  precision = "LOW", text = FALSE, noise.reduction = "mean",
+  norm = NULL, dist = "L2")
 }
 \arguments{
 \item{B}{Complete dataset of independent variables (IV) in matrix form.}
@@ -15,7 +16,7 @@ NNS.M.reg(B, y, order = NULL, s.t.n = 0.9, n.best = 1, type = NULL,
 
 \item{order}{Controls the number of the \code{NNS.reg}.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{n.best}{Sets the number of closest regression points to use in kernel weighting.  Defaults to 1.  Should be validated on hold-out set in conjunction with \code{"precision"} parameter.}
 
@@ -23,7 +24,7 @@ NNS.M.reg(B, y, order = NULL, s.t.n = 0.9, n.best = 1, type = NULL,
 
 \item{point.est}{Generates a fitted value of \code{y} for a vector or matrix of IV coordinates.}
 
-\item{plot}{Generates a 3d scatter plot with regression points using \link{plot3d}}
+\item{plot}{Generates a 3d scatter plot with regression points using \link{plot3d}.}
 
 \item{residual.plot}{Generates a \code{matplot} for Y.hat and Y}
 
@@ -33,9 +34,11 @@ NNS.M.reg(B, y, order = NULL, s.t.n = 0.9, n.best = 1, type = NULL,
 
 \item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
 
-\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.}
+\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"} (Default setting) uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction='off'} allows for maximum possible fit and specific \code{order} specification.}
 
 \item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.}
+
+\item{dist}{Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.}
 }
 \value{
 Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.

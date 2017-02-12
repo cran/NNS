@@ -5,7 +5,7 @@
 \title{NNS ARMA}
 \usage{
 NNS.ARMA(variable, h = 1, Training_set = NULL, Seasonal_Factor = TRUE,
-  Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE, s.t.n = 0.9)
+  Negative_Values = FALSE, Linear = TRUE, Dynamic = FALSE, s.t.n = 0.99)
 }
 \arguments{
 \item{variable}{Variable}
@@ -14,15 +14,15 @@ NNS.ARMA(variable, h = 1, Training_set = NULL, Seasonal_Factor = TRUE,
 
 \item{Training_set}{Sets the number of observations from 1:xx to monitor performance of forecast over in-sample range. Defaults to NULL to use all observations.}
 
-\item{Seasonal_Factor}{Automatically selects the best seasonal lag from the seasonality test.  Defaults to TRUE.  To use weighted average of all seasonal lags set to FALSE.  Otherwise, input integer lag to use, i.e. \code{Seasonal_Factor=12} for monthly data.}
+\item{Seasonal_Factor}{Automatically selects the best seasonal lag from the seasonality test.  Defaults to \code{Seasonal_Factor=TRUE}.  To use weighted average of all seasonal lags set to \code{Seasonal_Factor=FALSE}.  Otherwise, directly input desired integer lag to use, i.e. \code{Seasonal_Factor=12} for monthly data.}
 
-\item{Negative_Values}{If the variable can be negative, set to TRUE.  Defaults to FALSE.}
+\item{Negative_Values}{If the variable can be negative, set to \code{Negative_Values=TRUE}.  Defaults to FALSE.}
 
-\item{Linear}{To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to FALSE.}
+\item{Linear}{To use a linear regression of the component series, defaults to TRUE.  To use a nonlineaer regression, set to \code{Negative_Values=FALSE}.}
 
-\item{Dynamic}{To update the seasonal factor with each forecast point, set to TRUE.  The default is FALSE to keep the original seasonal factor from the inputted variable for all forecasts.}
+\item{Dynamic}{To update the seasonal factor with each forecast point, set to \code{Dynamic=TRUE}.  The default is \code{Dynamic=FALSE} to keep the original seasonal factor from the inputted variable for all forecasts.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 }
 \value{
 Returns a vector of forecasts of length \code{(h)}.
@@ -31,9 +31,8 @@ Returns a vector of forecasts of length \code{(h)}.
 Autoregressive model incorporating nonlinear regressions of component series.
 }
 \examples{
-set.seed(123)
-x<-rnorm(100)
-NNS.ARMA(x)
+## Nonlinear NNS.ARMA using AirPassengers monthly data and 12 period lag
+NNS.ARMA(AirPassengers,h=45,Training_set=100,Seasonal_Factor=12,Linear=FALSE)
 }
 \author{
 Fred Viole, OVVO Financial Systems

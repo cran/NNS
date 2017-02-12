@@ -1,15 +1,15 @@
 #' Lower Partial Moment
 #'
 #' This function generates a univariate lower partial moment for any degree or target.
-#' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param target Typically set to mean, but does not have to be
+#' @param degree \code{degree = 0} is frequency, \code{degree = 1} is area.
+#' @param target Typically set to mean, but does not have to be.
 #' @param variable Variable
 #' @return LPM of variable
 #' @keywords partial moments, mean, variance, CDF
 #' @importFrom grDevices adjustcolor rainbow
-#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis
+#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext
 #' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density
-#' @importFrom rgl plot3d points3d
+#' @importFrom rgl plot3d points3d shade3d cube3d
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -27,8 +27,8 @@ LPM<- function(degree,target,variable)
 #' Upper Partial Moment
 #'
 #' This function generates a univariate upper partial moment for any degree or target.
-#' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param target Typically set to mean, but does not have to be
+#' @param degree \code{degree = 0} is frequency, \code{degree = 1} is area.
+#' @param target Typically set to mean, but does not have to be.
 #' @param variable Variable
 #' @return UPM of variable
 #' @keywords partial moments, mean, variance, upper CDF
@@ -50,11 +50,12 @@ UPM<- function(degree,target,variable){
 #' (Upper Right Quadrant 1)
 #'
 #' This function generates a multivariate co-upper partial moment for any degree or target.
-#' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param variable1 Variable 1
-#' @param variable2 Variable 2
-#' @param target1 Defaults to mean of Variable 1, but does not have to be...
-#' @param target2 Defualts to mean of Variable 2, but does not have to be...
+#' @param degree.x Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.
+#' @param degree.y Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.
+#' @param x Variable X
+#' @param y Variable Y
+#' @param target.x Typically the mean of Variable X, but does not have to be.
+#' @param target.y Typically the mean of Variable Y, but does not have to be.
 #' @return Co-UPM of two variables
 #' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
@@ -63,15 +64,15 @@ UPM<- function(degree,target,variable){
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' Co.UPM(0,mean(x),mean(y),x,y)
+#' Co.UPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
 
-Co.UPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
-  x=variable1-target1;y=variable2-target2
+Co.UPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+  x=x-target.x;y=y-target.y
   x[x<=0]<- 0;y[y<=0]<- 0
-  x[x>0]<- x[x>0]^degree
-  y[y>0]<- y[y>0]^degree
+  x[x>0]<- x[x>0]^degree.x
+  y[y>0]<- y[y>0]^degree.y
   return(sum(x*y)/length(x))
   }
 
@@ -79,11 +80,12 @@ Co.UPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mea
 #' (Lower Left Quadrant 4)
 #'
 #' This function generates a multivariate co-lower partial moment for any degree or target.
-#' @param degree Degree = 0 is frequency, degree = 1 is area
-#' @param variable1 Variable 1
-#' @param variable2 Variable 2
-#' @param target1 Defaults to mean of Variable 1, but does not have to be...
-#' @param target2 Defualts to mean of Variable 2, but does not have to be...
+#' @param degree.x Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.
+#' @param degree.y Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.
+#' @param x Variable X
+#' @param y Variable Y
+#' @param target.x Typically the mean of Variable X, but does not have to be.
+#' @param target.y Typically the mean of Variable Y, but does not have to be.
 #' @return Co-LPM of two variables
 #' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
@@ -92,14 +94,14 @@ Co.UPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mea
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' Co.LPM(0,mean(x),mean(y),x,y)
+#' Co.LPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-Co.LPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
-  x=target1-variable1;y=target2-variable2
+Co.LPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+  x=target.x-x;y=target.y-y
   x[x<0]<- 0;y[y<0]<- 0
-  x[x>0]<- x[x>0]^degree
-  y[y>0]<- y[y>0]^degree
+  x[x>0]<- x[x>0]^degree.x
+  y[y>0]<- y[y>0]^degree.y
   return(sum(x*y)/length(x))
   }
 
@@ -107,12 +109,12 @@ Co.LPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mea
 #' (Lower Right Quadrant 3)
 #'
 #' This function generates a multivariate divergent lower partial moment for any degree or target.
-#' @param degree_n Degree = 0 is frequency, degree = 1 is area
-#' @param degree_q Degree = 0 is frequency, degree = 1 is area
-#' @param variable1 Variable 1
-#' @param variable2 Variable 2
-#' @param target1 Defaults to mean of Variable 1, but does not have to be...
-#' @param target2 Defualts to mean of Variable 2, but does not have to be...
+#' @param degree.x Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.
+#' @param degree.y Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.
+#' @param x Variable X
+#' @param y Variable Y
+#' @param target.x Typically the mean of Variable X, but does not have to be.
+#' @param target.y Typically the mean of Variable Y, but does not have to be.
 #' @return Divergent LPM of two variables
 #' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
@@ -121,14 +123,14 @@ Co.LPM<- function(degree,variable1,variable2,target1=mean(variable1),target2=mea
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' D.LPM(0,0,mean(x),mean(y),x,y)
+#' D.LPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-D.LPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
-  x=variable1-target1;y=target2-variable2
+D.LPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+  x=x-target.x;y=target.y-y
   x[x<=0]<- 0;y[y<0]<- 0
-  x[x>0]<- x[x>0]^degree_n
-  y[y>0]<- y[y>0]^degree_q
+  x[x>0]<- x[x>0]^degree.x
+  y[y>0]<- y[y>0]^degree.y
   return(sum(x*y)/length(x))
   }
 
@@ -137,12 +139,12 @@ D.LPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),t
 #' (Upper Left Quadrant 2)
 #'
 #' This function generates a multivariate divergent upper partial moment for any degree or target.
-#' @param degree_n Degree = 0 is frequency, degree = 1 is area
-#' @param degree_q Degree = 0 is frequency, degree = 1 is area
-#' @param variable1 Variable 1
-#' @param variable2 Variable 2
-#' @param target1 Defaults to mean of Variable 1, but does not have to be...
-#' @param target2 Defualts to mean of Variable 2, but does not have to be...
+#' @param degree.x Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.
+#' @param degree.y Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.
+#' @param x Variable X
+#' @param y Variable Y
+#' @param target.x Typically the mean of Variable X, but does not have to be.
+#' @param target.y Typically the mean of Variable Y, but does not have to be.
 #' @return Divergent UPM of two variables
 #' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
@@ -151,14 +153,14 @@ D.LPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),t
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
-#' D.UPM(0,0,mean(x),mean(y),x,y)
+#' D.UPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-D.UPM<- function(degree_n,degree_q,variable1,variable2,target1=mean(variable1),target2=mean(variable2)){
-  x=target1-variable1;y=variable2-target2
+D.UPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+  x=target.x-x;y=y-target.y
   x[x<0]<- 0;y[y<=0]<- 0
-  x[x>0]<- x[x>0]^degree_n
-  y[y>0]<- y[y>0]^degree_q
+  x[x>0]<- x[x>0]^degree.x
+  y[y>0]<- y[y>0]^degree.y
   return(sum(x*y)/length(x))
  }
 

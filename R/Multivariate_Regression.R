@@ -6,17 +6,18 @@
 #' @param B Complete dataset of independent variables (IV) in matrix form.
 #' @param y Dependent variable (DV).
 #' @param order Controls the number of the \code{NNS.reg}.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param n.best Sets the number of closest regression points to use in kernel weighting.  Defaults to 1.  Should be validated on hold-out set in conjunction with \code{"precision"} parameter.
 #' @param type Controls the partitioning in \code{NNS.reg}.  Defaults to \code{type="XONLY"} for IV based partitioning.   \code{type=NULL} for both IV and DV partitioning.
 #' @param point.est Generates a fitted value of \code{y} for a vector or matrix of IV coordinates.
-#' @param plot Generates a 3d scatter plot with regression points using \link{plot3d}
+#' @param plot Generates a 3d scatter plot with regression points using \link{plot3d}.
 #' @param residual.plot Generates a \code{matplot} for Y.hat and Y
 #' @param location Sets the location of the legend
 #' @param precision  Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} (Default setting), and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.
 #' @param text If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.
-#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.
+#' @param noise.reduction In low signal:noise situations,\code{noise.reduction="mean"} (Default setting) uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction='off'} allows for maximum possible fit and specific \code{order} specification.
 #' @param norm Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.
+#' @param dist Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.
 #' @return Returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value, and  \code{"Point.est"} for predicted values.
 #' @keywords  multiple nonlinear regression
 #' @author Fred Viole, OVVO Financial Systems
@@ -24,7 +25,7 @@
 #' \url{http://amzn.com/1490523995}
 
 
-NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,precision="LOW",text=FALSE,noise.reduction=FALSE,norm=NULL){
+NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.99,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,precision="LOW",text=FALSE,noise.reduction='mean',norm=NULL,dist="L2"){
 
   if(is.null(ncol(B))){B=t(t(B))}
   n=ncol(B)
@@ -40,16 +41,16 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
   new.variable=data.matrix(original.variable)
   B=new.variable
   if(!is.null(norm)){
-  if(norm=='std'){
-  B=apply(B,2,function(b) (b-min(b))/(max(b)-min(b)))}else{
-  B=NNS.norm(B)}
-  if(!is.null(point.est)){
-  if(norm=='std'){
-  point.est=apply(point.est,2,function(c) (c-min(rbind(c,original.variable)))/(max(rbind(c,original.variable))-min(rbind(c,original.variable))))}else{
-  point.est=NNS.norm(rbind(point.est,original.variable))[1:np,]}
-  }}else{B=B
-  point.est=point.est
-  }
+    if(norm=='std'){
+      B=apply(B,2,function(b) (b-min(b))/(max(b)-min(b)))}else{
+        B=NNS.norm(B)}
+    if(!is.null(point.est)){
+      if(norm=='std'){
+        point.est=apply(point.est,2,function(c) (c-min(rbind(c,original.variable)))/(max(rbind(c,original.variable))-min(rbind(c,original.variable))))}else{
+          point.est=NNS.norm(rbind(point.est,original.variable))[1:np,]}
+    }}else{B=B
+    point.est=point.est
+    }
 
   colnames(B)=colnames(original.variable)
   y=as.numeric(y)
@@ -62,22 +63,22 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
   ###  Regression Point Matrix
 
   for(i in 1:n){
-      reg.points[[i]] = NNS.reg(B[,i],y,order=order,type=type,noise.reduction=NULL,precision = precision,plot = F)$regression.points[,1]
+    reg.points[[i]] = NNS.reg(B[,i],y,order=order,type=type,noise.reduction='off',precision = precision,plot = F)$regression.points[,1]
   }
 
   reg.points.matrix=do.call('cbind',lapply(reg.points, `length<-`, max(lengths(reg.points))))
 
   if(length(reg.points.matrix[,1])==0){
     for(i in 1:n){
-      part.map=partition.map(B[,i],y,order=order,type=type,noise.reduction=noise.reduction)
+      part.map=NNS.part(B[,i],y,order=order,type=type,noise.reduction=noise.reduction)
       dep=NNS.dep(B[,i],y,order=1)$Dependence
-    if(dep>s.t.n){
-        reg.points[[i]] = partition.map(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),type=type,noise.reduction=NULL)$regression.points[,1]}
-      else{reg.points[[i]] = partition.map(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),noise.reduction=noise.reduction,type="XONLY")$regression.points[,1]}
+      if(dep>s.t.n){
+        reg.points[[i]] = NNS.part(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),type=type,noise.reduction='off',overfit=T)$regression.points[,1]}
+      else{reg.points[[i]] = NNS.part(B[,i],y,order=round(dep*max(nchar(part.map$df[,3]))),noise.reduction=noise.reduction,type="XONLY",overfit = T)$regression.points[,1]}
     }
 
 
-  reg.points.matrix=do.call('cbind',lapply(reg.points, `length<-`, max(lengths(reg.points))))}
+    reg.points.matrix=do.call('cbind',lapply(reg.points, `length<-`, max(lengths(reg.points))))}
 
 
   if(is.null(colnames(B))){
@@ -104,8 +105,8 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
   intervals = apply(intervals, 1 , paste , collapse = "" )
   y.identifier = cbind(as.numeric(y),as.numeric(intervals))
   if(text==TRUE){
-   if(n<10){y.identifier = cbind(as.numeric(y),as.numeric(intervals))}else
-     {y.identifier = cbind(as.numeric(y),as.numeric(y))}
+    if(n<10){y.identifier = cbind(as.numeric(y),as.numeric(intervals))}else
+    {y.identifier = cbind(as.numeric(y),as.numeric(y))}
   }
 
   ## Match y to unique identifier
@@ -146,10 +147,13 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
     distance<- function(dist.est){
       distances=sweep(REGRESSION.POINT.MATRIX[,(1:n)],2,as.numeric(dist.est))
       distances[distances==0]<- 1e-10
-      row.sums=as.numeric(sqrt(rowSums(distances^2)))
+      if(dist=="L1"){
+        row.sums=as.numeric(rowSums(abs(distances)))}else{row.sums=as.numeric(sqrt(rowSums(distances^2)))}
+
       distances.max=sweep(overall.matrix[,(1:n)],2,as.numeric(dist.est))
       distances.max[distances.max==0]<- 1e-10
-      row.sums.max=as.numeric(sqrt(rowSums(distances.max^2)))
+      if(dist=="L1"){
+        row.sums.max=as.numeric(rowSums(abs(distances.max)))}else{row.sums.max=as.numeric(sqrt(rowSums(distances.max^2)))}
 
       total.row.sums = sum(1/row.sums)
       total.row.sums.max = sum(1/row.sums.max)
@@ -165,26 +169,26 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
       }
 
       if(precision=="LOW"){
-          highest=numeric()
+        highest=numeric()
 
-          for(k in 1:n.best){
-              highest[k]=which_nth_highest(weights,k)[1]
-          }
+        for(k in 1:n.best){
+          highest[k]=which_nth_highest(weights,k)[1]
+        }
 
-          weights[-c(highest)]<-0
-          weights.sum=sum(weights)
+        weights[-c(highest)]<-0
+        weights.sum=sum(weights)
 
-          for(l in 1:length(weights)){
-              weights[l]=weights[l]/weights.sum
-          }
+        for(l in 1:length(weights)){
+          weights[l]=weights[l]/weights.sum
+        }
 
-          single.estimate = sum(weights*REGRESSION.POINT.MATRIX[,(n+1)])
+        single.estimate = sum(weights*REGRESSION.POINT.MATRIX[,(n+1)])
       }
 
 
       if(precision=="HIGH"){
-          highest=numeric()
-          for(k in 1:n.best){
+        highest=numeric()
+        for(k in 1:n.best){
           highest[k]=which_nth_highest(weights.max.prec,k)[1]
         }
         weights.max.prec[-c(highest)]<-0
@@ -200,11 +204,11 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
       }
 
 
-     return(single.estimate)
+      return(single.estimate)
     }
 
 
-  ### Point estimates
+    ### Point estimates
 
     predict.fit=numeric()
     predict.fit.iter=numeric()
@@ -218,7 +222,7 @@ NNS.M.reg <- function (B,y,order=NULL,s.t.n=0.9,n.best=1,type=NULL,point.est=NUL
       predict.fit=predict.fit.iter
     }
 
- }#is.null point.est
+  }#is.null point.est
 
 
   R2=  (sum((y.hat-mean(y))*(y-mean(y)))^2)/(sum((y-mean(y))^2)*sum((y.hat-mean(y))^2))

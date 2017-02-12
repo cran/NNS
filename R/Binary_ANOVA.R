@@ -2,8 +2,9 @@
 #'
 #' Generates a VaR based on the Lower Partial Moment ratio
 #' @param percentile The percentile for VaR
-#' @param degree Degree = 0 for discrete distributions, degree = 1 for continuous distributions
+#' @param degree \code{degree=0} for discrete distributions, \code{degree=1} for continuous distributions.
 #' @param x Variable
+#' @keywords VaR
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -25,8 +26,9 @@ LPM.VaR <- function(percentile,degree,x){
 #'
 #' Generates an upside VaR based on the Upper Partial Moment ratio
 #' @param percentile The percentile for VaR
-#' @param degree Degree = 0 for discrete distributions, degree = 1 for continuous distributions
+#' @param degree \code{degree=0} for discrete distributions, \code{degree=1} for continuous distributions.
 #' @param x Variable
+#' @keywords VaR
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100)
@@ -49,13 +51,15 @@ UPM.VaR <- function(percentile,degree,x){
 #' Performs an analysis of variance (ANOVA) for two variables: control and treatment.  Returns the effect size of the treatment for a specified confidence interval.
 #' @param control The control group sample
 #' @param treatment The treatment group sample
-#' @param confidence.interval The confidence interval surrounding the control mean.  Defaults to NULL.
-#' @return Returns the effect size of the treatment for a specified confidence interval with \code{"Lower.Bound.Effect"} and \code{"Upperr.Bound.Effect"}.
+#' @param confidence.interval The confidence interval surrounding the control mean.  Defaults to \code{confidence.interval=NULL}.
+#' @return Returns \code{"Control Mean"}, \code{"Treatment Mean"}, \code{"Grand Mean"}, \code{"Control CDF"}, \code{"Treatment CDF"}, the certainty of the same population statistic \code{"Certainty"}, the effect size of the treatment for a specified confidence interval with \code{"Lower Bound Effect"} and \code{"Upper Bound Effect"}.
+#' @keywords ANOVA, effect size
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' NNS.ANOVA.bin(x,y,0.95)
 #' @export
+
 NNS.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
 
         mean.of.means <- mean(c(mean(control),mean(treatment)))
@@ -71,19 +75,22 @@ NNS.ANOVA.bin<- function(control,treatment,confidence.interval=NULL){
 
 
   #Certainty associated with samples
-        NNS.ANOVA.rho <- (0.5 - MAD.CDF)/0.5
+        NNS.ANOVA.rho <- (0.5 - MAD.CDF)^2/0.25
 
-    print(c("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Continuous CDF of Control" =LPM_ratio.1,"Continuous CDF of Treatment" = LPM_ratio.2, "Certainty of Same Population" = NNS.ANOVA.rho))
 
   #Graphs
         boxplot(list(control,treatment), las=2, names=c("Control","Treatment"),
-              xlab= "Means", horizontal = TRUE, main= "ANOVA and Effect Size",
+              xlab= "Means", horizontal = TRUE, main= "NNS ANOVA and Effect Size",
               col=c("grey","white"),
               cex.axis= 0.75)
 
         #For ANOVA Visualization
         abline(v=mean.of.means,col="red",lwd=4)
-            text(mean.of.means,pos=4, 2.5, "Mean of means", col = "red")
+        mtext("Grand Mean", side = 3,col = "red")
+
+if(is.null(confidence.interval)){
+    return(list("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Control CDF" =LPM_ratio.1,"Treatment CDF" = LPM_ratio.2, "Certainty" = NNS.ANOVA.rho))}
+
 
 if(!is.null(confidence.interval)){
         #Upper end of CDF confidence interval for control mean
@@ -110,7 +117,7 @@ if(!is.null(confidence.interval)){
         Upper.Bound.Effect=max(mean(treatment)-min(c,d),0)
 
   #Certainty Statistic and Effect Size Given Confidence Interval
-        return(c(Lower.Bound.Effect=Lower.Bound.Effect,Upper.Bound.Effect=Upper.Bound.Effect))
+        return(list("Control Mean" = mean(control),"Treatment Mean" = mean(treatment),"Grand Mean" = mean.of.means,"Control CDF" =LPM_ratio.1,"Treatment CDF" = LPM_ratio.2, "Certainty" = NNS.ANOVA.rho,"Lower Bound Effect"=Lower.Bound.Effect,"Upper Bound Effect"=Upper.Bound.Effect))
 }
 }
 

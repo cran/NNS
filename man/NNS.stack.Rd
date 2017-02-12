@@ -2,10 +2,11 @@
 % Please edit documentation in R/Stack.R
 \name{NNS.stack}
 \alias{NNS.stack}
-\title{NNS.stack}
+\title{NNS stack}
 \usage{
 NNS.stack(IVs.train, DV.train, IVs.test = NULL, DV.test = NULL,
-  CV.size = 0.2, weight = "MSE", text = F, precision = NULL)
+  CV.size = 0.2, weight = "MSE", text = F, precision = NULL,
+  method = c(1, 2, 3), threshold = 0)
 }
 \arguments{
 \item{IVs.train}{Training set of independent variables.}
@@ -23,6 +24,10 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, DV.test = NULL,
 \item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
 
 \item{precision}{Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.  \code{precision=NULL} (Defualt) compares both precision types and then returns the best model parameters.}
+
+\item{method}{Select the NNS method to include in stack.  \code{method=1} selects \link{NNS.reg}; \code{method=2} selects \link{NNS.reg} dimension reduction logistic regression; \code{method=3} selects \link{NNS.Feature.prob}.  Defaults to \code{method=c(1,2,3)}, including all 3 NNS methods in the stack.}
+
+\item{threshold}{Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{threshold=0}.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set for all models.  \code{"NNS.reg.n.best"} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"NNS.logistic.order"} returns the optimum \code{"order"} from the \link{NNS.reg} logistic regression.  \code{"reg"} returns \link{NNS.reg} output, \code{"logistic"} returns \link{NNS.reg} logistic regression output, \code{"Feature.prob"} returns \link{NNS.Feature.prob} output, and \code{"stack"} returns the output of the stacked model.  \code{"CV.test"} returns the random cross-validation dependent variable used and \code{"MSE"} returns the MSE from cross-validation.
@@ -36,8 +41,15 @@ If character variables are used, transform them first to factors using \link{as.
 \examples{
  ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
  NNS.stack(iris[,1:4],iris[,5],precision="LOW")
+ ## Selecting NNS.reg and dimension reduction techniques.
+ NNS.stack(iris[,1:4],iris[,5],precision="LOW",method=c(1,2))
 }
 \author{
 Fred Viole, OVVO Financial Systems
 }
+\references{
+Viole, F. (2016) "Classification Using NNS Clustering Analyis"
+\url{https://ssrn.com/abstract=2864711}
+}
+\keyword{classifier}
 

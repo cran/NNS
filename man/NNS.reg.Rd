@@ -4,20 +4,20 @@
 \alias{NNS.reg}
 \title{NNS Regression}
 \usage{
-NNS.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
+NNS.reg(x, y, order = NULL, s.t.n = 0.99, type = NULL, point.est = NULL,
   location = "top", return.values = TRUE, plot = TRUE,
   residual.plot = TRUE, threshold = 0, dep.order = NULL,
-  precision = "LOW", n.best = 2, text = FALSE, noise.reduction = NULL,
-  norm = NULL)
+  precision = "LOW", n.best = 2, text = FALSE, noise.reduction = "mean",
+  norm = NULL, dist = "L2")
 }
 \arguments{
 \item{x}{Independent Variable(s)}
 
 \item{y}{Dependent Variable}
 
-\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction=NULL}.}
+\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction='off'}.  \code{order="max"} will force limit perfect fit.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{type}{To perform logistic regression, set to \code{type = "LOGIT"}.  To perform a classification, set to \code{type = "CLASS"}.  Defualts to NULL.}
 
@@ -25,15 +25,15 @@ NNS.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
 
 \item{location}{Sets the legend location within the plot}
 
-\item{return.values}{Defaults to TRUE, set to FALSE in order to avoid displaing all \code{VALUE} outputs.}
+\item{return.values}{Defaults to TRUE, set to FALSE in order to only display a regression plot.}
 
 \item{plot}{To plot regression or not.  Defaults to TRUE.}
 
-\item{residual.plot}{To plot the fitted values of Y and Y.  Defaults to TRUE.}
+\item{residual.plot}{To plot the \code{fitted values of Y} and \code{Y}.  Defaults to TRUE.}
 
 \item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
 
-\item{dep.order}{Sets the internal order for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
+\item{dep.order}{Sets the internal order for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.  Defaults to \code{dep.order=NULL}.}
 
 \item{precision}{Increases speed of computation at the expense of precision.  3 settings offered: \code{"LOW"} (Default setting), \code{"MED"}, and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.}
 
@@ -41,9 +41,11 @@ NNS.reg(x, y, order = NULL, s.t.n = 0.9, type = NULL, point.est = NULL,
 
 \item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
 
-\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"}  uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction=NULL} (Default setting) allows for maximum possible fit and specific \code{order} specification.}
+\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"} (Default setting) uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction='off'}  allows for maximum possible fit and specific \code{order} specification.}
 
 \item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.}
+
+\item{dist}{Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.}
 }
 \value{
 UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
@@ -99,6 +101,7 @@ Fred Viole, OVVO Financial Systems
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\keyword{classifier}
 \keyword{nonlinear}
-\keyword{regression}
+\keyword{regression,}
 

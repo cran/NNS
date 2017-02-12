@@ -9,7 +9,7 @@ UPM.VaR(percentile, degree, x)
 \arguments{
 \item{percentile}{The percentile for VaR}
 
-\item{degree}{Degree = 0 for discrete distributions, degree = 1 for continuous distributions}
+\item{degree}{\code{degree=0} for discrete distributions, \code{degree=1} for continuous distributions.}
 
 \item{x}{Variable}
 }
@@ -21,4 +21,5 @@ set.seed(123)
 x<-rnorm(100)
 UPM.VaR(0.95,0,x)
 }
+\keyword{VaR}
 

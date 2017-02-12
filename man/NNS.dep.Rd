@@ -4,21 +4,21 @@
 \alias{NNS.dep}
 \title{NNS Dependence}
 \usage{
-NNS.dep(x, y, order = 2, degree = NULL, print.map = FALSE)
+NNS.dep(x, y, order = NULL, degree = NULL, print.map = FALSE)
 }
 \arguments{
 \item{x}{Variable 1}
 
 \item{y}{Variable 2}
 
-\item{order}{Controls the level of quadrant partitioning.  Default to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.}
+\item{order}{Controls the level of quadrant partitioning.  Default to \code{order=NULL}.  Errors can generally be rectified by setting \code{order=1}.}
 
 \item{degree}{Defaults to NULL to allow number of observations to be \code{degree} determinant.}
 
 \item{print.map}{Plots quadrant means.  Defaults to FALSE.}
 }
 \value{
-Returns the \code{"Correlation"} and \code{"Dependence"}
+Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
 }
 \description{
 Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.
@@ -27,6 +27,11 @@ Returns the dependence between two variables based on higher order partial momen
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 NNS.dep(x,y)
+
+## Correlation / Dependence Matrix
+x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
+B<-cbind(x,y,z)
+NNS.cor(B)
 }
 \author{
 Fred Viole, OVVO Financial Systems
