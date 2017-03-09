@@ -2,15 +2,15 @@
 #'
 #' Returns the numerical partial derivate of y wrt x for a point of interest.
 #'
-#' @param x Independent Variable
-#' @param y Dependent Variable
-#' @param order Controls the number of partial moment quadrant means.  Defaults to \code{order='max'} which generates a more accurate derivative for well specified cases.
-#' @param s.t.n Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.
-#' @param eval.point Independent variable point to be evaluated.  Defaults to \code{eval.point=median(x)}.  Set to \code{eval.points="overall"} to find an overall partial derivative estimate.
-#' @param deriv.order For second derivative estimate of \code{f(x)}, set \code{deriv.order=2}.  Defaults to first derivative.
-#' @param h Percentage step used for finite step method.  Defaults to \code{h=.01} representing a 5 percent step from the value of the independent variable.
-#' @param noise.reduction In low signal to noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction="off"}  allows for maximum possible fit in \link{NNS.reg}. Default setting is \code{noise.reduction="mean"}.
-#' @param deriv.method Determines the partial derivative from the coefficient of the \link{NNS.reg} output when \code{deriv.method="NNS"} or generates a partial derivative using the finite step method \code{deriv.method="FS"} (Defualt).
+#' @param x a numeric vector.
+#' @param y a numeric vector.
+#' @param order integer; Controls the number of partial moment quadrant means.  Defaults to \code{(order=NULL)} which generates a more accurate derivative for well specified cases.
+#' @param s.t.n numeric [0,1]; Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param eval.point numeric; \code{x} point to be evaluated.  Defaults to \code{(eval.point=median(x))}.  Set to \code{(eval.points="overall")} to find an overall partial derivative estimate.
+#' @param deriv.order numeric options: (1,2); 1 (default) For second derivative estimate of \code{f(x)}, set \code{(deriv.order=2)}.
+#' @param h numeric [0,...]; Percentage step used for finite step method.  Defaults to \code{h=.01} representing a 1 percent step from the value of the independent variable.
+#' @param noise.reduction the method of determing regression points options: ("mean","median","mode","off"); In low signal to noise situations, \code{(noise.reduction="median")} uses medians instead of means for partitions, while \code{(noise.reduction="mode")} uses modes instead of means for partitions.  \code{(noise.reduction="off")}  allows for maximum possible fit in \link{NNS.reg}. Default setting is \code{(noise.reduction="mean")}.
+#' @param deriv.method method of derivative estimation {"NNS","FS"}; Determines the partial derivative from the coefficient of the \link{NNS.reg} output when \code{(deriv.method="NNS")} or generates a partial derivative using the finite step method \code{(deriv.method="FS")} (Defualt).
 #' @return Returns the value of the partial derivative estimate for the given order.
 #' @keywords partial derivative
 #' @author Fred Viole, OVVO Financial Systems
@@ -21,18 +21,17 @@
 #' dy.dx(x,y,eval.point=1.75)
 #' @export
 
-dy.dx <- function(x,y,order=NULL,s.t.n=0.99,eval.point=median(x),deriv.order=1,h=.05,noise.reduction='mean',deriv.method="FS"){
+dy.dx <- function(x,y,order=NULL,s.t.n=0.99,eval.point=median(x),deriv.order=1,h=.01,noise.reduction='mean',deriv.method="FS"){
 
   if(eval.point=='overall'){
 
   ranges=NNS.reg(x,y,order=order,noise.reduction=noise.reduction,plot=F)$derivative
   range.weights=numeric()
-  for(i in 1:length(ranges[,1])){
-  range.weights[i]=sum(x>=ranges[i,2]&x<ranges[i,3])/length(x)
-  }
+  range.weights=data.table(x,'interval'=findInterval(x,ranges[,X.Lower.Range]))
+  range.weights=range.weights[,.N,by='interval']
+  range.weights=range.weights$N/length(x)
 
-  range.weights[length(range.weights)]=range.weights[length(range.weights)]+1/length(x)
-  return(sum(ranges[,1]*range.weights))
+  return(sum(ranges[,Coefficient]*range.weights))
 
   } else {
 
@@ -57,11 +56,11 @@ dy.dx <- function(x,y,order=NULL,s.t.n=0.99,eval.point=median(x),deriv.order=1,h
      reg.output <- NNS.reg(x,y,plot = FALSE,return.values = TRUE,order=order,s.t.n = s.t.n,noise.reduction = noise.reduction)
 
      output<- reg.output$derivative
-      if(length(output[,1])==1){return(output[,1])}
-      if((output[,3][which(eval.point<output[,3])-1][1])<eval.point){
-      return(output[,1][which(eval.point<output[,3])][1])}
+      if(length(output[,Coefficient])==1){return(output[,Coefficient])}
+      if((output[,X.Upper.Range][which(eval.point<output[,X.Upper.Range])-1][1])<eval.point){
+      return(output[,Coefficient][which(eval.point<output[,X.Upper.Range])][1])}
       else{
-        return(mean(c(output[,1][which(eval.point<output[,3])][1],output[,1][which(eval.point<output[,3])-1][1])))
+        return(mean(c(output[,Coefficient][which(eval.point<output[,X.Upper.Range])][1],output[,X.Lower.Range][which(eval.point<output[,X.Upper.Range])-1][1])))
       }
       }
 

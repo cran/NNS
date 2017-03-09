@@ -4,14 +4,16 @@
 \alias{NNS.caus}
 \title{NNS Causation}
 \usage{
-NNS.caus(x, y, tau)
+NNS.caus(x, y, tau, plot = FALSE)
 }
 \arguments{
-\item{x}{Variable}
+\item{x}{a numeric vector.}
 
-\item{y}{Variable}
+\item{y}{a numeric vector.}
 
-\item{tau}{Number of lagged observations to consider}
+\item{tau}{integer; Number of lagged observations to consider}
+
+\item{plot}{logical; \code{FALSE} (default) Plots the raw variables, tau normalized, and cross-normalized variables.}
 }
 \value{
 Returns the directional causation and quantity of association.
@@ -20,9 +22,10 @@ Returns the directional causation and quantity of association.
 Returns the causality from observational data between two variables
 }
 \examples{
+## x clearly causes y...
 set.seed(123)
-x<-rnorm(100); y<-rnorm(100)
-\dontrun{NNS.caus(x,y,3)}
+x<-rnorm(100); y<-x^2
+NNS.caus(x,y,1)
 }
 \author{
 Fred Viole, OVVO Financial Systems

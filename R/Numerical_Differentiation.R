@@ -2,11 +2,11 @@
 #'
 #' Determines numerical derivative of a given function using projected secant lines on the y-axis.  These projected points infer finite steps \code{h}, in the finite step method.
 #'
-#' @param f Function to be derived.  Does not have to be defined \code{f<-}...
-#' @param point Point to be evaluated for derivative of a given function \code{f}.
-#' @param h Initial step for secant projection.  Defaults to 0.1.
-#' @param tol Sets the tolerance for the stopping condition of the inferred h.
-#' @param print.trace Displays the iteration, lower y-intercept, upper y-intercept and inferred h.  Defaults to \code{print.trace=FALSE}.
+#' @param f an expression or call or a formula with no lhs.
+#' @param point numeric; Point to be evaluated for derivative of a given function \code{f}.
+#' @param h numeric [0,...]; Initial step for secant projection.  Defaults to \code{(h=0.1)}.
+#' @param tol numeric; Sets the tolerance for the stopping condition of the inferred h.  Defualts to \code{(tol=1e-10)}.
+#' @param print.trace logical; \code{FALSE} (default) Displays each iteration, lower y-intercept, upper y-intercept and inferred h.
 #' @return Returns a matrix of values, intercepts, derivatives, inferred step sizes for multiple methods of estimation.
 #' @keywords numerical differentiation, secant
 #' @author Fred Viole, OVVO Financial Systems
@@ -23,6 +23,24 @@
 
 
 NNS.diff<- function(f,point,h=0.1,tol=1e-10,print.trace=FALSE){
+
+
+  Finite.step = function(f,point,h){
+
+    f.x = f(point)
+    f.x.h.min = f(point - h)
+    f.x.h.pos = f(point + h)
+
+    neg.step = (f.x - f.x.h.min)/h
+    pos.step = (f.x.h.pos - f.x)/h
+
+    return((c("f(x-h)"=neg.step,"f(x+h)"=pos.step,mean(c(neg.step,pos.step)))))
+
+  }
+
+
+
+
 
   options(digits=20)
   Bs = numeric()
@@ -139,7 +157,7 @@ NNS.diff<- function(f,point,h=0.1,tol=1e-10,print.trace=FALSE){
       points(Bl,col='red',ylab='')
       points(Bu,col='blue',ylab='')
 
-      legend('topright',c("Upper y-intercept","Lower y-intercept","Mean y-intercept"),col= c('blue','red','green'),pch=c(1,1,19))
+      legend('topright',c("Upper y-intercept","Lower y-intercept","Mean y-intercept"),col= c('blue','red','green'),pch=c(1,1,19),bty = 'n')
 
 
 
@@ -184,38 +202,4 @@ NNS.diff<- function(f,point,h=0.1,tol=1e-10,print.trace=FALSE){
 
 }
 
-
-#' Finite Step Differentiation
-#'
-#' Determines numerical derivative of a given function using projected the finite step method.  Used to compare \code{NNS.diff} results.
-#'
-#'
-#' @param f Function to be derived.  Does not have to be defined \code{f<-}...
-#' @param point Point to be evaluated for derivative of a given function \code{f}.
-#' @param h Step difference used for deriavite.
-#' @return Returns the mean value of the positive and negative steps from the \code{point}.
-#' @keywords numerical differentiation, finite step method, secant
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{http://amzn.com/1490523995}
-#' @examples
-#' f<- function(x) sin(x)/x
-#' Finite.step(f,4.1,.1)
-#'
-#' @export
-
-
-
-Finite.step = function(f,point,h){
-
-  f.x = f(point)
-  f.x.h.min = f(point - h)
-  f.x.h.pos = f(point + h)
-
-  neg.step = (f.x - f.x.h.min)/h
-  pos.step = (f.x.h.pos - f.x)/h
-
-  return((c("f(x-h)"=neg.step,"f(x+h)"=pos.step,mean(c(neg.step,pos.step)))))
-
-}
 

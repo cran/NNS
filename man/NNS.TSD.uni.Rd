@@ -7,9 +7,9 @@
 NNS.TSD.uni(x, y)
 }
 \arguments{
-\item{x}{variable}
+\item{x}{a numeric vector.}
 
-\item{y}{variable}
+\item{y}{a numeric vector.}
 }
 \value{
 Returns (1) if \code{"X TSD Y"}, else (0).

@@ -7,11 +7,11 @@
 NNS.cor.hd(A, plot = FALSE, independence.overlay = FALSE)
 }
 \arguments{
-\item{A}{data.frame of variables.}
+\item{A}{a numeric matrix or data frame.}
 
-\item{plot}{Generates a 3d scatter plot with regression points using \link{plot3d}.}
+\item{plot}{logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.}
 
-\item{independence.overlay}{Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.}
+\item{independence.overlay}{logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.}
 }
 \value{
 Returns multivariate nonlinear correlation coefficient

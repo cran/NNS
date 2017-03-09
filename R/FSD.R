@@ -1,8 +1,8 @@
 #' NNS FSD Test
 #'
 #' Bi-directional test of first degree stochastic dominance using lower partial moments.
-#' @param x variable
-#' @param y variable
+#' @param x a numeric vector.
+#' @param y a numeric vector.
 #' @return Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
 #' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
@@ -23,39 +23,22 @@ NNS.FSD <- function(x,y){
   Combined = c(x_sort,y_sort)
   Combined_sort = sort(Combined, decreasing=FALSE)
 
-  LPM_x_sort = numeric(0)
-  LPM_y_sort = numeric(0)
+ ## Indicator function ***for all values of x and y*** as the CDF target
 
-  output_x <- vector("numeric", length(x))
-  output_y <- vector("numeric", length(x))
+  x.fsd.y=sum((LPM(0,Combined_sort,y)-LPM(0,Combined_sort,x))>=0)
 
+  y.fsd.x=sum((LPM(0,Combined_sort,x)-LPM(0,Combined_sort,y))>=0)
 
-  for (i in 1:length(Combined)){
+  LPM_x_sort=LPM(0,Combined_sort,x)
+  LPM_y_sort=LPM(0,Combined_sort,y)
 
-  ## Indicator function ***for all values of x and y*** as the CDF target
-    if(LPM(0,Combined_sort[i],y)-LPM(0,Combined_sort[i],x)>=0 )
-        {output_x[i]<-0} else { break } }
-
-
-  for (i in 1:length(Combined)){
-    if(LPM(0,Combined_sort[i],x)-LPM(0,Combined_sort[i],y)>=0 )
-    {output_y[i]<-0} else { break }
-
-  }
-
-
-    for (j in 1:length(Combined_sort)){
-      LPM_x_sort[j] = LPM(0,Combined_sort[j],x)
-      LPM_y_sort[j] = LPM(0,Combined_sort[j],y)
-    }
-
-    plot(LPM_x_sort, type = "l", lwd =3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution")
-    lines(LPM_y_sort, type = "l", lwd =3,col = "blue")
+    plot(Combined_sort,LPM_x_sort, type = "l", lwd =3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution")
+    lines(Combined_sort,LPM_y_sort, type = "l", lwd =3,col = "blue")
     legend("topleft", c("X","Y"), lwd=10,
            col=c("red","blue"))
 
      ## Verification of ***0 instances*** of CDFx > CDFy, and conversely of CDFy > CDFx
-    ifelse (length(output_x)==length(Combined) & min(x)>=min(y),"X FSD Y",
-           ifelse (length(output_y)==length(Combined) & min(y)>=min(x),"Y FSD X","NO FSD EXISTS"))
+    ifelse (x.fsd.y==length(Combined) & min(x)>=min(y),"X FSD Y",
+           ifelse (y.fsd.x==length(Combined) & min(y)>=min(x),"Y FSD X","NO FSD EXISTS"))
 }
 

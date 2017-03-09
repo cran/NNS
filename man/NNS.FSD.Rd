@@ -7,9 +7,9 @@
 NNS.FSD(x, y)
 }
 \arguments{
-\item{x}{variable}
+\item{x}{a numeric vector.}
 
-\item{y}{variable}
+\item{y}{a numeric vector.}
 }
 \value{
 Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.

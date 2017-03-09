@@ -4,38 +4,41 @@
 \alias{NNS.part}
 \title{NNS Partition Map}
 \usage{
-NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL,
-  overfit = FALSE, noise.reduction = "mean")
+NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL, min.obs = 4,
+  noise.reduction = "mean")
 }
 \arguments{
-\item{x}{Variable 1}
+\item{x}{a numeric vector.}
 
-\item{y}{Variable 2}
+\item{y}{a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{Voronoi}{Displays a Voronoi type diagram using partial moment quadrants.  Defaults to FALSE.}
+\item{Voronoi}{logical; \code{FALSE} (default) Displays a Voronoi type diagram using partial moment quadrants.}
 
-\item{type}{Controls the partitioning basis.  Set to \code{type="XONLY"} for X-axis based partitioning.  Defaults to NULL for both X and Y-axis partitioning.}
+\item{type}{\code{NULL} (default) Controls the partitioning basis.  Set to \code{(type="XONLY")} for X-axis based partitioning.  Defaults to NULL for both X and Y-axis partitioning.}
 
-\item{order}{Number of partial moment quadrants to be generated.  \code{order="max"} will institute a perfect fit.}
+\item{order}{integer; Number of partial moment quadrants to be generated.  \code{(order="max")} will institute a perfect fit.}
 
-\item{overfit}{Reduces minimum number of necessary observations in a quadrant to 1 when \code{overfit=TRUE}.  In the instances where \code{"regression.points"} fail to be generated in the output, re-run partitioning with \code{overfit=TRUE} for the given \code{order}.}
+\item{min.obs}{integer; Reduces minimum number of necessary observations in a quadrant to 1 when \code{(min.obs=1)}.  In the instances where \code{"regression.points"} fail to be generated in the output, re-run partitioning with \code{(min.obs=1)} for the given \code{(order=...)}.  Defaults to \code{(min.obs=4)}.}
 
-\item{noise.reduction}{\code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  Defaults to \code{noise.reduction="mean"}, while \code{noise.reduction=NULL} will partition quadrant to a single observation for a given \code{order}.}
+\item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); \code{(noise.reduction="median")} uses medians instead of means for partitions, while \code{(noise.reduction="mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction="mean")}, while \code{(noise.reduction="off")} will partition quadrant to a single observation for a given \code{(order=...)}.}
 }
 \value{
-Returns both a dataframe \code{"df"} of X and Y observations with their partition assignment in the 3d column; and the regression points \code{"regression.points"} for that given \code{order}.
+Returns both a \link{data.table} \code{("dt")} of \code{x} and \code{y} observations with their partition assignment \code{"NNS.ID"} in the 3rd column; and the \link{data.table} of regression points \code{("regression.points")} for that given \code{(order=...)}.
 }
 \description{
-Creates partitions based on quadrant means, assigning observations to those quadrants.  Needed for correlation, dependence, regression routines.  Default degree = 1 for area, but routines have their own conditional degree specifications built in
+Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchal clustering method).  Basis for correlation, dependence, regression routines.
 }
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100)
 NNS.part(x,y)
-## Dataframe of observations and partitions
-NNS.part(x,y,order=1)$df
+
+## Data.table of observations and partitions
+NNS.part(x,y,order=1)$dt
+
 ## Regression points
 NNS.part(x,y,order=1)$regression.points
+
 ## Voronoi style plot
 NNS.part(x,y,Voronoi=TRUE)
 }

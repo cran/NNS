@@ -4,22 +4,22 @@
 \alias{NNS.cor}
 \title{NNS Correlation}
 \usage{
-NNS.cor(x, y, order = 2, degree = ifelse(length(x) < 100, 0, 1))
+NNS.cor(x, y = NULL, order = 3, degree = ifelse(length(x) < 100, 0, 1))
 }
 \arguments{
-\item{x}{Variable 1}
+\item{x}{a numeric vector, matrix or data frame.}
 
-\item{y}{Variable 2}
+\item{y}{\code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{order}{Controls the level of quadrant partitioning.  Defualts to \code{order=2}.  Errors can generally be rectified by setting \code{order=1}.}
+\item{order}{integer; Controls the level of quadrant partitioning.  Defualts to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.}
 
-\item{degree}{\code{degree = 0} is frequency based correlations, while \code{degree = 1} is for area based correlations.  Defaults to 0 for smaller number of observations.}
+\item{degree}{integer; \code{(degree = 0)} is frequency based correlations, while \code{(degree = 1)} is for area based correlations.  Defaults to \code{(degree = 0)} for smaller number of observations.}
 }
 \value{
-Returns nonlinear correlation coefficient between two variables, or correlation matrix for matrix input.
+Returns nonlinear correlation coefficient between two variables, or nonlinear correlation matrix for matrix input.
 }
 \description{
-Returns the nonlinear correlation coefficient based on partial moment quadrants.
+Returns the nonlinear correlation between two variables based on higher order partial moment matrices measured by frequency or area.
 }
 \examples{
 set.seed(123)
@@ -41,4 +41,5 @@ Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Par
 \url{http://amzn.com/1490523995}
 }
 \keyword{correlation}
+\keyword{nonlinear}
 

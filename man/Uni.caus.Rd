@@ -4,14 +4,16 @@
 \alias{Uni.caus}
 \title{NNS Causation uni-directional  (INTERNAL CALL FOR \link{NNS.caus})}
 \usage{
-Uni.caus(x, y, tau)
+Uni.caus(x, y, tau, plot = TRUE)
 }
 \arguments{
-\item{x}{Variable}
+\item{x}{a numeric vector.}
 
-\item{y}{Variable}
+\item{y}{a numeric vector.}
 
-\item{tau}{Number of lagged observations to consider}
+\item{tau}{integer; Number of lagged observations to consider}
+
+\item{plot}{logical; \code{TRUE} (default) Plots the raw variables, tau normalized, and cross-normalized variables.}
 }
 \description{
 Returns the uni-directional causality from observational data between two variables.  Causation nets out the univariate effect.

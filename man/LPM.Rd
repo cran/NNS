@@ -7,11 +7,11 @@
 LPM(degree, target, variable)
 }
 \arguments{
-\item{degree}{\code{degree = 0} is frequency, \code{degree = 1} is area.}
+\item{degree}{integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.}
 
-\item{target}{Typically set to mean, but does not have to be.}
+\item{target}{numeric; Typically set to mean, but does not have to be. (Vectorized)}
 
-\item{variable}{Variable}
+\item{variable}{a numeric vector.}
 }
 \value{
 LPM of variable

@@ -7,15 +7,15 @@
 NNS.diff(f, point, h = 0.1, tol = 1e-10, print.trace = FALSE)
 }
 \arguments{
-\item{f}{Function to be derived.  Does not have to be defined \code{f<-}...}
+\item{f}{an expression or call or a formula with no lhs.}
 
-\item{point}{Point to be evaluated for derivative of a given function \code{f}.}
+\item{point}{numeric; Point to be evaluated for derivative of a given function \code{f}.}
 
-\item{h}{Initial step for secant projection.  Defaults to 0.1.}
+\item{h}{numeric [0,...]; Initial step for secant projection.  Defaults to \code{(h=0.1)}.}
 
-\item{tol}{Sets the tolerance for the stopping condition of the inferred h.}
+\item{tol}{numeric; Sets the tolerance for the stopping condition of the inferred h.  Defualts to \code{(tol=1e-10)}.}
 
-\item{print.trace}{Displays the iteration, lower y-intercept, upper y-intercept and inferred h.  Defaults to \code{print.trace=FALSE}.}
+\item{print.trace}{logical; \code{FALSE} (default) Displays each iteration, lower y-intercept, upper y-intercept and inferred h.}
 }
 \value{
 Returns a matrix of values, intercepts, derivatives, inferred step sizes for multiple methods of estimation.

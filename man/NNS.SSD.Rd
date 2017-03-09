@@ -7,9 +7,9 @@
 NNS.SSD(x, y)
 }
 \arguments{
-\item{x}{variable}
+\item{x}{a numeric vector.}
 
-\item{y}{variable}
+\item{y}{a numeric vector.}
 }
 \value{
 Returns one of the following SSD results: \code{"X SSD Y"}, \code{"Y SSD X"}, or \code{"NO SSD EXISTS"}.

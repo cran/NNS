@@ -4,13 +4,15 @@
 \alias{NNS.seas}
 \title{NNS Seasonality Test}
 \usage{
-NNS.seas(variable)
+NNS.seas(variable, plot = TRUE)
 }
 \arguments{
-\item{variable}{Variable}
+\item{variable}{a numeric vector.}
+
+\item{plot}{logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the variable level reference.}
 }
 \value{
-Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.
+Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.  If no seasonality is detected, \code{NNS.seas} will return (1).
 }
 \description{
 Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
@@ -18,7 +20,8 @@ Seasonality test based on the coefficient of variance for the variable and lagge
 \examples{
 set.seed(123)
 x<-rnorm(100)
-## To call strongest period based on coefficient of variance
+
+## To call strongest period based on coefficient of variance:
 NNS.seas(x)$best.period
 }
 \author{

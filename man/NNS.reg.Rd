@@ -6,51 +6,51 @@
 \usage{
 NNS.reg(x, y, order = NULL, s.t.n = 0.99, type = NULL, point.est = NULL,
   location = "top", return.values = TRUE, plot = TRUE,
-  residual.plot = TRUE, threshold = 0, dep.order = NULL,
-  precision = "LOW", n.best = 2, text = FALSE, noise.reduction = "mean",
-  norm = NULL, dist = "L2")
+  plot.regions = FALSE, residual.plot = TRUE, threshold = 0,
+  dep.order = NULL, n.best = 2, noise.reduction = "mean", norm = NULL,
+  dist = "L2", multivariate.call = FALSE)
 }
 \arguments{
-\item{x}{Independent Variable(s)}
+\item{x}{a vector, matrix or data frame of variables of numeric or factor data types.}
 
-\item{y}{Dependent Variable}
+\item{y}{a numeric or factor vector with compatible dimsensions to \code{x}.}
 
-\item{order}{Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{order=} integer settings with \code{noise.reduction='off'}.  \code{order="max"} will force limit perfect fit.}
+\item{order}{integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order=...)} integer settings with \code{(noise.reduction="off")}.  \code{(order="max")} will force a limit condition perfect fit.}
 
-\item{s.t.n}{Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{order=NULL}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{s.t.n}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{("order")} and endpoint determination.  \code{(noise.reduction="off")} sets \code{(s.t.n=0)} to allow for maximum fit.}
 
-\item{type}{To perform logistic regression, set to \code{type = "LOGIT"}.  To perform a classification, set to \code{type = "CLASS"}.  Defualts to NULL.}
+\item{type}{\code{NULL} (default).  To perform logistic regression, set to \code{(type = "LOGIT")}.  To perform a classification, set to \code{(type = "CLASS")}.}
 
-\item{point.est}{Returns the fitted value for any value of the independent variable.  Use a vector of values for independent varaiables to return the multiple regression fitted value.}
+\item{point.est}{a numeric or factor vector with compatible dimsensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.}
 
-\item{location}{Sets the legend location within the plot}
+\item{location}{Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.}
 
-\item{return.values}{Defaults to TRUE, set to FALSE in order to only display a regression plot.}
+\item{return.values}{logical; \code{TRUE} (default), set to \code{FALSE} in order to only display a regression plot and call values as needed.}
 
-\item{plot}{To plot regression or not.  Defaults to TRUE.}
+\item{plot}{logical; \code{TRUE} (default) To plot regression.}
 
-\item{residual.plot}{To plot the \code{fitted values of Y} and \code{Y}.  Defaults to TRUE.}
+\item{plot.regions}{logical; \code{FALSE} (default).  Generates 3d regions associated with each regression point for multivariate regressions.  Note, adds significant time to routine.}
 
-\item{threshold}{Sets the correlation threshold for independent variables.  Defaults to 0.}
+\item{residual.plot}{logical; \code{TRUE} (default) To plot the \code{y.hat} and \code{Y}.}
 
-\item{dep.order}{Sets the internal order for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.  Defaults to \code{dep.order=NULL}.}
+\item{threshold}{numeric [0,1]; \code{threshold=0} (default) Sets the correlation threshold for independent variables.}
 
-\item{precision}{Increases speed of computation at the expense of precision.  3 settings offered: \code{"LOW"} (Default setting), \code{"MED"}, and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.}
+\item{dep.order}{\code{NULL} (defualt) integer; Sets the internal \code{order} for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
 
-\item{n.best}{Sets the number of nearest regression points to use in kernel weighting for multivariate regression.  Defaults to 1.}
+\item{n.best}{integer; \code{n.best=2} (default) Sets the number of nearest regression points to use in weighting for multivariate regression.  \code{n.best="all"} will select and weight all generated regression points.}
 
-\item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
+\item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); In low signal:noise situations,\code{(noise.reduction="mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction="median")}  uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction="mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction="off")}  allows for maximum possible fit with a specific \code{order}.}
 
-\item{noise.reduction}{In low signal:noise situations,\code{noise.reduction="mean"} (Default setting) uses means for \link{NNS.dep} restricted partitions, \code{noise.reduction="median"} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{noise.reduction="mode"}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{noise.reduction='off'}  allows for maximum possible fit and specific \code{order} specification.}
+\item{norm}{\code{NULL} (default) the method of normalization options: ("NNS","std"); Normalizes \code{x} between 0 and 1 for multivariate regression when set to \code{(norm="std")}, or normalizes \code{x} according to \link{NNS.norm} when set to \code{(norm="NNS")}.}
 
-\item{norm}{Normalizes regressors between 0 and 1 for multivariate regression when set to \code{norm="std"}, or normalizes regressors according to \link{NNS.norm} when set to \code{norm="NNS"}. Defaults to NULL.}
+\item{dist}{the method of distance calculation; Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.}
 
-\item{dist}{Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.}
+\item{multivariate.call}{Internal parameter for multivariate regressions.}
 }
 \value{
-UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"derivative"} for the coefficient of the IV and its applicable range; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit.
+UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values, \code{y.hat}; \code{"Fitted.xy"} for a data frame of \code{x},\code{y} and \code{y.hat}; \code{"derivative"} for the coefficient of the \code{x} and its applicable range;  \code{"partition"} returns the \code{x},\code{y}, \code{"NNS.ID"} assigned to the observation and \code{y.hat}; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit; \code{"MSE"} returns the MSE between \code{y} and \code{y.hat}; \code{"Prediction.Accuracy"} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y}.
 
-MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of the DV; \code{"Fitted.xy"} for a data frame of IV and fitted values; \code{"regression.points"} provides the points for each IV used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each IV; \code{"partition"} returns the DV, quadrant assigned to the observation and fitted value; \code{"Point"} returns the IV point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
+MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of \code{x}; \code{"Fitted.xy"} for a data frame of \code{y} and fitted values; \code{"RPM"} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each \code{x}; \code{"partition"} returns the \code{x},\code{y}, \code{"NNS.ID"} assigned to the observation and \code{y.hat}; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
@@ -82,11 +82,12 @@ NNS.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
 
 ## IRIS dataset example:
 #Dimension Reduction:
-NNS.reg(iris[,1:4],iris[,5],type="CLASS",order=5,dep.order=1)
+NNS.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
 #Multiple Regression:
-NNS.reg(iris[,1:4],iris[,5],order=2)
+NNS.reg(iris[,1:4],iris[,5],order=2,noise.reduction='off')
 
 ## To call fitted values:
+x<-rnorm(100); y<-rnorm(100)
 NNS.reg(x,y)$Fitted
 
 ## To call partial derivative (univariate regression only):

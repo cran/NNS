@@ -1,10 +1,11 @@
 #' NNS Normalization
 #'
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
-#' @param A Matrix of variables.
-#' @param chart.type  Defaults to \code{chart.type=NULL}.  \code{chart.type='l'} for line, \code{chart.type='b'} for boxplot.
-#' @param Linear Performs a linear scaling normalization, resulting in eqaul means for all variables.  Defaults to \code{Linear=FALSE}.
-#' @return Returns a matrix of normalized values.
+#' @param A a numeric matrix or data frame.
+#' @param chart.type  {"l","b"}; \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.
+#' @param Linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
+#' @param order integer; \code{NULL} (default) Controls the \link{NNS.cor} \code{"order"} for number of partial moment quadrant partitions.
+#' @return Returns a \link{data.frame} of normalized values.
 #' @keywords normalization
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -16,11 +17,17 @@
 #' NNS.norm(A)
 #' @export
 
-NNS.norm <- function(A,chart.type=NULL,Linear=F) {
+NNS.norm <- function(A,chart.type=NULL,Linear=F,order=NULL) {
   m  <- colMeans(A)
   RG <- m %o% (1/m)
+
+  if(length(A[,1])<=30){
+    scale.factor=as.matrix(abs(NNS.cor(A,order=1)))} else {
+    scale.factor=as.matrix(abs(NNS.cor(A)))
+  }
+
   if(Linear==FALSE){
-      scales <- colMeans(RG * as.matrix(abs(NNS.cor(A))))
+      scales <- colMeans(RG * scale.factor)
   } else {
         scales <- colMeans(RG)
     }
@@ -56,6 +63,7 @@ if(!is.null(chart.type)){
   }
 
   par(mfrow=c(1,1))
+
   return(A_Normalized)
 
 }

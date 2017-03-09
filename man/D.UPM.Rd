@@ -8,23 +8,23 @@
 D.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
 }
 \arguments{
-\item{degree.x}{Degree for variable X.  \code{degree.x = 0} is frequency, \code{degree.x = 1} is area.}
+\item{degree.x}{integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.}
 
-\item{degree.y}{Degree for variable Y.  \code{degree.y = 0} is frequency, \code{degree.y = 1} is area.}
+\item{degree.y}{integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.}
 
-\item{x}{Variable X}
+\item{x}{a numeric vector.}
 
-\item{y}{Variable Y}
+\item{y}{a numeric vector.}
 
-\item{target.x}{Typically the mean of Variable X, but does not have to be.}
+\item{target.x}{numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)}
 
-\item{target.y}{Typically the mean of Variable Y, but does not have to be.}
+\item{target.y}{numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)}
 }
 \value{
 Divergent UPM of two variables
 }
 \description{
-This function generates a multivariate divergent upper partial moment for any degree or target.
+This function generates a divergent upper partial moment between two variables for any degree or target.
 }
 \examples{
 set.seed(123)

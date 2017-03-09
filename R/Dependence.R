@@ -1,12 +1,12 @@
 #' NNS Dependence
 #'
-#' Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.
+#' Returns the dependence and nonlinear correlation between two variables based on higher order partial moment matrices measured by frequency or area.
 #'
-#' @param x Variable 1
-#' @param y Variable 2
-#' @param order Controls the level of quadrant partitioning.  Default to \code{order=NULL}.  Errors can generally be rectified by setting \code{order=1}.
-#' @param degree Defaults to NULL to allow number of observations to be \code{degree} determinant.
-#' @param print.map  Plots quadrant means.  Defaults to FALSE.
+#' @param x a numeric vector, matrix or data frame.
+#' @param y \code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.
+#' @param order integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.
+#' @param degree integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.
+#' @param print.map  logical; \code{FALSE} (default) Plots quadrant means.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
 #' @keywords dependence, correlation
 #' @author Fred Viole, OVVO Financial Systems
@@ -20,93 +20,100 @@
 #' ## Correlation / Dependence Matrix
 #' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 #' B<-cbind(x,y,z)
-#' NNS.cor(B)
+#' NNS.dep(B)
 #' @export
 
-NNS.dep = function( x, y,order = NULL,
+NNS.dep = function(x,y=NULL,order = 3,
                    degree=NULL,
                    print.map=FALSE){
 
 
   if(is.null(degree)){degree=ifelse(length(x)<100,0,1)}else{degree=degree}
+  if(length(x)<20){
+    order=1
+    min.obs=4}else{
+      order=order
+      min.obs=10}
+
+
   if(!missing(y)){
+
+    if(print.map==T){
+      part.map = NNS.part(x,y,order=order, Voronoi=F,min.obs = min.obs)
+      #if part is not at least 2nd degree...< 4 regression points
+      if(length(part.map$regression.points$x)<4 & order>1){
+        part.map = NNS.part(x,y,order=2, Voronoi=T,min.obs = 1)}else{part.map=NNS.part(x,y,order=order, Voronoi=T,min.obs = min.obs)}
+    }
+    else {
+      part.map = NNS.part(x,y,order=order,min.obs = min.obs)
+      #if part is not at least 2nd degree...< 4 regression points
+      if(length(part.map$regression.points$x)<4 & order>1){
+        part.map = NNS.part(x,y,order=2,min.obs = 1)}else{part.map=part.map
+        }
+    }
+
+    part.df = part.map$dt
+
+    part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean(x),mean(y)),
+                    sub.cupm=Co.UPM(degree,degree,x,y,mean(x),mean(y)),
+                    sub.dlpm=D.LPM(degree,degree,x,y,mean(x),mean(y)),
+                    sub.dupm=D.UPM(degree,degree,x,y,mean(x),mean(y)),
+                    counts=.N
+                    ),by=prior.quadrant]
+
+    setkey(part.df,prior.quadrant)
+    part.df=(unique(part.df[,.(prior.quadrant,sub.clpm,sub.cupm,sub.dlpm,sub.dupm,
+    nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
+    nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm), counts)]))
+
+    zeros=part.df[,sum(counts==1)]
+
+    part.df=part.df[,`:=` (weight=counts/(length(x)-zeros)),by=prior.quadrant]
+
+    part.df=part.df[counts==1, weight := 0]
+
+
+### Re-run with order=1 if categorical data...
+    if(part.df[,sum(sub.clpm,sub.cupm,sub.dlpm,sub.dupm)]==0){
       if(print.map==T){
-          part.map = NNS.part(x,y,order=order, Voronoi=T)}
-          else {
-          part.map = NNS.part(x,y,order=order)
-          }
+        part.map = NNS.part(x,y,order=1, Voronoi=T)}
+        else {
+        part.map = NNS.part(x,y,order=1)
+        }
 
-  partitioned_df = part.map$df
-  reg.points = part.map$regression.points
+      part.df = part.map$dt
 
-  clpm = numeric()
-  cupm = numeric()
-  dlpm = numeric()
-  dupm = numeric()
-  cor.rhos = numeric()
-  dep.rhos = numeric()
-  nonlin.cor = numeric()
+      part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean(x),mean(y)),
+                      sub.cupm=Co.UPM(degree,degree,x,y,mean(x),mean(y)),
+                      sub.dlpm=D.LPM(degree,degree,x,y,mean(x),mean(y)),
+                      sub.dupm=D.UPM(degree,degree,x,y,mean(x),mean(y)),
+                      counts=.N),by=prior.quadrant]
 
+      setkey(part.df,prior.quadrant)
+      part.df=(unique(part.df[,.(prior.quadrant,sub.clpm,sub.cupm,sub.dlpm,sub.dupm,
+               nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
+               nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm), counts)]))
 
-  max.part = min(nchar(partitioned_df$quadrant))
-  max.actual = max(nchar(partitioned_df$quadrant))
-  part = nchar(partitioned_df$quadrant)
+      zeros=part.df[,sum(counts==1)]
 
-  if(max.part==max.actual){reduction=max.part-1}else{reduction=max.part}
+      part.df=part.df[,`:=` (weight=counts/(length(x)-zeros)),by=prior.quadrant]
 
-  prior.partitioned_df=partitioned_df
-
-  prior.partitioned_df[,'quadrant']=substr(partitioned_df$quadrant,1,reduction)
-
-  int.points=numeric()
-
-  for(item in unique(prior.partitioned_df$quadrant)){
-
-    sub_prior=prior.partitioned_df[prior.partitioned_df$quadrant == item,]
-    sub_x=sub_prior$x
-    sub_y=sub_prior$y
-    if(length(sub_x)==1){
-        int.points=c(int.points,1)/length(x)
-        dep.weight=0
-        } else {
-            dep.weight=length(sub_x)/length(x)
-          }
-
-      sub.clpm=Co.LPM(degree,degree,sub_x,sub_y)
-      sub.cupm=Co.UPM(degree,degree,sub_x,sub_y)
-      sub.dlpm=D.LPM(degree,degree,sub_x,sub_y)
-      sub.dupm=D.UPM(degree,degree,sub_x,sub_y)
-
-      clpm = c(clpm, sub.clpm)
-      cupm = c(cupm, sub.cupm)
-      dlpm = c(dlpm, sub.dlpm)
-      dupm = c(dupm, sub.dupm)
-
-      dep.rhos =  c(dep.rhos,dep.weight*abs((sub.clpm+sub.cupm-sub.dlpm-sub.dupm) / (sub.clpm+sub.cupm+sub.dlpm+sub.dupm)))
-
-      nonlin.cor = c(nonlin.cor,dep.weight*(sub.clpm+sub.cupm-sub.dlpm-sub.dupm) / (sub.clpm+sub.cupm+sub.dlpm+sub.dupm))
-
-}
+      part.df=part.df[counts==1, weight := 0]
+} #Categorical re-run
 
 
-  nonlin.cor = sum(na.omit(nonlin.cor))
-  if(nonlin.cor<0) nonlin.cor=nonlin.cor-sum(int.points) else nonlin.cor=nonlin.cor+sum(int.points)
+      for (j in seq_len(ncol(part.df))){
+        set(part.df,which(is.na(part.df[[j]])),j,0)}
 
-  if(is.na(nonlin.cor)){nonlin.cor=0}
+      nns.cor=part.df[,sum(nns.cor=weight*nns.cor)]
+      nns.dep=part.df[,sum(nns.dep=weight*nns.dep)]
 
-  dep = sum(na.omit(dep.rhos))+sum(int.points)
-
-  if(is.na(dep)){dep=0}
-
-
-  return(list("Correlation"=nonlin.cor,"Dependence"= dep ))
+    return(list("Correlation"=nns.cor,"Dependence"= nns.dep ))
 
   }#Not missing Y
 
   else{
-  NNS.dep.matrix(x)
+    NNS.dep.matrix(x,order=order,degree = degree)
   }
 
 }
-
-

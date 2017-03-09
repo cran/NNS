@@ -1,8 +1,8 @@
 #' NNS SD Efficient Set
 #'
 #' Determines the set of stochastic dominant variables for various degrees.
-#' @param A data.frame of variables.
-#' @param degree Degree of stochastic dominance test
+#' @param A a numeric matrix or data frame.
+#' @param degree numeric options: (1,2,3); Degree of stochastic dominance test from (1,2 or 3).
 #' @return Returns set of stochastic dominant variable names.
 #' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
@@ -24,10 +24,7 @@ NNS.SD.Efficient.Set <- function(A,degree) {
   current_base<- numeric(0)
 
 
-  for (i in 1:n){
-    LPM_order[i] <- LPM(1,max(A),A[,i])
-
-    }
+  LPM_order=sapply(1:n,function(i) LPM(1,max(A),A[,i]))
 
   final_ranked <- A[,order(LPM_order)]
 

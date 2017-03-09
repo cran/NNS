@@ -4,24 +4,24 @@
 \alias{NNS.dep}
 \title{NNS Dependence}
 \usage{
-NNS.dep(x, y, order = NULL, degree = NULL, print.map = FALSE)
+NNS.dep(x, y = NULL, order = 3, degree = NULL, print.map = FALSE)
 }
 \arguments{
-\item{x}{Variable 1}
+\item{x}{a numeric vector, matrix or data frame.}
 
-\item{y}{Variable 2}
+\item{y}{\code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{order}{Controls the level of quadrant partitioning.  Default to \code{order=NULL}.  Errors can generally be rectified by setting \code{order=1}.}
+\item{order}{integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.}
 
-\item{degree}{Defaults to NULL to allow number of observations to be \code{degree} determinant.}
+\item{degree}{integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.}
 
-\item{print.map}{Plots quadrant means.  Defaults to FALSE.}
+\item{print.map}{logical; \code{FALSE} (default) Plots quadrant means.}
 }
 \value{
 Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
 }
 \description{
-Returns the dependence between two variables based on higher order partial moment correlations measured by frequency or area.
+Returns the dependence and nonlinear correlation between two variables based on higher order partial moment matrices measured by frequency or area.
 }
 \examples{
 set.seed(123)
@@ -31,7 +31,7 @@ NNS.dep(x,y)
 ## Correlation / Dependence Matrix
 x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
 B<-cbind(x,y,z)
-NNS.cor(B)
+NNS.dep(B)
 }
 \author{
 Fred Viole, OVVO Financial Systems

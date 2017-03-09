@@ -4,45 +4,44 @@
 \alias{NNS.stack}
 \title{NNS stack}
 \usage{
-NNS.stack(IVs.train, DV.train, IVs.test = NULL, DV.test = NULL,
-  CV.size = 0.2, weight = "MSE", text = F, precision = NULL,
-  method = c(1, 2, 3), threshold = 0)
+NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = 0.2,
+  weight = "MSE", precision = "LOW", method = c(1, 2), threshold = 0,
+  seed = 123)
 }
 \arguments{
-\item{IVs.train}{Training set of independent variables.}
+\item{IVs.train}{a vector, matrix or data frame of variables of numeric or factor data types.}
 
-\item{DV.train}{Training set of dependent variable.}
+\item{DV.train}{a numeric or factor vector with compatible dimsensions to \code{(IVs.train)}.}
 
-\item{IVs.test}{Test set of independent variables.}
+\item{IVs.test}{a vector, matrix or data frame of variables of numeric or factor data types.}
 
-\item{DV.test}{Test set of dependent variable.}
+\item{CV.size}{numeric [0,1]; Sets the cross-validation size if \code{(IVs.test=NULL)}.  Defaults to 0.2 for a 20 percent random sampling of the training set.}
 
-\item{CV.size}{Sets the cross-validation size if \code{DV.test=NULL}.  Defaults to 0.2 or a 20 percent random sampling of the training set.}
+\item{weight}{options:("MSE","Features") method for selecting model output weight; Set \code{(weight="MSE")} for optimum parameters and weighting based on each base model's \code{"MSE"}.  \code{(weight="Feautures")} uses a weighting based on the number of features present, whereby logistic \link{NNS.reg} receives higher relative weights for more regressors.  Defaults to \code{"MSE"}.}
 
-\item{weight}{Set \code{weight="MSE"} for optimum parameters and weighting based on each base model's \code{"MSE"}.  \code{weight="Feautures"} uses a weighting based on the number of features present, whereby logistic \link{NNS.reg} and \link{NNS.Feature.prob} receive higher weights for more independent variables.  Defaults to \code{"MSE"}.}
+\item{precision}{options:("Low","HIGH");2 settings offered: \code{"LOW"} (Default) ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point and uses a \code{(norm="NNS")} while \code{(precision="LOW")} uses a \code{(norm="std")} in \link{NNS.reg}.  Errors/warnings can generally be reconciled with \code{(precision="LOW")}.}
 
-\item{text}{If performing a text classification, set \code{text=TRUE}.  Defaults to FALSE.}
+\item{method}{numeric options: (1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction logistic regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.}
 
-\item{precision}{Increases speed of computation at the expense of precision.  2 settings offered: \code{"LOW"} ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point.  \code{precision=NULL} (Defualt) compares both precision types and then returns the best model parameters.}
+\item{threshold}{numeric [0,1]; Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{(threshold=0)}.}
 
-\item{method}{Select the NNS method to include in stack.  \code{method=1} selects \link{NNS.reg}; \code{method=2} selects \link{NNS.reg} dimension reduction logistic regression; \code{method=3} selects \link{NNS.Feature.prob}.  Defaults to \code{method=c(1,2,3)}, including all 3 NNS methods in the stack.}
-
-\item{threshold}{Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{threshold=0}.}
+\item{seed}{numeric; 123 (default) Sets seed for CV sampling.}
 }
 \value{
-Returns a vector of fitted values for the dependent variable test set for all models.  \code{"NNS.reg.n.best"} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"NNS.logistic.order"} returns the optimum \code{"order"} from the \link{NNS.reg} logistic regression.  \code{"reg"} returns \link{NNS.reg} output, \code{"logistic"} returns \link{NNS.reg} logistic regression output, \code{"Feature.prob"} returns \link{NNS.Feature.prob} output, and \code{"stack"} returns the output of the stacked model.  \code{"CV.test"} returns the random cross-validation dependent variable used and \code{"MSE"} returns the MSE from cross-validation.
+Returns a vector of fitted values for the dependent variable test set for all models.  \code{"NNS.reg.n.best"} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"NNS.logistic.order"} returns the optimum \code{"order"} from the \link{NNS.reg} logistic regression.  \code{"reg"} returns \link{NNS.reg} output, \code{"logistic"} returns \link{NNS.reg} logistic regression output, and \code{"stack"} returns the output of the stacked model.
 }
 \description{
-Prediction model using the predictions of the NNS base models (\link{NNS.reg}, \link{NNS.Feature.prob}) as features (i.e. meta features) for the stacked model.
+Prediction model using the predictions of the NNS base models (\link{NNS.reg} as features (i.e. meta-features) for the stacked model.
 }
 \note{
 If character variables are used, transform them first to factors using \link{as.factor}, or \link{data.matrix} to ensure overall dataset is numeric.  A multifunction \link{sapply} can also be applied to the overall dataset: \code{data<- sapply(data,function(x){as.factor(x);as.numeric(x)})}.  Then run \code{NNS.stack} with transormed variables.
 }
 \examples{
- ## Using 'iris' dataset where predictive attributes are columns 1:4, and the class is column 5.
- NNS.stack(iris[,1:4],iris[,5],precision="LOW")
+ ## Using 'iris' dataset where test set \\code{IVs.test} is rows 141:150.
+ NNS.stack(iris[1:140,1:4],iris[1:140,5],IVs.test=iris[141:150,1:4])
+
  ## Selecting NNS.reg and dimension reduction techniques.
- NNS.stack(iris[,1:4],iris[,5],precision="LOW",method=c(1,2))
+ NNS.stack(iris[1:140,1:4],iris[1:140,5],iris[141:150,1:4],method=c(1,2))
 }
 \author{
 Fred Viole, OVVO Financial Systems

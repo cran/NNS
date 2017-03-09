@@ -2,9 +2,9 @@
 #'
 #' Determines higher dimension correlation coefficients based on degree 0 co-partial moments.
 #'
-#' @param A data.frame of variables.
-#' @param plot Generates a 3d scatter plot with regression points using \link{plot3d}.
-#' @param independence.overlay Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.
+#' @param A a numeric matrix or data frame.
+#' @param plot logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.
+#' @param independence.overlay logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.
 #' @return Returns multivariate nonlinear correlation coefficient
 #' @keywords dependence, correlation
 #' @author Fred Viole, OVVO Financial Systems

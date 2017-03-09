@@ -4,17 +4,19 @@
 \alias{NNS.norm}
 \title{NNS Normalization}
 \usage{
-NNS.norm(A, chart.type = NULL, Linear = F)
+NNS.norm(A, chart.type = NULL, Linear = F, order = NULL)
 }
 \arguments{
-\item{A}{Matrix of variables.}
+\item{A}{a numeric matrix or data frame.}
 
-\item{chart.type}{Defaults to \code{chart.type=NULL}.  \code{chart.type='l'} for line, \code{chart.type='b'} for boxplot.}
+\item{chart.type}{{"l","b"}; \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
 
-\item{Linear}{Performs a linear scaling normalization, resulting in eqaul means for all variables.  Defaults to \code{Linear=FALSE}.}
+\item{Linear}{logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.}
+
+\item{order}{integer; \code{NULL} (default) Controls the \link{NNS.cor} \code{"order"} for number of partial moment quadrant partitions.}
 }
 \value{
-Returns a matrix of normalized values.
+Returns a \link{data.frame} of normalized values.
 }
 \description{
 Normalizes a matrix of variables based on nonlinear scaling normalization method.

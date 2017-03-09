@@ -7,9 +7,9 @@
 NNS.TSD(x, y)
 }
 \arguments{
-\item{x}{variable}
+\item{x}{a numeric vector.}
 
-\item{y}{variable}
+\item{y}{a numeric vector.}
 }
 \value{
 Returns one of the following TSD results: \code{"X TSD Y"}, \code{"Y TSD X"}, or \code{"NO TSD EXISTS"}.

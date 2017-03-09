@@ -11,7 +11,7 @@ NNS.term.matrix(x, oos = NULL, names = FALSE)
 
 \item{oos}{Out-of-sample text dataset to be classified.}
 
-\item{names}{Column names for \code{"IV"}.  Defaults to FALSE.}
+\item{names}{Column names for \code{"IV"} and \code{"oos"}.  Defaults to FALSE.}
 }
 \value{
 Returns the text as independent variables \code{"IV"} and the classification as the dependent variable \code{"DV"}.  Out-of-sample independent variables are returned with \code{"OOS"}.
@@ -29,12 +29,12 @@ x<- data.frame(cbind(paste(x[,1],x[,2],sep=" "),as.numeric(as.character(x[,3])))
 NNS.term.matrix(x)
 
 
-## NYT Example
+### NYT Example
 \dontrun{
 require(RTextTools)
 data(NYTimes)
 
-## Concatenate Columns 3 and 4 containing text, with column 5 as DV
+### Concatenate Columns 3 and 4 containing text, with column 5 as DV
 NYT=data.frame(cbind(paste(NYTimes[,3],NYTimes[,4],sep = " "),
                      as.numeric(as.character(NYTimes[,5]))))
 NNS.term.matrix(NYT)}

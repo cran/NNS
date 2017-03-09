@@ -7,9 +7,9 @@
 NNS.SD.Efficient.Set(A, degree)
 }
 \arguments{
-\item{A}{data.frame of variables.}
+\item{A}{a numeric matrix or data frame.}
 
-\item{degree}{Degree of stochastic dominance test}
+\item{degree}{numeric options: (1,2,3); Degree of stochastic dominance test from (1,2 or 3).}
 }
 \value{
 Returns set of stochastic dominant variable names.
