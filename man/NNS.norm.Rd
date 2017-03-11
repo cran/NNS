@@ -9,7 +9,7 @@ NNS.norm(A, chart.type = NULL, Linear = F, order = NULL)
 \arguments{
 \item{A}{a numeric matrix or data frame.}
 
-\item{chart.type}{{"l","b"}; \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
+\item{chart.type}{options:("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
 
 \item{Linear}{logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.}
 

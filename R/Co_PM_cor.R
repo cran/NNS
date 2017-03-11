@@ -2,7 +2,7 @@
 #'
 #' Determines higher dimension correlation coefficients based on degree 0 co-partial moments.
 #'
-#' @param A a numeric matrix or data frame.
+#' @param x a numeric matrix or data frame.
 #' @param plot logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.
 #' @param independence.overlay logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.
 #' @return Returns multivariate nonlinear correlation coefficient
@@ -17,8 +17,8 @@
 #' @export
 
 
-NNS.cor.hd <- function (A,plot=FALSE,independence.overlay=FALSE){
-
+NNS.cor.hd <- function (x,plot=FALSE,independence.overlay=FALSE){
+  A=x
   n=ncol(A)
   l=length(A[,1])
 

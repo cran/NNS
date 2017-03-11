@@ -5,7 +5,7 @@
 \title{Divergent-Upper Partial Moment
 (Upper Left Quadrant 2)}
 \usage{
-D.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
+D.UPM(degree.x, degree.y, x, y, target.x, target.y)
 }
 \arguments{
 \item{degree.x}{integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.}
@@ -14,7 +14,7 @@ D.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
 
 \item{x}{a numeric vector.}
 
-\item{y}{a numeric vector.}
+\item{y}{a numeric vector of equal length to \code{x}.}
 
 \item{target.x}{numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)}
 
@@ -24,7 +24,7 @@ D.UPM(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y))
 Divergent UPM of two variables
 }
 \description{
-This function generates a divergent upper partial moment between two variables for any degree or target.
+This function generates a divergent upper partial moment between two equal length variables for any degree or target.
 }
 \examples{
 set.seed(123)

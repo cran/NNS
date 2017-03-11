@@ -21,7 +21,7 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = 0.2,
 
 \item{precision}{options:("Low","HIGH");2 settings offered: \code{"LOW"} (Default) ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point and uses a \code{(norm="NNS")} while \code{(precision="LOW")} uses a \code{(norm="std")} in \link{NNS.reg}.  Errors/warnings can generally be reconciled with \code{(precision="LOW")}.}
 
-\item{method}{numeric options: (1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction logistic regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.}
+\item{method}{numeric options:(1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction logistic regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.}
 
 \item{threshold}{numeric [0,1]; Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{(threshold=0)}.}
 

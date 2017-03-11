@@ -8,7 +8,7 @@
 #' @param CV.size numeric [0,1]; Sets the cross-validation size if \code{(IVs.test=NULL)}.  Defaults to 0.2 for a 20 percent random sampling of the training set.
 #' @param weight options:("MSE","Features") method for selecting model output weight; Set \code{(weight="MSE")} for optimum parameters and weighting based on each base model's \code{"MSE"}.  \code{(weight="Feautures")} uses a weighting based on the number of features present, whereby logistic \link{NNS.reg} receives higher relative weights for more regressors.  Defaults to \code{"MSE"}.
 #' @param precision options:("Low","HIGH");2 settings offered: \code{"LOW"} (Default) ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point and uses a \code{(norm="NNS")} while \code{(precision="LOW")} uses a \code{(norm="std")} in \link{NNS.reg}.  Errors/warnings can generally be reconciled with \code{(precision="LOW")}.
-#' @param method numeric options: (1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction logistic regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.
+#' @param method numeric options:(1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction logistic regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.
 #' @param threshold  numeric [0,1]; Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{(threshold=0)}.
 #' @param seed numeric; 123 (default) Sets seed for CV sampling.
 #' @return Returns a vector of fitted values for the dependent variable test set for all models.  \code{"NNS.reg.n.best"} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"NNS.logistic.order"} returns the optimum \code{"order"} from the \link{NNS.reg} logistic regression.  \code{"reg"} returns \link{NNS.reg} output, \code{"logistic"} returns \link{NNS.reg} logistic regression output, and \code{"stack"} returns the output of the stacked model.
@@ -51,16 +51,14 @@ NNS.stack <- function(IVs.train,DV.train,IVs.test=NULL,CV.size=.2,weight="MSE",p
   IVs.train<- CV.IVs.train
   DV.train<- CV.DV.train
 
-
-  #### NEED TO NORMALIZE 1 time then use...
-  ### NORMALIZATION OF VARIABLES:
+  ### NORMALIZATION OF VARIABLES and SELECTION OF ORDER:
   np=nrow(CV.IVs.test)
   points.norm=rbind(CV.IVs.test,CV.IVs.train)
   colnames(points.norm)=colnames(CV.IVs.test)
   if(precision=="LOW"){
     order=NULL
     CV.IVs.train=apply(CV.IVs.train,2,function(b) (b-min(b))/(max(b)-min(b)))
-   CV.IVs.test=apply(points.norm,2,function(b) (b-min(b))/(max(b)-min(b)))[1:np,]
+    CV.IVs.test=apply(points.norm,2,function(b) (b-min(b))/(max(b)-min(b)))[1:np,]
     }
 
   if(precision=="HIGH"){
@@ -74,7 +72,12 @@ NNS.stack <- function(IVs.train,DV.train,IVs.test=NULL,CV.size=.2,weight="MSE",p
 
     nns.cv=sapply(1:(2*n),function(i) mean((NNS.reg(CV.IVs.train, CV.DV.train,point.est = CV.IVs.test, plot=F, n.best = i,order=order,noise.reduction = 'off')$Point.est-CV.DV.test)^2))
 
-    nns.1=NNS.reg(IVs.train, DV.train,point.est = IVs.test, plot=F, n.best = which.min(nns.cv),order=order,noise.reduction = 'off')$Point.est
+    nns.cv=c(nns.cv,mean((NNS.reg(CV.IVs.train, CV.DV.train,point.est = CV.IVs.test, plot=F, n.best = 'all',order=order,noise.reduction = 'off')$Point.est-CV.DV.test)^2))
+
+    k=which.min(nns.cv)
+    if(k==length(nns.cv)){k='all'}else{k=k}
+
+    nns.1=NNS.reg(IVs.train, DV.train,point.est = IVs.test, plot=F, n.best = k,order=order,noise.reduction = 'off')$Point.est
     nns.cv.mse=min(nns.cv)
   } else {
     nns.1=0
@@ -111,6 +114,6 @@ NNS.stack <- function(IVs.train,DV.train,IVs.test=NULL,CV.size=.2,weight="MSE",p
 
   estimates = (weights[1]*nns.1+weights[2]*nns.2)
 
-  return(list(NNS.reg.n.best=which.min(nns.cv),NNS.logistic.order=which.min(nns.ord),reg=nns.1,logistic=nns.2,stack=estimates))
+  return(list(NNS.reg.n.best=k,NNS.logistic.order=which.min(nns.ord),reg=nns.1,logistic=nns.2,stack=estimates))
 
 }

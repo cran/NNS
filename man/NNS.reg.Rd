@@ -4,11 +4,11 @@
 \alias{NNS.reg}
 \title{NNS Regression}
 \usage{
-NNS.reg(x, y, order = NULL, s.t.n = 0.99, type = NULL, point.est = NULL,
+NNS.reg(x, y, order = NULL, stn = 0.99, type = NULL, point.est = NULL,
   location = "top", return.values = TRUE, plot = TRUE,
   plot.regions = FALSE, residual.plot = TRUE, threshold = 0,
-  dep.order = NULL, n.best = 2, noise.reduction = "mean", norm = NULL,
-  dist = "L2", multivariate.call = FALSE)
+  n.best = NULL, noise.reduction = "mean", norm = NULL, dist = "L2",
+  multivariate.call = FALSE)
 }
 \arguments{
 \item{x}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -17,7 +17,7 @@ NNS.reg(x, y, order = NULL, s.t.n = 0.99, type = NULL, point.est = NULL,
 
 \item{order}{integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order=...)} integer settings with \code{(noise.reduction="off")}.  \code{(order="max")} will force a limit condition perfect fit.}
 
-\item{s.t.n}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{("order")} and endpoint determination.  \code{(noise.reduction="off")} sets \code{(s.t.n=0)} to allow for maximum fit.}
+\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{("order")} and endpoint determination.  \code{(noise.reduction="off")} sets \code{(stn=0)} to allow for maximum fit.}
 
 \item{type}{\code{NULL} (default).  To perform logistic regression, set to \code{(type = "LOGIT")}.  To perform a classification, set to \code{(type = "CLASS")}.}
 
@@ -31,19 +31,17 @@ NNS.reg(x, y, order = NULL, s.t.n = 0.99, type = NULL, point.est = NULL,
 
 \item{plot.regions}{logical; \code{FALSE} (default).  Generates 3d regions associated with each regression point for multivariate regressions.  Note, adds significant time to routine.}
 
-\item{residual.plot}{logical; \code{TRUE} (default) To plot the \code{y.hat} and \code{Y}.}
+\item{residual.plot}{logical; \code{TRUE} (default) To plot \code{y.hat} and \code{Y}.}
 
 \item{threshold}{numeric [0,1]; \code{threshold=0} (default) Sets the correlation threshold for independent variables.}
 
-\item{dep.order}{\code{NULL} (defualt) integer; Sets the internal \code{order} for \link{NNS.dep}.  Categorical variables typically require \code{dep.order=1}.  Error message will alert user if this is the case.}
-
-\item{n.best}{integer; \code{n.best=2} (default) Sets the number of nearest regression points to use in weighting for multivariate regression.  \code{n.best="all"} will select and weight all generated regression points.}
+\item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at 2*(# of regressors).  \code{(n.best="all")} will select and weight all generated regression points.  Analogous to \code{k} in \code{k Nearest Neighbors} algorithm and different values are tested using cross-validation in \link{NNS.stack}.}
 
 \item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); In low signal:noise situations,\code{(noise.reduction="mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction="median")}  uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction="mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction="off")}  allows for maximum possible fit with a specific \code{order}.}
 
 \item{norm}{\code{NULL} (default) the method of normalization options: ("NNS","std"); Normalizes \code{x} between 0 and 1 for multivariate regression when set to \code{(norm="std")}, or normalizes \code{x} according to \link{NNS.norm} when set to \code{(norm="NNS")}.}
 
-\item{dist}{the method of distance calculation; Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{dist="L1"} seclects the Manhattan distance.}
+\item{dist}{options:("L1","L2") the method of distance calculation; Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{(dist="L1")} seclects the Manhattan distance.}
 
 \item{multivariate.call}{Internal parameter for multivariate regressions.}
 }
@@ -54,6 +52,9 @@ MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted 
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
+}
+\note{
+Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
 }
 \examples{
 set.seed(123)

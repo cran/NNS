@@ -46,11 +46,11 @@ UPM<- Vectorize(UPM,vectorize.args = 'target')
 #' Co-Upper Partial Moment
 #' (Upper Right Quadrant 1)
 #'
-#' This function generates a co-upper partial moment between two variables for any degree or target.
+#' This function generates a co-upper partial moment between two equal length variables for any degree or target.
 #' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
 #' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
 #' @param x a numeric vector.
-#' @param y a numeric vector.
+#' @param y a numeric vector of equal length to \code{x}.
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Co-UPM of two variables
@@ -65,7 +65,7 @@ UPM<- Vectorize(UPM,vectorize.args = 'target')
 #' @export
 
 
-Co.UPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+Co.UPM<- function(degree.x,degree.y,x,y,target.x,target.y){
   x=x-target.x;y=y-target.y
   x[x<=0]<- 0;y[y<=0]<- 0
   x[x>0]<- x[x>0]^degree.x
@@ -77,11 +77,11 @@ Co.UPM<- Vectorize(Co.UPM,vectorize.args = c('target.x','target.y'))
 #' Co-Lower Partial Moment
 #' (Lower Left Quadrant 4)
 #'
-#' This function generates a co-lower partial moment for between two variables any degree or target.
+#' This function generates a co-lower partial moment for between two equal length variables for any degree or target.
 #' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
 #' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
 #' @param x a numeric vector.
-#' @param y a numeric vector.
+#' @param y a numeric vector of equal length to \code{x}.
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Co-LPM of two variables
@@ -95,7 +95,7 @@ Co.UPM<- Vectorize(Co.UPM,vectorize.args = c('target.x','target.y'))
 #' Co.LPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-Co.LPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+Co.LPM<- function(degree.x,degree.y,x,y,target.x,target.y){
   x=target.x-x;y=target.y-y
   x[x<0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
@@ -107,11 +107,11 @@ Co.LPM<- Vectorize(Co.LPM,vectorize.args = c('target.x','target.y'))
 #' Divergent-Lower Partial Moment
 #' (Lower Right Quadrant 3)
 #'
-#' This function generates a divergent lower partial moment between two variables for any degree or target.
+#' This function generates a divergent lower partial moment between two equal length variables for any degree or target.
 #' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
 #' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
 #' @param x a numeric vector.
-#' @param y a numeric vector.
+#' @param y a numeric vector of equal length to \code{x}.
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Divergent LPM of two variables
@@ -125,7 +125,7 @@ Co.LPM<- Vectorize(Co.LPM,vectorize.args = c('target.x','target.y'))
 #' D.LPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-D.LPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+D.LPM<- function(degree.x,degree.y,x,y,target.x,target.y){
   x=x-target.x;y=target.y-y
   x[x<=0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
@@ -137,11 +137,11 @@ D.LPM<- Vectorize(D.LPM,vectorize.args = c('target.x','target.y'))
 #' Divergent-Upper Partial Moment
 #' (Upper Left Quadrant 2)
 #'
-#' This function generates a divergent upper partial moment between two variables for any degree or target.
+#' This function generates a divergent upper partial moment between two equal length variables for any degree or target.
 #' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
 #' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
 #' @param x a numeric vector.
-#' @param y a numeric vector.
+#' @param y a numeric vector of equal length to \code{x}.
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Divergent UPM of two variables
@@ -155,7 +155,7 @@ D.LPM<- Vectorize(D.LPM,vectorize.args = c('target.x','target.y'))
 #' D.UPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
-D.UPM<- function(degree.x,degree.y,x,y,target.x=mean(x),target.y=mean(y)){
+D.UPM<- function(degree.x,degree.y,x,y,target.x,target.y){
   x=target.x-x;y=y-target.y
   x[x<0]<- 0;y[y<=0]<- 0
   x[x>0]<- x[x>0]^degree.x

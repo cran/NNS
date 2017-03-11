@@ -23,7 +23,7 @@ Below are some examples demonstrating unsupervised learning with NNS clustering 
 
 `NNS.part` returns a data.table of observations along with their final quadrant identification.  It also returns the regression points, which are the quadrant means used in `NNS.reg`.
 ```{r linear}
-x=seq(-5,5,.1); y=x^3
+x=seq(-5,5,.05); y=x^3
 
 NNS.part(x,y,Voronoi = T)
 ```

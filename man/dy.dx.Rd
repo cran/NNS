@@ -4,7 +4,7 @@
 \alias{dy.dx}
 \title{Partial Derivative dy/dx}
 \usage{
-dy.dx(x, y, order = NULL, s.t.n = 0.99, eval.point = median(x),
+dy.dx(x, y, order = NULL, stn = 0.99, eval.point = median(x),
   deriv.order = 1, h = 0.01, noise.reduction = "mean",
   deriv.method = "FS")
 }
@@ -15,7 +15,7 @@ dy.dx(x, y, order = NULL, s.t.n = 0.99, eval.point = median(x),
 
 \item{order}{integer; Controls the number of partial moment quadrant means.  Defaults to \code{(order=NULL)} which generates a more accurate derivative for well specified cases.}
 
-\item{s.t.n}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{eval.point}{numeric; \code{x} point to be evaluated.  Defaults to \code{(eval.point=median(x))}.  Set to \code{(eval.points="overall")} to find an overall partial derivative estimate.}
 

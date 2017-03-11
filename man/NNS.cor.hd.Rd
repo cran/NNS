@@ -4,10 +4,10 @@
 \alias{NNS.cor.hd}
 \title{NNS Co-Partial Moments Higher Dimension Correlation}
 \usage{
-NNS.cor.hd(A, plot = FALSE, independence.overlay = FALSE)
+NNS.cor.hd(x, plot = FALSE, independence.overlay = FALSE)
 }
 \arguments{
-\item{A}{a numeric matrix or data frame.}
+\item{x}{a numeric matrix or data frame.}
 
 \item{plot}{logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.}
 

@@ -1,7 +1,7 @@
 #' NNS SD Efficient Set
 #'
 #' Determines the set of stochastic dominant variables for various degrees.
-#' @param A a numeric matrix or data frame.
+#' @param x a numeric matrix or data frame.
 #' @param degree numeric options: (1,2,3); Degree of stochastic dominance test from (1,2 or 3).
 #' @return Returns set of stochastic dominant variable names.
 #' @keywords stochastic dominance
@@ -10,23 +10,23 @@
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
-#' A<-data.frame(x,y,z)
-#' NNS.SD.Efficient.Set(A,1)
+#' x<-data.frame(x,y,z)
+#' NNS.SD.Efficient.Set(x,1)
 #' @export
 
 
 
-NNS.SD.Efficient.Set <- function(A,degree) {
-  n <- ncol(A)
-  max_target <- max(A)
+NNS.SD.Efficient.Set <- function(x,degree) {
+  n <- ncol(x)
+  max_target <- max(x)
   LPM_order<- numeric(0)
   Dominated_set<- numeric(0)
   current_base<- numeric(0)
 
 
-  LPM_order=sapply(1:n,function(i) LPM(1,max(A),A[,i]))
+  LPM_order=sapply(1:n,function(i) LPM(1,max(x),x[,i]))
 
-  final_ranked <- A[,order(LPM_order)]
+  final_ranked <- x[,order(LPM_order)]
 
   current_base<-1
 
@@ -109,8 +109,8 @@ NNS.SD.Efficient.Set <- function(A,degree) {
 
 
   if(length(Dominated_set)>0){
-    SD_A  = data.frame(final_ranked[-na.omit(Dominated_set)])
-    return(SD_A)
+    SD_x  = data.frame(final_ranked[-na.omit(Dominated_set)])
+    return(SD_x)
     }
 
     else {print(colnames(final_ranked))}

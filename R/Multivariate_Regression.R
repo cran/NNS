@@ -1,6 +1,6 @@
 
 
-NNS.M.reg <- function (X_n,Y,order=NULL,s.t.n=0.99,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,noise.reduction='mean',norm=NULL,dist="L2",return.values=FALSE,plot.regions=FALSE){
+NNS.M.reg <- function (X_n,Y,order=NULL,stn=0.99,n.best=1,type=NULL,point.est=NULL, plot=FALSE,residual.plot=TRUE,location=NULL,noise.reduction='mean',norm=NULL,dist="L2",return.values=FALSE,plot.regions=FALSE){
 
   if(is.null(ncol(X_n))){X_n=t(t(X_n))}
   n=ncol(X_n)
@@ -18,6 +18,13 @@ NNS.M.reg <- function (X_n,Y,order=NULL,s.t.n=0.99,n.best=1,type=NULL,point.est=
   np=nrow(point.est)
   if(is.null(np)&!is.null(point.est)){point.est=t(point.est)
   }else{point.est=point.est}
+
+
+  if(!is.null(point.est)){
+    if(ncol(point.est)!=n){
+      stop("Please ensure 'point.est' is of compatible dimensions to 'x'")
+    }
+    }
 
 ### For Multiple regressions
   ###  Turn each column into numeric values
@@ -61,7 +68,7 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
       for(i in 1:n){
         part.map=NNS.part(original.IVs[,i],original.DV,order=order,type=type,noise.reduction=noise.reduction)
         dep=NNS.dep(original.IVs[,i],original.DV,order=3)$Dependence
-            if(dep>s.t.n){
+            if(dep>stn){
         reg.points[[i]] = NNS.part(original.IVs[,i],original.DV,order=round(dep*max(nchar(part.map$df$quadrant))),type=type,noise.reduction='off',min.obs = 1)$regression.points$x}
             else{reg.points[[i]] = NNS.part(original.IVs[,i],original.DV,order=round(dep*max(nchar(part.map$df$quadrant))),noise.reduction=noise.reduction,type="XONLY",min.obs = 1)$regression.points$x}
         }
@@ -82,7 +89,7 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
   NNS.ID = list()
 
       for(j in 1:n){
-        NNS.ID[[j]]= findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = T)+1 + findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = F)+1
+        NNS.ID[[j]]= findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = TRUE)+1 + findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = FALSE)+1
           }
 
           NNS.ID = matrix(unlist(NNS.ID),nrow = length(Y),ncol = n)

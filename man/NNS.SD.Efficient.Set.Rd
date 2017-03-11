@@ -4,10 +4,10 @@
 \alias{NNS.SD.Efficient.Set}
 \title{NNS SD Efficient Set}
 \usage{
-NNS.SD.Efficient.Set(A, degree)
+NNS.SD.Efficient.Set(x, degree)
 }
 \arguments{
-\item{A}{a numeric matrix or data frame.}
+\item{x}{a numeric matrix or data frame.}
 
 \item{degree}{numeric options: (1,2,3); Degree of stochastic dominance test from (1,2 or 3).}
 }
@@ -20,8 +20,8 @@ Determines the set of stochastic dominant variables for various degrees.
 \examples{
 set.seed(123)
 x<-rnorm(100); y<-rnorm(100); z<-rnorm(100)
-A<-data.frame(x,y,z)
-NNS.SD.Efficient.Set(A,1)
+x<-data.frame(x,y,z)
+NNS.SD.Efficient.Set(x,1)
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -4,7 +4,7 @@
 \alias{dy.d_}
 \title{Partial Derivative dy/d[wrt]}
 \usage{
-dy.d_(x, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
+dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.9,
   h = 0.1, n.best = 2, mixed = FALSE, plot = FALSE, norm = NULL,
   noise.reduction = "mean")
 }
@@ -19,7 +19,7 @@ dy.d_(x, y, wrt, eval.points = "median", order = NULL, s.t.n = 0.9,
 
 \item{order}{integer; \link{NNS.reg} \code{"order"}, defaults to NULL.}
 
-\item{s.t.n}{numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
 \item{h}{numeric [0,...]; Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the regressor.}
 

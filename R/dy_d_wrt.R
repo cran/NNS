@@ -6,7 +6,7 @@
 #' @param y a numeric vector with compatible dimsensions to \code{x}.
 #' @param wrt integer; Selects the regressor to differentiate with respect to.
 #' @param order integer; \link{NNS.reg} \code{"order"}, defaults to NULL.
-#' @param s.t.n numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
+#' @param stn numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param eval.points numeric or options: ("median","last"); Regressor points to be evaluated.  Set to \code{eval.points="median"} to find partial derivatives at the median of every variable.  Set to \code{eval.points="last"} to find partial derivatives at the last value of every variable.
 #' @param h numeric [0,...]; Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the regressor.
 #' @param n.best integer; Sets the number of closest regression points to use in weighting.  Defaults to 2.
@@ -33,7 +33,7 @@
 #' @export
 
 
-dy.d_<- function(x,y,wrt,eval.points="median",order=NULL,s.t.n=0.9,h=.1,n.best=2,mixed=FALSE,plot=FALSE,norm=NULL,noise.reduction='mean'){
+dy.d_<- function(x,y,wrt,eval.points="median",order=NULL,stn=0.9,h=.1,n.best=2,mixed=FALSE,plot=FALSE,norm=NULL,noise.reduction='mean'){
   if(eval.points[1]=="median"){
     eval.points=numeric()
     eval.points=apply(x,2,median)}
@@ -50,7 +50,7 @@ dy.d_<- function(x,y,wrt,eval.points="median",order=NULL,s.t.n=0.9,h=.1,n.best=2
   deriv.points = matrix(c(original.eval.points.min,eval.points,original.eval.points.max),ncol=length(eval.points),byrow = TRUE)
 
 
-  estimates = NNS.reg(x,y,order=order,point.est = deriv.points,n.best=n.best,s.t.n = s.t.n,plot=plot,norm=norm,noise.reduction=noise.reduction)$Point.est
+  estimates = NNS.reg(x,y,order=order,point.est = deriv.points,n.best=n.best,stn = stn,plot=plot,norm=norm,noise.reduction=noise.reduction)$Point.est
 
 
   lower=estimates[1]
@@ -72,7 +72,7 @@ dy.d_<- function(x,y,wrt,eval.points="median",order=NULL,s.t.n=0.9,h=.1,n.best=2
                                 (1-h)*eval.points),ncol=2,byrow = TRUE)
 
 
-  mixed.estimates = NNS.reg(x,y,order=order,point.est=mixed.deriv.points,n.best = n.best,s.t.n = s.t.n,plot=plot,noise.reduction=noise.reduction)$Point.est
+  mixed.estimates = NNS.reg(x,y,order=order,point.est=mixed.deriv.points,n.best = n.best,stn = stn,plot=plot,noise.reduction=noise.reduction)$Point.est
   mixed.first = mixed.estimates[1]
 
   mixed.second = mixed.estimates[2]
