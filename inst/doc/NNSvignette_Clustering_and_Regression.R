@@ -5,7 +5,7 @@ require(knitr)
 require(rgl)
 
 ## ----linear--------------------------------------------------------------
-x=seq(-5,5,.1); y=x^3
+x=seq(-5,5,.05); y=x^3
 
 NNS.part(x,y,Voronoi = T)
 

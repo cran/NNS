@@ -4,32 +4,30 @@
 \alias{NNS.ARMA}
 \title{NNS ARMA}
 \usage{
-NNS.ARMA(variable, h = 1, Training.set = NULL, Seasonal.Factor = TRUE,
-  Negative.Values = FALSE, Method = "both", Dynamic = FALSE, stn = 0,
-  plot = TRUE, Seasonal_plot = TRUE, Intervals = FALSE)
+NNS.ARMA(variable, h = 1, training.set = NULL, seasonal.factor = TRUE,
+  negative.values = FALSE, method = "nonlin", dynamic = FALSE,
+  plot = TRUE, seasonal.plot = TRUE, intervals = FALSE)
 }
 \arguments{
 \item{variable}{a numeric vector.}
 
 \item{h}{integer; 1 (default) Number of periods to forecast.}
 
-\item{Training.set}{\code{NULL} (defualt) numeric; Sets the number of variable observations \code{(variable[1:Training.set])} to monitor performance of forecast over in-sample range.}
+\item{training.set}{\code{NULL} (defualt) numeric; Sets the number of variable observations \code{(variable[1:training.set])} to monitor performance of forecast over in-sample range.}
 
-\item{Seasonal.Factor}{logical or integer; \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(Seasonal.Factor=FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(Seasonal.Factor=12)} for monthly data.}
+\item{seasonal.factor}{logical or integer; \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor=FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor=12)} for monthly data.}
 
-\item{Negative.Values}{logical; \code{FALSE} (default) If the variable can be negative, set to \code{(Negative.Values=TRUE)}.}
+\item{negative.values}{logical; \code{FALSE} (default) If the variable can be negative, set to \code{(negative.values=TRUE)}.}
 
-\item{Method}{options:("lin","nonlin","both"); To select the regression type of the component series, defaults to \code{(Method="both")} where both linear and nonlinear estimates are generated.  To use a nonlineaer regression, set to \code{(Method="nonlin")}; to use a linear regression set to \code{Method="lin"}.}
+\item{method}{options:("lin","nonlin","both"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method="both")} where both linear and nonlinear estimates are generated.  To use a nonlineaer regression, set to \code{(method="nonlin")}; to use a linear regression set to \code{(method="lin")}.}
 
-\item{Dynamic}{logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(Dynamic=TRUE)}.  The default is \code{(Dynamic=FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.}
+\item{dynamic}{logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(dynamic=TRUE)}.  The default is \code{(dynamic=FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.}
 
-\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order=NULL)}.  Defaults to \code{(stn=0)} to allow for maximum fit.}
+\item{plot}{logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.}
 
-\item{plot}{logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the variable level reference in upper panel.  Lower panel returns original data and forecast.}
+\item{seasonal.plot}{logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.}
 
-\item{Seasonal_plot}{logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{Seasonal.Factor} is set to an integer value.}
-
-\item{Intervals}{logical; \code{FALSE} (default) Plots the surrounding forecasts around the final estimate when \code{(Intervals=TRUE)} and \code{(Seasonal.Factor=FALSE)}.  There are no other forecasts to plot when a single \code{Seasonal.Factor} is selected.}
+\item{intervals}{logical; \code{FALSE} (default) Plots the surrounding forecasts around the final estimate when \code{(intervals=TRUE)} and \code{(seasonal.factor=FALSE)}.  There are no other forecasts to plot when a single \code{seasonal.factor} is selected.}
 }
 \value{
 Returns a vector of forecasts of length \code{(h)}.
@@ -38,11 +36,11 @@ Returns a vector of forecasts of length \code{(h)}.
 Autoregressive model incorporating nonlinear regressions of component series.
 }
 \note{
-\code{(Seasonal.Factor=FALSE)} can be a very comutationally expensive exercise due to the number of seasonal periods detected.
+\code{(seasonal.factor=FALSE)} can be a very comutationally expensive exercise due to the number of seasonal periods detected.
 }
 \examples{
 ## Nonlinear NNS.ARMA using AirPassengers monthly data and 12 period lag
-NNS.ARMA(AirPassengers,h=45,Training.set=100,Seasonal.Factor=12,Method='nonlin')
+NNS.ARMA(AirPassengers,h=45,training.set=100,seasonal.factor=12,method='nonlin')
 }
 \author{
 Fred Viole, OVVO Financial Systems

@@ -2,8 +2,8 @@
 #'
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
 #' @param A a numeric matrix or data frame.
-#' @param chart.type  options:("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.
-#' @param Linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
+#' @param chart.type  options: ("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.
+#' @param linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
 #' @param order integer; \code{NULL} (default) Controls the \link{NNS.cor} \code{"order"} for number of partial moment quadrant partitions.
 #' @return Returns a \link{data.frame} of normalized values.
 #' @keywords normalization
@@ -17,16 +17,12 @@
 #' NNS.norm(A)
 #' @export
 
-NNS.norm <- function(A,chart.type=NULL,Linear=F,order=NULL) {
+NNS.norm <- function(A,chart.type=NULL,linear=FALSE,order=NULL) {
   m  <- colMeans(A)
   RG <- m %o% (1/m)
 
-  if(length(A[,1])<=30){
-    scale.factor=as.matrix(abs(NNS.cor(A,order=1)))} else {
-    scale.factor=as.matrix(abs(NNS.cor(A)))
-  }
-
-  if(Linear==FALSE){
+  if(linear==FALSE){
+      scale.factor=abs(NNS.cor(A))
       scales <- colMeans(RG * scale.factor)
   } else {
         scales <- colMeans(RG)

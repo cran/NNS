@@ -54,7 +54,9 @@ NNS.M.reg <- function (X_n,Y,order=NULL,stn=0.99,n.best=1,type=NULL,point.est=NU
 
 ###  Regression Point Matrix
  if(is.numeric(order)|is.null(order)){
+
         reg.points=apply(original.IVs,2,function(b) NNS.reg(b,original.DV,order=order,type=type,noise.reduction=noise.reduction,plot = F,multivariate.call = TRUE))
+
 if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
   reg.points.matrix=do.call('cbind',lapply(reg.points, `length<-`, max(lengths(reg.points))))}
       else {reg.points.matrix=reg.points}
@@ -83,13 +85,13 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
     colnames(reg.points.matrix)=as.character(colnames.list)}
 
 
-  reg.length=length(na.omit(reg.points.matrix[,1]))
-
-### Find intervals in regression points for each variable
+### Find intervals in regression points for each variable, use left.open T and F for endpoints.
   NNS.ID = list()
 
       for(j in 1:n){
-        NNS.ID[[j]]= findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = TRUE)+1 + findInterval(original.IVs[,j],sort(na.omit(reg.points.matrix[,j])),left.open = FALSE)+1
+        sorted.reg.points=sort(reg.points.matrix[,j])
+        sorted.reg.points=sorted.reg.points[!is.na(sorted.reg.points)]
+        NNS.ID[[j]]= findInterval(original.IVs[,j],sorted.reg.points,left.open = TRUE)+1 + findInterval(original.IVs[,j],sorted.reg.points,left.open = FALSE)+1
           }
 
           NNS.ID = matrix(unlist(NNS.ID),nrow = length(Y),ncol = n)
@@ -120,8 +122,6 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
   setkey(resid.plot,'obs')
   y.hat=mean.by.id.matrix[,.(y.hat)]
 
-  B=mean.by.id.matrix[,(1:n),with=FALSE]
-  B=data.frame(B)
   fitted.matrix = data.table(original.IVs,y.hat)
 
   setkey(mean.by.id.matrix,'NNS.ID')
@@ -141,22 +141,25 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
   REGRESSION.POINT.MATRIX=REGRESSION.POINT.MATRIX[,NNS.ID := NULL]
   REGRESSION.POINT.MATRIX=REGRESSION.POINT.MATRIX[,original.DV := NULL]
 
-  REGRESSION.POINT.MATRIX=data.frame(REGRESSION.POINT.MATRIX[])
-  colnames(REGRESSION.POINT.MATRIX)=c(colnames(reg.points.matrix),'y.hat')
 
-  if(!is.numeric(n.best)){n.best=length(REGRESSION.POINT.MATRIX[,1])} else {n.best=n.best}
+  if(!is.numeric(n.best)){n.best=REGRESSION.POINT.MATRIX[,.N]} else {n.best=n.best}
 
 ### DISTANCES
   ### Calculate distance from each point in REGRESSION.POINT.MATRIX
   if(!is.null(point.est)){
       distance<- function(dist.est){
 
-              distances=sweep(REGRESSION.POINT.MATRIX[,(1:n)],2,as.numeric(dist.est))
-              distances[distances==0]<- 1e-10
+              for(j in 1:n){set(REGRESSION.POINT.MATRIX,j=j,value=REGRESSION.POINT.MATRIX[[j]]-as.numeric(dist.est)[j])}
+
+
               if(dist=="L1"){
-                row.sums=as.numeric(rowSums(abs(distances)))}
-                else{row.sums=as.numeric(sqrt(rowSums(distances^2)))
+                row.sums=as.numeric(rowSums(abs(REGRESSION.POINT.MATRIX[,.SD,.SDcols=c(1:n)])))}
+                else{row.sums=as.numeric(sqrt(rowSums(REGRESSION.POINT.MATRIX[,.SD,.SDcols=c(1:n)]^2)))
                 }
+
+              for(j in 1:n){set(REGRESSION.POINT.MATRIX,j=j,value=REGRESSION.POINT.MATRIX[[j]]+as.numeric(dist.est)[j])}
+
+              row.sums[row.sums==0]<- 1e-10
               total.row.sums = sum(1/row.sums)
               weights = (1/row.sums)/total.row.sums
 
@@ -168,8 +171,6 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
 
               weights=weights/weights.sum
               single.estimate = sum(weights*REGRESSION.POINT.MATRIX$y.hat)
-
-
 
       return(single.estimate)
     }
@@ -186,7 +187,6 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
     }
     if(!is.null(np)){
       predict.fit.iter=apply(point.est,1,function(p) distance(dist.est = as.vector(p) ))
-
 
       predict.fit=as.vector(predict.fit.iter)
     }
@@ -231,7 +231,7 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
     }#plot.regions = T
 
 
-    points3d(x=REGRESSION.POINT.MATRIX[,1],y=REGRESSION.POINT.MATRIX[,2],z=REGRESSION.POINT.MATRIX[,3],col='red',size=5)
+    points3d(x=as.numeric(unlist(REGRESSION.POINT.MATRIX[,.SD,.SDcols=1])),y=as.numeric(unlist(REGRESSION.POINT.MATRIX[,.SD,.SDcols=2])),z=as.numeric(unlist(REGRESSION.POINT.MATRIX[,.SD,.SDcols=3])),col='red',size=5)
     if(!is.null(point.est)){
       if(is.null(np)){
         points3d(x=point.est[1],y=point.est[2],z=predict.fit,col='green',size=5)
@@ -251,14 +251,14 @@ if(all(sapply(reg.points, length) == length(reg.points[[1]]))==FALSE){
     legend(location,legend =r2.leg,bty = 'n')
   }
 
-RPM=data.table(REGRESSION.POINT.MATRIX)
+
 rhs.partitions=data.table(reg.points.matrix)
 ### Return Values
   if(return.values==T){
 
-      return(list(R2=R2,Fitted=y.hat,rhs.partitions=rhs.partitions, RPM=RPM ,partition=y.identifier,Point.est=predict.fit,Fitted.xy=fitted.matrix[]))}
+      return(list(R2=R2,rhs.partitions=rhs.partitions, RPM=REGRESSION.POINT.MATRIX[] ,partition=data.table(Y=original.DV,NNS.ID=y.identifier),Point.est=predict.fit,Fitted=fitted.matrix[,.(y.hat)],Fitted.xy=fitted.matrix[]))}
 
   else{
-     invisible(list(R2=R2,Fitted=y.hat,rhs.partitions=rhs.partitions, RPM=RPM,partition=y.identifier,Point.est=predict.fit,Fitted.xy=fitted.matrix[]))}
+     invisible(list(R2=R2,rhs.partitions=rhs.partitions, RPM=REGRESSION.POINT.MATRIX[],partition=data.table(Y=original.DV,NNS.ID=y.identifier),Point.est=predict.fit,Fitted=fitted.matrix[,.(y.hat)],Fitted.xy=fitted.matrix[]))}
 
 }

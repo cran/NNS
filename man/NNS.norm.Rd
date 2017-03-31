@@ -4,14 +4,14 @@
 \alias{NNS.norm}
 \title{NNS Normalization}
 \usage{
-NNS.norm(A, chart.type = NULL, Linear = F, order = NULL)
+NNS.norm(A, chart.type = NULL, linear = FALSE, order = NULL)
 }
 \arguments{
 \item{A}{a numeric matrix or data frame.}
 
-\item{chart.type}{options:("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
+\item{chart.type}{options: ("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
 
-\item{Linear}{logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.}
+\item{linear}{logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.}
 
 \item{order}{integer; \code{NULL} (default) Controls the \link{NNS.cor} \code{"order"} for number of partial moment quadrant partitions.}
 }

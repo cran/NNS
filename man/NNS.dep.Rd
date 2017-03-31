@@ -11,7 +11,7 @@ NNS.dep(x, y = NULL, order = 3, degree = NULL, print.map = FALSE)
 
 \item{y}{\code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{order}{integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.}
+\item{order}{integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.  Will not partition further if less than 4 observations exist in a quadrant.}
 
 \item{degree}{integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.}
 

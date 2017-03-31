@@ -46,15 +46,52 @@ NNS.reg(x, y, order = NULL, stn = 0.99, type = NULL, point.est = NULL,
 \item{multivariate.call}{Internal parameter for multivariate regressions.}
 }
 \value{
-UNIVARIATE regression returns the values:  \code{"Fitted"} for only the fitted values, \code{y.hat}; \code{"Fitted.xy"} for a data frame of \code{x},\code{y} and \code{y.hat}; \code{"derivative"} for the coefficient of the \code{x} and its applicable range;  \code{"partition"} returns the \code{x},\code{y}, \code{"NNS.ID"} assigned to the observation and \code{y.hat}; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"Point.est"} for the predicted value generated; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"regression.points"} provides the points used in the regression equation for the given order of partitions; \code{"R2"} provides the goodness of fit; \code{"MSE"} returns the MSE between \code{y} and \code{y.hat}; \code{"Prediction.Accuracy"} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y}.
+UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 
-MULTIVARIATE regression returns the values: \code{"Fitted"} for only the fitted values of \code{x}; \code{"Fitted.xy"} for a data frame of \code{y} and fitted values; \code{"RPM"} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions; \code{"rhs.partitions"} returns the partition points for each \code{x}; \code{"partition"} returns the \code{x},\code{y}, \code{"NNS.ID"} assigned to the observation and \code{y.hat}; \code{"Point"} returns the \code{x} point(s) being evaluated; \code{"Point.est"} returns the predicted value generated; \code{"equation"} returns the synthetic X* dimension reduction equation.
+     \code{"R2"} provides the goodness of fit;
+
+     \code{"MSE"} returns the MSE between \code{y} and \code{y.hat};
+
+     \code{"Prediction.Accuracy"} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y};
+
+     \code{"derivative"} for the coefficient of the \code{x} and its applicable range;
+
+     \code{"Point"} returns the \code{x} point(s) being evaluated;
+
+     \code{"Point.est"} for the predicted value generated;
+
+     \code{"regression.points"} provides the points used in the regression equation for the given order of partitions;
+
+     \code{"partition"} returns the \code{"NNS.ID"} assigned to the observation and \code{y};
+
+     \code{"Fitted"} returns a vector containing only the fitted values, \code{y.hat};
+
+     \code{"Fitted.xy"} returns a \link{data.table} of \code{x},\code{y} and \code{y.hat};
+
+
+MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
+
+\code{"R2"} provides the goodness of fit;
+
+\code{"equation"} returns the synthetic X* dimension reduction equation;
+
+\code{"rhs.partitions"} returns the partition points for each \code{x};
+
+\code{"RPM"} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions;
+
+\code{"partition"} returns the \code{"NNS.ID"} assigned to the observation and \code{y};
+
+\code{"Point.est"} returns the predicted value generated;
+
+\code{"Fitted"} returns a vector containing only the fitted values, \code{y.hat};
+
+\code{"Fitted.xy"} reutnrs a \link{data.table} of \code{y} and fitted values.
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
 }
 \note{
-Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
+Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.  Also, upon visual inspection of the data, if a highly periodic variable is observed set \code{(stn=0)} or \code{(order="max")} to ensure a proper fit.
 }
 \examples{
 set.seed(123)
@@ -65,7 +102,7 @@ NNS.reg(x,y)
 NNS.reg(x,y,order=2)
 
 ## Maximum {order} selection
-NNS.reg(x,y,order='max')
+NNS.reg(x,y,order="max")
 
 ## x-only paritioning (Univariate only)
 NNS.reg(x,y,type="XONLY")
@@ -85,7 +122,7 @@ NNS.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
 #Dimension Reduction:
 NNS.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
 #Multiple Regression:
-NNS.reg(iris[,1:4],iris[,5],order=2,noise.reduction='off')
+NNS.reg(iris[,1:4],iris[,5],order=2,noise.reduction="off")
 
 ## To call fitted values:
 x<-rnorm(100); y<-rnorm(100)

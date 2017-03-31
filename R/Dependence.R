@@ -4,7 +4,7 @@
 #'
 #' @param x a numeric vector, matrix or data frame.
 #' @param y \code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.
-#' @param order integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.
+#' @param order integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.  Will not partition further if less than 4 observations exist in a quadrant.
 #' @param degree integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.
 #' @param print.map  logical; \code{FALSE} (default) Plots quadrant means.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
@@ -31,21 +31,21 @@ NNS.dep = function(x,y=NULL,order = 3,
   if(is.null(degree)){degree=ifelse(length(x)<100,0,1)}else{degree=degree}
   if(length(x)<20){
     order=1
-    min.obs=4}else{
+    }else{
       order=order
-      min.obs=10}
+      }
 
 
   if(!missing(y)){
 
     if(print.map==T){
-      part.map = NNS.part(x,y,order=order, Voronoi=F,min.obs = min.obs)
+      part.map = NNS.part(x,y,order=order, Voronoi=F)
       #if part is not at least 2nd degree...< 4 regression points
       if(length(part.map$regression.points$x)<4 & order>1){
-        part.map = NNS.part(x,y,order=2, Voronoi=T,min.obs = 1)}else{part.map=NNS.part(x,y,order=order, Voronoi=T,min.obs = min.obs)}
+        part.map = NNS.part(x,y,order=2, Voronoi=T,min.obs = 1)}else{part.map=NNS.part(x,y,order=order, Voronoi=T)}
     }
     else {
-      part.map = NNS.part(x,y,order=order,min.obs = min.obs)
+      part.map = NNS.part(x,y,order=order)
       #if part is not at least 2nd degree...< 4 regression points
       if(length(part.map$regression.points$x)<4 & order>1){
         part.map = NNS.part(x,y,order=2,min.obs = 1)}else{part.map=part.map

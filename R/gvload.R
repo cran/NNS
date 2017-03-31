@@ -18,7 +18,7 @@
       "mean_y_seg","mean_x_seg","sub.clpm",'sub.cupm','sub.dlpm','sub.dupm','weight',
       "Coefficient","X.Lower.Range","X.Upper.Range","y.hat",
       "NNS.ID","max.x1","max.x2","min.x1","min.x2","counts",
-      "Period","Coefficient.of.Variance"
+      "Period","Coefficient.of.Variance","Variable.Coefficient.of.Variance"
       ))
   invisible()
 }
