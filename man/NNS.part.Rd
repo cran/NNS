@@ -18,7 +18,7 @@ NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL, min.obs = 4,
 
 \item{order}{integer; Number of partial moment quadrants to be generated.  \code{(order="max")} will institute a perfect fit.}
 
-\item{min.obs}{integer; Reduces minimum number of necessary observations in a quadrant to 1 when \code{(min.obs=1)}.  In the instances where \code{"regression.points"} fail to be generated in the output, re-run partitioning with \code{(min.obs=1)} for the given \code{(order=...)}.  Defaults to \code{(min.obs=4)}.}
+\item{min.obs}{integer; (4 default) Desired observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(min.obs=1)}.}
 
 \item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); \code{(noise.reduction="median")} uses medians instead of means for partitions, while \code{(noise.reduction="mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction="mean")}, while \code{(noise.reduction="off")} will partition quadrant to a single observation for a given \code{(order=...)}.}
 }
@@ -26,7 +26,7 @@ NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL, min.obs = 4,
 Returns both a \link{data.table} \code{("dt")} of \code{x} and \code{y} observations with their partition assignment \code{"quadrant"} in the 3rd column and their prior partition assignment \code{"prior.quadrant"} in the 4th column; and the \link{data.table} of regression points \code{("regression.points")} for that given \code{(order=...)}.  Also returns the \code{"order"} of the final partition given \code{"min.obs"} constraints.
 }
 \description{
-Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchal clustering method).  Basis for correlation \link{NNS.cor}, dependence \link{NNS.dep}, regression \link{NNS.reg} routines.
+Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchial clustering method).  Basis for correlation \link{NNS.cor}, dependence \link{NNS.dep}, regression \link{NNS.reg} routines.
 }
 \examples{
 set.seed(123)
@@ -41,6 +41,11 @@ NNS.part(x,y,order=1)$regression.points
 
 ## Voronoi style plot
 NNS.part(x,y,Voronoi=TRUE)
+
+## Examine final counts by quadrant
+DT=NNS.part(x,y)$dt
+DT[,counts := .N,by=quadrant]
+DT
 }
 \author{
 Fred Viole, OVVO Financial Systems
