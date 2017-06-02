@@ -4,7 +4,7 @@
 \alias{NNS.norm}
 \title{NNS Normalization}
 \usage{
-NNS.norm(A, chart.type = NULL, linear = FALSE, order = NULL)
+NNS.norm(A, chart.type = NULL, linear = FALSE)
 }
 \arguments{
 \item{A}{a numeric matrix or data frame.}
@@ -12,8 +12,6 @@ NNS.norm(A, chart.type = NULL, linear = FALSE, order = NULL)
 \item{chart.type}{options: ("l","b"); \code{NULL} (default).  Set \code{(chart.type="l")} for line, \code{(chart.type="b")} for boxplot.}
 
 \item{linear}{logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.}
-
-\item{order}{integer; \code{NULL} (default) Controls the \link{NNS.cor} \code{"order"} for number of partial moment quadrant partitions.}
 }
 \value{
 Returns a \link{data.frame} of normalized values.
@@ -27,12 +25,11 @@ x<-rnorm(100); y<-rnorm(100)
 A<-cbind(x,y)
 NNS.norm(A)
 }
-\author{
-Fred Viole, OVVO Financial Systems
-}
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\author{
+Fred Viole, OVVO Financial Systems
+}
 \keyword{normalization}
-

@@ -4,14 +4,14 @@
 \alias{NNS.cor}
 \title{NNS Correlation}
 \usage{
-NNS.cor(x, y = NULL, order = 3, degree = ifelse(length(x) < 100, 0, 1))
+NNS.cor(x, y = NULL, order = NULL, degree = NULL)
 }
 \arguments{
 \item{x}{a numeric vector, matrix or data frame.}
 
 \item{y}{\code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{order}{integer; Controls the level of quadrant partitioning.  Defualts to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.}
+\item{order}{integer; Controls the level of quadrant partitioning.  Defualts to \code{(order=NULL)}.  Errors can generally be rectified by setting \code{(order=1)}.}
 
 \item{degree}{integer; \code{(degree = 0)} is frequency based correlations, while \code{(degree = 1)} is for area based correlations.  Defaults to \code{(degree = 0)} for smaller number of observations.}
 }
@@ -33,13 +33,12 @@ B<-cbind(x,y,z)
 NNS.cor(B)
 
 }
-\author{
-Fred Viole, OVVO Financial Systems
-}
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
 }
+\author{
+Fred Viole, OVVO Financial Systems
+}
 \keyword{correlation}
 \keyword{nonlinear}
-

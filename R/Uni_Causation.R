@@ -1,14 +1,3 @@
-#' NNS Causation uni-directional  (INTERNAL CALL FOR \link{NNS.caus})
-#'
-#' Returns the uni-directional causality from observational data between two variables.  Causation nets out the univariate effect.
-#'
-#' @param x a numeric vector.
-#' @param y a numeric vector.
-#' @param tau integer; Number of lagged observations to consider
-#' @param plot logical; \code{TRUE} (default) Plots the raw variables, tau normalized, and cross-normalized variables.
-#' @keywords causation
-#' @author Fred Viole, OVVO Financial Systems
-
 Uni.caus <- function(x,y,tau,plot=TRUE){
 
 
@@ -18,6 +7,7 @@ Uni.caus <- function(x,y,tau,plot=TRUE){
   y.vectors = list()
 
 ## Create tau vectors
+  if(tau>0){
     for (i in 0:tau){
         x.vectors[[paste('x.tau.',i,sep="")]] <- numeric(0L)
         y.vectors[[paste('y.tau.',i,sep="")]] <- numeric(0L)
@@ -34,17 +24,26 @@ Uni.caus <- function(x,y,tau,plot=TRUE){
 
 ## Normalize y to y.tau
   y.norm.tau <- NNS.norm(y.vectors.tau)[,1]
-
+  } else
+  {
+    x.norm.tau <- x
+    y.norm.tau <- y
+  }
 
   ## Normalize x.norm.tau to y.norm.tau
+  if((min(y)>=min(x) && max(y)<=max(x)) |
+     (min(y)>=0 && max(y)<=1 && min(x)>=0 && max(x)<=1)){
+    x.norm.to.y = x.norm.tau
+    y.norm.to.x = y.norm.tau
+  }
+  else{
   x.tau.y.tau = NNS.norm(cbind(x.norm.tau,y.norm.tau))
   x.norm.to.y = x.tau.y.tau[,1]
   y.norm.to.x = x.tau.y.tau[,2]
-
+  }
 
   ## Conditional Probability from Normalized Variables P(x.norm.to.y | y.norm.to.x)
   P.x.given.y = UPM(0,min(x.norm.to.y),y.norm.to.x) - UPM(0,max(x.norm.to.y),y.norm.to.x)
-
 
 
   ## Correlation of Normalized Variables
@@ -63,7 +62,7 @@ Uni.caus <- function(x,y,tau,plot=TRUE){
   plot(y,type = 'l', ylim=c(ymin, ymax),ylab='RAW',col='red',lwd = 3)
   lines(x, col = 'steelblue',lwd = 3)
   legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
-         col=c('steelblue','red'),ncol=2,bty ="n")
+         col=c('steelblue','red'),ncol=2)
 
 
 
@@ -74,7 +73,7 @@ Uni.caus <- function(x,y,tau,plot=TRUE){
   plot(y.norm.tau,type = 'l', ylim=c(ymin, ymax),ylab='TIME NORMALIZED',col='red',lwd = 3)
   lines(x.norm.tau, col='steelblue',lwd=3)
   legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
-         col=c('steelblue','red'),ncol=2,bty ="n")
+         col=c('steelblue','red'),ncol=2)
 
   ## Time Normalized Variables Normalized to each other Plot
   ymin = min(c(min(x.norm.to.y),min(y.norm.to.x)))
@@ -83,7 +82,7 @@ Uni.caus <- function(x,y,tau,plot=TRUE){
   plot(y.norm.to.x,type = 'l', ylim=c(ymin, ymax),ylab='X & Y NORMALIZED',col='red',lwd = 3)
   lines(x.norm.to.y,col='steelblue',lwd=3)
   legend('top',c("X","Y"), lty = 1,lwd=c(3,3),
-         col=c('steelblue','red'),ncol=2,bty ="n")
+         col=c('steelblue','red'),ncol=2)
 
   par(mfrow=c(1,1))
   }

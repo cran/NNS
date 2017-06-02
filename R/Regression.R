@@ -20,47 +20,49 @@
 #' @param dist options:("L1","L2") the method of distance calculation; Selects the distance calculation used. \code{dist="L2"} (default) selects the Euclidean distance and \code{(dist="L1")} seclects the Manhattan distance.
 #' @param multivariate.call Internal parameter for multivariate regressions.
 #' @return UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
+#' \itemize{
+#'  \item{\code{"R2"}} provides the goodness of fit;
 #'
-#'      \code{"R2"} provides the goodness of fit;
+#'  \item{\code{"MSE"}} returns the MSE between \code{y} and \code{y.hat};
 #'
-#'      \code{"MSE"} returns the MSE between \code{y} and \code{y.hat};
+#'  \item{\code{"Prediction.Accuracy"}} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y};
 #'
-#'      \code{"Prediction.Accuracy"} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y};
+#'  \item{\code{"derivative"}} for the coefficient of the \code{x} and its applicable range;
 #'
-#'      \code{"derivative"} for the coefficient of the \code{x} and its applicable range;
+#'  \item{\code{"Point"}} returns the \code{x} point(s) being evaluated;
 #'
-#'      \code{"Point"} returns the \code{x} point(s) being evaluated;
+#'  \item{\code{"Point.est"}} for the predicted value generated;
 #'
-#'      \code{"Point.est"} for the predicted value generated;
+#'  \item{\code{"regression.points"}} provides the points used in the regression equation for the given order of partitions;
 #'
-#'      \code{"regression.points"} provides the points used in the regression equation for the given order of partitions;
+#'  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
 #'
-#'      \code{"partition"} returns the \code{"NNS.ID"} assigned to the observation and \code{y};
-#'
-#'      \code{"Fitted"} returns a vector containing only the fitted values, \code{y.hat};
-#'
-#'      \code{"Fitted.xy"} returns a \link{data.table} of \code{x},\code{y} and \code{y.hat};
+#'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID};
+#' }
 #'
 #'
 #' MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
+#' \itemize{
+#'  \item{\code{"R2"}} provides the goodness of fit;
 #'
-#' \code{"R2"} provides the goodness of fit;
+#'  \item{\code{"equation"}} returns the numerator of the synthetic X* dimension reduction equation as a \link{data.table} consisting of regressor and its coefficient.  Denominator is simply the length of all coefficients > 0.
 #'
-#' \code{"equation"} returns the synthetic X* dimension reduction equation;
+#'  \item{\code{"x.star"}} returns the synthetic X* as a vector;
 #'
-#' \code{"rhs.partitions"} returns the partition points for each \code{x};
+#'  \item{\code{"rhs.partitions"}} returns the partition points for each regressor \code{x};
 #'
-#' \code{"RPM"} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions;
+#'  \item{\code{"RPM"}} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions;
 #'
-#' \code{"partition"} returns the \code{"NNS.ID"} assigned to the observation and \code{y};
+#'  \item{\code{"Point.est"}} returns the predicted value generated;
 #'
-#' \code{"Point.est"} returns the predicted value generated;
+#'  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
 #'
-#' \code{"Fitted"} returns a vector containing only the fitted values, \code{y.hat};
-#'
-#' \code{"Fitted.xy"} reutnrs a \link{data.table} of \code{y} and fitted values.
+#'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID}.
+#' }
 #'
 #' @note Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.  Also, upon visual inspection of the data, if a highly periodic variable is observed set \code{(stn=0)} or \code{(order="max")} to ensure a proper fit.
+#'
+#' Identical regressors can be used as long as they do not share the same name. For instance, \code{NNS.reg(cbind(x,1*x),y)} will work as \code{NNS.reg} is not affected by multicollinearity.
 #' @keywords nonlinear regression, classifier
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -121,15 +123,20 @@ NNS.reg = function (x,y,
                     norm=NULL,
                     dist="L2",multivariate.call=FALSE){
 
-  if(plot.regions==TRUE && order=='max'){stop('Please reduce the "order" or set "plot.regions = FALSE".')}
+  if(plot.regions==TRUE && !is.null(order) && order=='max'){stop('Please reduce the "order" or set "plot.regions = FALSE".')}
 
+
+  original.names = names(x)
   original.columns = ncol(x)
+
   original.variable = x
+  original.y = y
   np = nrow(point.est)
 
-  if(noise.reduction=='off'){stn=0}else{stn=stn}
+  if(noise.reduction=='off'){stn=0}
 
   y=as.numeric(y)
+  if(is.null(names(original.y))){y.label="Y"}else{y.label=names(y)}
 
   if(class(x)=='factor'){
     if(is.null(ncol(x))){
@@ -148,26 +155,34 @@ NNS.reg = function (x,y,
     } else {
       if(is.null(type)){
         if(!is.null(original.columns)){
-        if(is.null(n.best)){n.best=2*original.columns} else {n.best=n.best}}
-        if(is.null(original.columns)){if(is.null(n.best)){n.best=2} else {n.best=n.best}}
+          if(is.null(n.best)){n.best=2*original.columns} }
+        else{if(is.null(n.best)){n.best=2} }
 
         return(NNS.M.reg(x,y,point.est=point.est,plot=plot,residual.plot=plot,order=order,n.best=n.best,type=type,location=location,noise.reduction=noise.reduction,norm = norm,dist=dist,stn = stn,return.values=return.values,plot.regions = plot.regions))
       } # Multivariate NULL type
           else{
               if(type=="CLASS"){
+
+                if(is.null(original.names)){
+                  colnames.list=list()
+                  for(i in 1:ncol(x)){
+                    colnames.list[i]=paste0("X",i)
+                  }} else {colnames.list=names(x)}
+
                   x= data.matrix(x)
                   y= as.numeric(y)
 
                   x.star.matrix = matrix(nrow=length(y))
 
-                  x.star.dep = sapply(1:original.columns, function(i) abs(NNS.dep(unlist(x[,i]),unlist(y))$Dependence))
-                  x.star.coef=sapply(1:original.columns, function(i) abs(NNS.cor(unlist(x[,i]),unlist(y))))
+                  x.star.dep = NNS.dep(cbind(x,y))
+                  x.star.coef = x.star.dep$Correlation[-(ncol(x)+1),(ncol(x)+1)]
+                  x.star.dep = x.star.dep$Dependence[-(ncol(x)+1),(ncol(x)+1)]
 
-                  x.star.coef[x.star.coef<threshold]<- 0
+                  x.star.coef[abs(x.star.coef)<threshold]<- 0
 
                   x.star.matrix=t(t(original.variable) * x.star.coef)
 
-                  synthetic.x.equation=(paste0("Synthetic Independent Variable X* = (",paste(format(x.star.coef[1:original.columns],digits = 4),paste("X",1:original.columns,sep = ''),sep='*',collapse = "  "),")/",sum(abs(x.star.coef)>0)))
+                  synthetic.x.equation=data.table(Variable=colnames.list,Coefficient=x.star.coef)
 
                   #In case all IVs have 0 correlation to DV
                   if(all(x.star.matrix==0)){
@@ -175,9 +190,6 @@ NNS.reg = function (x,y,
                       x.star.coef[x.star.coef==0]<- 1
                   }
 
-                  #Above threshold coefficients
-                  coefs=abs(x.star.coef)
-                  coefs=coefs[coefs>0]
 
                   if(!is.null(point.est)){
                       new.point.est=numeric()
@@ -193,7 +205,7 @@ NNS.reg = function (x,y,
                   }
 
                   x = rowSums(x.star.matrix/sum(abs(x.star.coef)>0))
-
+                  x.star = data.table(x.star=x)
               } # Multivariate "CLASS" type
           } #Multivariate Not NULL type
       }
@@ -204,11 +216,11 @@ NNS.reg = function (x,y,
 
   if(is.null(original.columns)){
     synthetic.x.equation=NULL
-
-    dependence = NNS.dep(x,y,print.map = F)$Dependence
+    x.star=NULL
+    dependence = (NNS.dep(x,y,print.map = F)$Dependence)^(1/3)
 
   } else {
-    if(type=="CLASS") dependence=mean(x.star.dep)}
+    if(type=="CLASS") dependence=(mean(x.star.dep))^(1/3)}
 
   if(is.null(order)){
       dep.reduced.order=floor(NNS.part(x,y,order='max')$order*dependence)}
@@ -220,16 +232,14 @@ NNS.reg = function (x,y,
     if(is.null(type)){
       part.map = NNS.part(x,y,noise.reduction='off',order=dep.reduced.order)
       if(length(part.map$regression.points$x)==0){
-        part.map=NNS.part(x,y,noise.reduction='off',order = min(nchar(part.map$dt$quadrant)),min.obs = 1)
-      } else {part.map=part.map
+        part.map=NNS.part(x,y,noise.reduction='off',order = min(nchar(part.map$dt$quadrant)),max.obs = 1)
       }
     } # NULL type
 
     if(!is.null(type)){
       part.map=NNS.part(x,y,type = "XONLY",noise.reduction='off',order = dep.reduced.order)
       if(length(part.map$regression.points$x)==0){
-        part.map=NNS.part(x,y,noise.reduction='off',type="XONLY",order = min(nchar(part.map$dt$quadrant)),min.obs = 1)
-      } else {part.map=part.map
+        part.map=NNS.part(x,y,noise.reduction='off',type="XONLY",order = min(nchar(part.map$dt$quadrant)),max.obs = 1)
       }
     } # type
   } # Dependence > stn
@@ -238,8 +248,7 @@ NNS.reg = function (x,y,
     if(is.null(type)){
       part.map = NNS.part(x,y,noise.reduction=noise.reduction, order=dep.reduced.order,type = "XONLY")
       if(length(part.map$regression.points$x)==0){
-        part.map=NNS.part(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$dt$quadrant)),min.obs = 1)
-      } else {part.map=part.map
+        part.map=NNS.part(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$dt$quadrant)),max.obs = 1)
       }
     } # NULL type
 
@@ -247,8 +256,7 @@ NNS.reg = function (x,y,
     if(!is.null(type)){
       part.map = NNS.part(x,y,type = "XONLY",noise.reduction=noise.reduction, order = dep.reduced.order)
       if(length(part.map$regression.points$x)==0){
-        part.map=NNS.part(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$dt$quadrant)),min.obs = 1)
-      } else {part.map=part.map
+        part.map=NNS.part(x,y,type = "XONLY",noise.reduction=noise.reduction,order = min(nchar(part.map$dt$quadrant)),max.obs = 1)
       }
     } # type
   } # Dependence < stn
@@ -261,7 +269,6 @@ NNS.reg = function (x,y,
 
   min.range = min(regression.points$x)
   max.range = max(regression.points$x)
-
 
   Dynamic.average.min = mean(y[x<=min.range])
   Dynamic.average.max = mean(y[x>=max.range])
@@ -279,18 +286,15 @@ NNS.reg = function (x,y,
   regression.points=rbindlist(list(regression.points,list(max(x),mean(x.max))))
   regression.points=rbindlist(list(regression.points,list(min(x),mean(x0))))
 
-  setkey(regression.points,x)
+  setkey(regression.points,x,y)
 
   ### Regression Equation
-
-  regression.points =regression.points[complete.cases(regression.points*0)]
 
   if(multivariate.call==T){
     return(regression.points$x)
   }
 
   ### Consolidate possible duplicated points
-  regression.points=regression.points[,y := mean(y),by=x]
   regression.points=unique(regression.points)
 
   rise = regression.points[,'rise' := y - shift(y)]
@@ -299,9 +303,7 @@ NNS.reg = function (x,y,
 
   Regression.Coefficients=regression.points[,.(rise,run)]
 
-
   Regression.Coefficients=Regression.Coefficients[complete.cases(Regression.Coefficients)]
-
 
   upper.x = regression.points[(2:.N),x]
 
@@ -340,8 +342,8 @@ NNS.reg = function (x,y,
   point.est.y=((point.est - regression.points[reg.point.interval,x])*Regression.Coefficients[coef.point.interval,Coefficient])+regression.points[reg.point.interval,y]
   }
 
-
-  fitted=(data.table(x=x,y=y,y.hat=estimate))
+  setkey(part.map$dt,"x")
+  fitted=(data.table(x=x,y=y,y.hat=estimate,NNS.ID=part.map$dt$quadrant))
 
   Values = (cbind(x,Fitted=fitted[,y.hat],Actual=fitted[,y],Difference=fitted[,y.hat]-fitted[,y], Accuracy=abs(round(fitted[,y.hat])-fitted[,y])))
 
@@ -398,9 +400,9 @@ NNS.reg = function (x,y,
 
   ### Return Values
   if(return.values == TRUE){
-    return(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation, "derivative"=Regression.Coefficients[],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points[],"partition"=part.map$dt[,.(y,NNS.ID=quadrant)],"Fitted"=fitted[,.(y.hat)],"Fitted.xy"=fitted))
+    return(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation, "x.star"=x.star,"derivative"=Regression.Coefficients[],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points[],"Fitted"=fitted[,.(y.hat)],"Fitted.xy"=fitted))
   } else {
-    invisible(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation, "derivative"=Regression.Coefficients[],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points[],"partition"=part.map$dt[,.(y,NNS.ID=quadrant)],"Fitted"=fitted[,.(y.hat)],"Fitted.xy"=fitted))
+    invisible(list("R2"=R2, "MSE"=MSE, "Prediction.Accuracy"=Prediction.Accuracy,"equation"=synthetic.x.equation, "x.star"=x.star,"derivative"=Regression.Coefficients[],"Point"=point.est,"Point.est"=point.est.y,"regression.points"=regression.points[],"Fitted"=fitted[,.(y.hat)],"Fitted.xy"=fitted))
   }
 
 }

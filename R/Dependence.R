@@ -4,7 +4,7 @@
 #'
 #' @param x a numeric vector, matrix or data frame.
 #' @param y \code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.
-#' @param order integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=3)}.  Errors can generally be rectified by setting \code{(order=1)}.  Will not partition further if less than 4 observations exist in a quadrant.
+#' @param order integer; Controls the level of quadrant partitioning.  Defaults to \code{(order=NULL)}.  Errors can generally be rectified by setting \code{(order=1)}.  Will not partition further if less than 4 observations exist in a quadrant.
 #' @param degree integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.
 #' @param print.map  logical; \code{FALSE} (default) Plots quadrant means.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
@@ -23,7 +23,7 @@
 #' NNS.dep(B)
 #' @export
 
-NNS.dep = function(x,y=NULL,order = 3,
+NNS.dep = function(x,y=NULL,order = NULL,
                    degree=NULL,
                    print.map=FALSE){
 
@@ -31,40 +31,44 @@ NNS.dep = function(x,y=NULL,order = 3,
   if(is.null(degree)){degree=ifelse(length(x)<100,0,1)}else{degree=degree}
   if(length(x)<20){
     order=1
+    max.obs=1
     }else{
       order=order
+      max.obs=NULL
       }
 
 
   if(!missing(y)){
 
     if(print.map==T){
-      part.map = NNS.part(x,y,order=order, Voronoi=T)
+      part.map = NNS.part(x,y,order=order,max.obs=max.obs, Voronoi=T,min.obs.stop=T)
     }
     else {
-      part.map = NNS.part(x,y,order=order)
+      part.map = NNS.part(x,y,order=order,max.obs=max.obs,min.obs.stop=TRUE)
+    }
+
+    part.order = part.map$order
+
+    if(part.order<3){
+      if(print.map==T){
+        part.map = NNS.part(x,y,order=3, Voronoi=T)
+      }
+      else {
+        part.map = NNS.part(x,y,order=3)
+      }
+
     }
 
     part.df = part.map$dt
 
-    part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean(x),mean(y)),
-                    sub.cupm=Co.UPM(degree,degree,x,y,mean(x),mean(y)),
-                    sub.dlpm=D.LPM(degree,degree,x,y,mean(x),mean(y)),
-                    sub.dupm=D.UPM(degree,degree,x,y,mean(x),mean(y)),
+    part.df[, `:=` (mean.x=mean(x),mean.y=mean(y)),by=prior.quadrant]
+
+    part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                    sub.cupm=Co.UPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                    sub.dlpm=D.LPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                    sub.dupm=D.UPM(degree,degree,x,y,mean.x[1],mean.y[1]),
                     counts=.N
                     ),by=prior.quadrant]
-
-    setkey(part.df,prior.quadrant)
-    part.df=(unique(part.df[,.(prior.quadrant,sub.clpm,sub.cupm,sub.dlpm,sub.dupm,
-    nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
-    nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm), counts)]))
-
-    zeros=part.df[,sum(counts==1)]
-
-    part.df=part.df[,`:=` (weight=counts/(length(x)-zeros)),by=prior.quadrant]
-
-    part.df=part.df[counts==1, weight := 0]
-
 
 ### Re-run with order=1 if categorical data...
     if(part.df[,sum(sub.clpm,sub.cupm,sub.dlpm,sub.dupm)]==0){
@@ -76,16 +80,22 @@ NNS.dep = function(x,y=NULL,order = 3,
 
       part.df = part.map$dt
 
-      part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean(x),mean(y)),
-                      sub.cupm=Co.UPM(degree,degree,x,y,mean(x),mean(y)),
-                      sub.dlpm=D.LPM(degree,degree,x,y,mean(x),mean(y)),
-                      sub.dupm=D.UPM(degree,degree,x,y,mean(x),mean(y)),
-                      counts=.N),by=prior.quadrant]
+      part.df[, `:=` (mean.x=mean(x),mean.y=mean(y)),by=prior.quadrant]
+
+      part.df[, `:=` (sub.clpm=Co.LPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                      sub.cupm=Co.UPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                      sub.dlpm=D.LPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                      sub.dupm=D.UPM(degree,degree,x,y,mean.x[1],mean.y[1]),
+                      counts=.N
+                      ),by=prior.quadrant]
+
+      part.df[,c("x","y","quadrant","mean.x","mean.y"):=NULL]
 
       setkey(part.df,prior.quadrant)
-      part.df=(unique(part.df[,.(prior.quadrant,sub.clpm,sub.cupm,sub.dlpm,sub.dupm,
-               nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
-               nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm), counts)]))
+      part.df=unique(part.df[])
+
+      part.df[, `:=` ( nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
+                       nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm))]
 
       zeros=part.df[,sum(counts==1)]
 
@@ -93,6 +103,23 @@ NNS.dep = function(x,y=NULL,order = 3,
 
       part.df=part.df[counts==1, weight := 0]
 } #Categorical re-run
+
+    else{
+
+      part.df[,c("x","y","quadrant","mean.x","mean.y"):=NULL]
+
+    setkey(part.df,prior.quadrant)
+    part.df=unique(part.df[])
+
+    part.df[, `:=` ( nns.cor=(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm),
+                     nns.dep=abs(sub.clpm+sub.cupm-sub.dlpm-sub.dupm)/(sub.clpm+sub.cupm+sub.dlpm+sub.dupm))]
+
+    zeros=part.df[,sum(counts==1)]
+
+    part.df=part.df[,`:=` (weight=counts/(length(x)-zeros)),by=prior.quadrant]
+
+    part.df=part.df[counts==1, weight := 0]
+}
 
 
       for (j in seq_len(ncol(part.df))){
