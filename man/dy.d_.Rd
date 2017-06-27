@@ -4,8 +4,8 @@
 \alias{dy.d_}
 \title{Partial Derivative dy/d[wrt]}
 \usage{
-dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.9,
-  h = 0.1, n.best = 2, mixed = FALSE, plot = FALSE,
+dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.99,
+  h = 0.05, n.best = ncol(x), mixed = FALSE, plot = FALSE,
   noise.reduction = "mean")
 }
 \arguments{
@@ -19,20 +19,25 @@ dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.9,
 
 \item{order}{integer; \link{NNS.reg} \code{"order"}, defaults to NULL.}
 
-\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.9 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
 
-\item{h}{numeric [0,...]; Percentage step used for finite step method.  Defaults to \code{h=.1} representing a 10 percent step from the value of the regressor.}
+\item{h}{numeric [0,...]; Percentage step used for finite step method.  Defaults to \code{h=.05} representing a 5 percent step from the value of the regressor.}
 
-\item{n.best}{integer; Sets the number of closest regression points to use in weighting.  Defaults to 2.}
+\item{n.best}{integer; Sets the number of closest regression points to use in weighting.  Defaults to \code{ncol(x)}.}
 
 \item{mixed}{logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed=TRUE)}.}
 
 \item{plot}{logical; \code{FALSE} (default) Set to \code{(plot=TRUE)} to view plot.}
 
-\item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); In low signal to noise situations, \code{noise.reduction="median"} uses medians instead of means for partitions, while \code{noise.reduction="mode"} uses modes instead of means for partitions.  \code{noise.reduction="off"}  allows for maximum possible fit in \link{NNS.reg}. Default setting is \code{noise.reduction="mean"}.}
+\item{noise.reduction}{the method of determing regression points options: ("mean","median","mode","off"); In low signal to noise situations, \code{(noise.reduction="median")} uses medians instead of means for partitions, while \code{(noise.reduction="mode")} uses modes instead of means for partitions.  \code{(noise.reduction="off")}  allows for maximum possible fit in \link{NNS.reg}. Default setting is \code{(noise.reduction="mean")}.}
 }
 \value{
-Returns the 1st derivative \code{"First Derivative"}, 2nd derivative \code{"Second Derivative"}, and mixed derivative \code{"Mixed Derivative"} (for two independent variables only).
+Returns:
+\itemize{
+\item{\code{dy.d_(...)$"First Derivative"}} the 1st derivative
+\item{\code{dy.d_(...)$"Second Derivative"}} the 2nd derivative
+\item{\code{dy.d_(...)$"Mixed Derivative"}} the mixed derivative (for two independent variables only).
+}
 }
 \description{
 Returns the numerical partial derivate of \code{y} with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as \code{f(x+h)} and \code{f(x-h)} values.

@@ -4,9 +4,9 @@
 \alias{NNS.stack}
 \title{NNS stack}
 \usage{
-NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = 0.2,
-  weight = "MSE", precision = "LOW", method = c(1, 2), threshold = 0,
-  seed = 123)
+NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = NULL,
+  weight = "MSE", norm = NULL, method = c(1, 2),
+  dim.red.method = "both", threshold = 0, seed = 123)
 }
 \arguments{
 \item{IVs.train}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -15,13 +15,15 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = 0.2,
 
 \item{IVs.test}{a vector, matrix or data frame of variables of numeric or factor data types.}
 
-\item{CV.size}{numeric [0,1]; Sets the cross-validation size if \code{(IVs.test=NULL)}.  Defaults to 0.2 for a 20 percent random sampling of the training set.}
+\item{CV.size}{numeric [0,1]; \code{NULL} (default) Sets the cross-validation size if \code{(IVs.test=NULL)}.  Defaults to 0.25 for a 25 percent random sampling of the training set under \code{(CV.size=NULL)}.}
 
 \item{weight}{options: ("MSE","Features") method for selecting model output weight; Set \code{(weight="MSE")} for optimum parameters and weighting based on each base model's \code{"MSE"}.  \code{(weight="Feautures")} uses a weighting based on the number of features present, whereby logistic \link{NNS.reg} receives higher relative weights for more regressors.  Defaults to \code{"MSE"}.}
 
-\item{precision}{options: ("LOW","HIGH"); 2 settings offered: \code{"LOW"} (Default) ,and \code{"HIGH"}.  \code{"HIGH"} is the limit condition of every observation as a regression point and uses a \code{(norm="NNS")} while \code{(precision="LOW")} uses a \code{(norm="std")} in \link{NNS.reg}.  Errors/warnings can generally be reconciled with \code{(precision="LOW")}.}
+\item{norm}{options: ("std","NNS", NULL); \code{NULL} (default) 3 settings offered: \code{NULL},\code{"LOW"} ,and \code{"HIGH"}.  Selects the \code{norm} parameter in \link{NNS.reg}.}
 
 \item{method}{numeric options: (1,2); Select the NNS method to include in stack.  \code{(method=1)} selects \link{NNS.reg}; \code{(method=2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method=c(1,2)}, including both NNS regression methods in the stack.}
+
+\item{dim.red.method}{options: ("cor", "cause", "both") method for determining synthetic X* coefficients.  \code{(dim.red.method="cor")}  uses \link{NNS.cor} for nonlinear correlation weights, while \code{(dim.red.method="cause")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method="both")} (default) averages both methods for further feature engineering.}
 
 \item{threshold}{numeric [0,1]; Sets the correlation threshold for independent variables in \link{NNS.reg}.  Defaults to \code{(threshold=0)}.}
 
@@ -31,7 +33,7 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, CV.size = 0.2,
 Returns a vector of fitted values for the dependent variable test set for all models.
 \itemize{
 \item{\code{"NNS.reg.n.best"}} returns the optimum \code{"n.best"} paramater for the \link{NNS.reg} multivariate regression.  \code{"MSE.reg"} returns the MSE for the \link{NNS.reg} multivariate regression.
-\item{\code{"NNS.dim.red.order"}} returns the optimum \code{"order"} from the \link{NNS.reg} dimension reduction regression.
+\item{\code{"NNS.dim.red.threshold"}} returns the optimum \code{"threshold"} from the \link{NNS.reg} dimension reduction regression.
 \item{\code{"MSE.dim.red"}} returns the MSE for the \link{NNS.reg} dimension reduction regression.
 \item{\code{"reg"}} returns \link{NNS.reg} output.
 \item{\code{"dim.red"}} returns \link{NNS.reg} dimension reduction regression output.
@@ -42,7 +44,15 @@ Returns a vector of fitted values for the dependent variable test set for all mo
 Prediction model using the predictions of the NNS base models \link{NNS.reg} as features (i.e. meta-features) for the stacked model.
 }
 \note{
-If character variables are used, transform them first to factors using \link{as.factor}, or \link{data.matrix} to ensure overall dataset is numeric.  A multifunction \link{sapply} can also be applied to the overall dataset: \code{data<- sapply(data,function(x){as.factor(x);as.numeric(x)})}.  Then run \code{NNS.stack} with transormed variables.
+If character variables are used, transform them first to factors using \link{as.factor}, or \link{data.matrix} to ensure overall dataset is numeric.  A multifunction \link{sapply} can also be applied to the overall dataset: \code{data <- sapply(data,function(x){as.factor(x);as.numeric(x)})}.  Then run \code{NNS.stack} with transormed variables.
+
+Missing data should be handled prior as well using \link{na.omit} or \link{complete.cases} on the full dataset.
+
+If error received:
+
+\code{"Error in is.data.frame(x) : object 'RP' not found"}
+
+reduce the \code{CV.size}.
 }
 \examples{
  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.

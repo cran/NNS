@@ -21,12 +21,14 @@ NNS.TSD <- function(x,y){
   Combined = c(x_sort,y_sort)
   Combined_sort = sort(Combined, decreasing=FALSE)
 
-  x.tsd.y=sum((LPM(2,Combined_sort,y)-LPM(2,Combined_sort,x))>=0)
-
-  y.tsd.x=sum((LPM(2,Combined_sort,x)-LPM(2,Combined_sort,y))>=0)
-
   LPM_x_sort=LPM(2,Combined_sort,x)
   LPM_y_sort=LPM(2,Combined_sort,y)
+
+  x.tsd.y=sum((LPM_y_sort-LPM_x_sort)>=0)
+
+  y.tsd.x=sum((LPM_x_sort-LPM_y_sort)>=0)
+
+
 
   plot(LPM_x_sort, type = "l", lwd =3,col = "red", main = "TSD", ylab = "Area of Cumulative Distribution",
        ylim = c(min(c(LPM_y_sort,LPM_x_sort)),max(c(LPM_y_sort,LPM_x_sort))))
@@ -34,7 +36,7 @@ NNS.TSD <- function(x,y){
   legend("topleft", c("X","Y"), lwd=10,
          col=c("red","blue"))
 
-   ifelse (x.tsd.y==length(Combined) & min(x)>=min(y) & mean(x)>=mean(y),"X TSD Y",
-          ifelse (y.tsd.x==length(Combined) & min(y)>=min(x)& mean(y)>=mean(x),"Y TSD X","NO TSD EXISTS"))
+   ifelse (x.tsd.y==length(Combined) & min(x)>=min(y) & mean(x)>=mean(y) & !identical(LPM_x_sort,LPM_y_sort),"X TSD Y",
+          ifelse (y.tsd.x==length(Combined) & min(y)>=min(x)& mean(y)>=mean(x) & !identical(LPM_x_sort,LPM_y_sort),"Y TSD X","NO TSD EXISTS"))
 }
 

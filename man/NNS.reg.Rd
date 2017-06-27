@@ -4,7 +4,8 @@
 \alias{NNS.reg}
 \title{NNS Regression}
 \usage{
-NNS.reg(x, y, order = NULL, stn = 0.99, type = NULL, point.est = NULL,
+NNS.reg(x, y, order = NULL, stn = 0.99, dim.red = FALSE,
+  dim.red.method = "cor", type = NULL, point.est = NULL,
   location = "top", return.values = TRUE, plot = TRUE,
   plot.regions = FALSE, residual.plot = TRUE, threshold = 0,
   n.best = NULL, noise.reduction = "mean", norm = NULL, dist = "L2",
@@ -18,6 +19,10 @@ NNS.reg(x, y, order = NULL, stn = 0.99, type = NULL, point.est = NULL,
 \item{order}{integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order=...)} integer settings with \code{(noise.reduction="off")}.  \code{(order="max")} will force a limit condition perfect fit.}
 
 \item{stn}{numeric [0,1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order=NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{("order")} and endpoint determination.  \code{(noise.reduction="off")} sets \code{(stn=0)} to allow for maximum fit.}
+
+\item{dim.red}{logical; \code{FALSE} (default).  Set to \code{(dim.red=TRUE)} for dimension reduction using synthetic X*.}
+
+\item{dim.red.method}{options: ("cor", "cause", "both") method for determining synthetic X* coefficients.  \code{(dim.red.method="cor")} (default) uses \link{NNS.cor} for nonlinear correlation weights, while \code{(dim.red.method="cause")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method="both")} averages both methods for further feature engineering.}
 
 \item{type}{\code{NULL} (default).  To perform logistic regression, set to \code{(type = "LOGIT")}.  To perform a classification, set to \code{(type = "CLASS")}.}
 
@@ -94,6 +99,8 @@ Generates a nonlinear regression based on partial moment quadrant means.
 Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.  Also, upon visual inspection of the data, if a highly periodic variable is observed set \code{(stn=0)} or \code{(order="max")} to ensure a proper fit.
 
 Identical regressors can be used as long as they do not share the same name. For instance, \code{NNS.reg(cbind(x,1*x),y)} will work as \code{NNS.reg} is not affected by multicollinearity.
+
+\code{NNS (>= v.0.3.4)} has repurposed parameter \code{(type="CLASS")}.  \code{(type="CLASS")} is now restricted to signifying a classification analysis for \code{NNS.reg} while \code{(dim.red=TRUE)} enables dimension reduction regressions.
 }
 \examples{
 set.seed(123)
@@ -118,12 +125,16 @@ NNS.reg(x,y,point.est=c(.25,.5,.75))
 
 ## For Multiple Regression based on Synthetic X* (Dimension Reduction):
 x<-cbind(rnorm(100),rnorm(100),rnorm(100)); y<-rnorm(100)
-NNS.reg(x,y,point.est=c(.25,.5,.75),type="CLASS")
+NNS.reg(x,y,point.est=c(.25,.5,.75),dim.red=TRUE)
 
-## IRIS dataset example:
-#Dimension Reduction:
-NNS.reg(iris[,1:4],iris[,5],type="CLASS",order=5)
-#Multiple Regression:
+## IRIS dataset examples:
+# Dimension Reduction:
+NNS.reg(iris[,1:4],iris[,5],dim.red=TRUE,order=5)
+
+# Dimension Reduction using causal weights:
+NNS.reg(iris[,1:4],iris[,5],dim.red=TRUE,dim.red.method="cause",order=5)
+
+# Multiple Regression:
 NNS.reg(iris[,1:4],iris[,5],order=2,noise.reduction="off")
 
 ## To call fitted values:
@@ -138,6 +149,9 @@ NNS.reg(x,y)$derivative
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 \url{http://amzn.com/1490523995}
+
+Vinod, H. and Viole, F. (2017) "Nonparametric Regression Using Clusters"
+\url{https://link.springer.com/article/10.1007/s10614-017-9713-5}
 }
 \author{
 Fred Viole, OVVO Financial Systems

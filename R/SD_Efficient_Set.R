@@ -24,96 +24,57 @@ NNS.SD.Efficient.Set <- function(x,degree) {
   current_base<- numeric(0)
 
 
-  LPM_order=sapply(1:n,function(i) LPM(1,max(x),x[,i]))
+  LPM_order=sapply(1:n,function(i) LPM(1,max_target,x[,i]))
 
   final_ranked <- x[,order(LPM_order)]
 
   current_base<-1
 
-  if(degree==1){
+
   for (i in 1:(n-1)) {
 
       base<- final_ranked[,current_base[length(current_base)]]
 
       challenger <- final_ranked[,i+1]
 
-      if (NNS.FSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
+    if(degree==1){
+      sd.test = NNS.FSD.uni(base,challenger)}
+    if(degree==2){
+      sd.test = NNS.SSD.uni(base,challenger)}
+    if(degree==3){
+      sd.test = NNS.TSD.uni(base,challenger)}
+
+      if (sd.test==1){
+        current_base[i]<- current_base[length(current_base)]
+        Dominated_set[i]<- i+1
+        }
 
 
-      if (NNS.FSD.uni(base,challenger)==0){
-
+      if (sd.test==0){
         for (j in current_base){
           base<- final_ranked[,j]
-          if (NNS.FSD.uni(base,challenger)==0){ next }
+          if(degree==1){
+            new.base.sd.test = NNS.FSD.uni(base,challenger)}
+          if(degree==2){
+            new.base.sd.test = NNS.SSD.uni(base,challenger)}
+          if(degree==3){
+            new.base.sd.test = NNS.TSD.uni(base,challenger)}
+
+          if (new.base.sd.test==0){ next }
           else
             {Dominated_set[i] <- i+1  }
           }
+        current_base[i]<- i+1
+        }
 
-       current_base[i]<- i+1}
-
-      else {Dominated_set[i]<- i+1 }
   }
-}
-
-
- if(degree==2){
-   for (i in 1:(n-1)) {
-
-     base<- final_ranked[,current_base[length(current_base)]]
-
-     challenger <- final_ranked[,i+1]
-
-     if (NNS.SSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
-
-
-     if (NNS.SSD.uni(base,challenger)==0){
-
-       for (j in current_base){
-         base<- final_ranked[,j]
-         if (NNS.SSD.uni(base,challenger)==0){ next }
-         else
-         {Dominated_set[i] <- i+1  }
-       }
-
-       current_base[i]<- i+1}
-
-     else {Dominated_set[i]<- i+1 }
-   }
- }
-
-
- if(degree==3){
-   for (i in 1:(n-1)) {
-
-     base<- final_ranked[,current_base[length(current_base)]]
-
-     challenger <- final_ranked[,i+1]
-
-     if (NNS.TSD.uni(base,challenger)==1){ current_base[i]<- current_base[length(current_base)]}
-
-
-     if (NNS.TSD.uni(base,challenger)==0){
-
-       for (j in current_base){
-         base<- final_ranked[,j]
-         if (NNS.TSD.uni(base,challenger)==0){ next }
-         else
-         {Dominated_set[i] <- i+1  }
-       }
-
-       current_base[i]<- i+1}
-
-     else {Dominated_set[i]<- i+1 }
-   }
- }
 
 
   if(length(Dominated_set)>0){
-    SD_x  = data.frame(final_ranked[-na.omit(Dominated_set)])
-    return(SD_x)
+    return(colnames(final_ranked[-na.omit(Dominated_set)]))
     }
-
-    else {print(colnames(final_ranked))}
+    else {
+      return(colnames(final_ranked))}
 
 
 }
