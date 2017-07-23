@@ -4,12 +4,14 @@
 \alias{NNS.FSD}
 \title{NNS FSD Test}
 \usage{
-NNS.FSD(x, y)
+NNS.FSD(x, y, type = "discrete")
 }
 \arguments{
 \item{x}{a numeric vector.}
 
 \item{y}{a numeric vector.}
+
+\item{type}{options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.}
 }
 \value{
 Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
@@ -24,6 +26,8 @@ NNS.FSD(x,y)
 }
 \references{
 Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
+
+Viole, F. (2017) "A Note on Stochastic Dominance." \url{https://ssrn.com/abstract=3002675}.
 }
 \author{
 Fred Viole, OVVO Financial Systems

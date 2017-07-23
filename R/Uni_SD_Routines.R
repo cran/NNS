@@ -3,32 +3,36 @@
 #' Uni-directional test of first degree stochastic dominance using lower partial moments used in SD Efficient Set routine.
 #' @param x a numeric vector.
 #' @param y a numeric vector.
+#' @param type options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.
 #' @return Returns (1) if \code{"X FSD Y"}, else (0).
 #' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
+#'
+#' Viole, F. (2017) "A Note on Stochastic Dominance." \url{https://ssrn.com/abstract=3002675}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
 #' NNS.FSD.uni(x,y)
 #' @export
 
-NNS.FSD.uni <- function(x,y){
-
+NNS.FSD.uni <- function(x,y,type="discrete"){
+  if(min(y)>min(x)) {return(0)} else {
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)
 
   Combined = c(x_sort,y_sort)
   Combined_sort = sort(Combined, decreasing=FALSE)
 
-  LPM_x_sort = LPM(0,Combined_sort,x)
-  LPM_y_sort = LPM(0,Combined_sort,y)
+  if(type=="discrete"){degree=0}else{degree=1}
+  L.x = LPM(degree,Combined_sort,x)
+  LPM_x_sort=L.x/(UPM(degree,Combined_sort,x)+L.x)
+  L.y = LPM(degree,Combined_sort,y)
+  LPM_y_sort=L.y/(UPM(degree,Combined_sort,y)+L.y)
 
-  if(min(y)>min(x)) {return(0)} else {
+  x.fsd.y=any(LPM_x_sort>LPM_y_sort)
 
-    x.fsd.y=sum((LPM_y_sort-LPM_x_sort)>=0)
-
-  ifelse(x.fsd.y==length(Combined) & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
+  ifelse(x.fsd.y==FALSE & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
 
   }
 }
@@ -40,6 +44,7 @@ NNS.FSD.uni <- function(x,y){
 #' @param y a numeric vector.
 #' @return Returns (1) if \code{"X SSD Y"}, else (0).
 #' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -48,7 +53,7 @@ NNS.FSD.uni <- function(x,y){
 
 
 NNS.SSD.uni <- function(x,y){
-
+  if(min(y)>min(x) | mean(y)>mean(x)) {return(0)} else {
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)
 
@@ -58,11 +63,9 @@ NNS.SSD.uni <- function(x,y){
   LPM_x_sort = LPM(1,Combined_sort,x)
   LPM_y_sort = LPM(1,Combined_sort,y)
 
-  if(min(y)>min(x) | mean(y)>mean(x)) {return(0)} else {
+    x.ssd.y=any(LPM_x_sort>LPM_y_sort)
 
-    x.ssd.y=sum((LPM_y_sort-LPM_x_sort)>=0)
-
-    ifelse(x.ssd.y==length(Combined) & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
+    ifelse(x.ssd.y==FALSE & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
 
   }
 }
@@ -75,6 +78,7 @@ NNS.SSD.uni <- function(x,y){
 #' @param y a numeric vector.
 #' @return Returns (1) if \code{"X TSD Y"}, else (0).
 #' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -83,7 +87,7 @@ NNS.SSD.uni <- function(x,y){
 
 
 NNS.TSD.uni <- function(x,y){
-
+  if(min(y)>min(x) | mean(y)>mean(x)) {return(0)} else {
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)
 
@@ -93,11 +97,9 @@ NNS.TSD.uni <- function(x,y){
   LPM_x_sort = LPM(2,Combined_sort,x)
   LPM_y_sort = LPM(2,Combined_sort,y)
 
-  if(min(y)>min(x) | mean(y)>mean(x)) {return(0)} else {
+    x.tsd.y=any(LPM_x_sort>LPM_y_sort)
 
-    x.tsd.y=sum((LPM_y_sort-LPM_x_sort)>=0)
-
-    ifelse(x.tsd.y==length(Combined) & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
+    ifelse(x.tsd.y==FALSE & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),return(1),return(0))
 
   }
 }

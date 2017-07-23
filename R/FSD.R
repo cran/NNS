@@ -3,10 +3,13 @@
 #' Bi-directional test of first degree stochastic dominance using lower partial moments.
 #' @param x a numeric vector.
 #' @param y a numeric vector.
+#' @param type options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.
 #' @return Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
 #' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
+#'
+#' Viole, F. (2017) "A Note on Stochastic Dominance." \url{https://ssrn.com/abstract=3002675}.
 #' @examples
 #' set.seed(123)
 #' x<-rnorm(100); y<-rnorm(100)
@@ -15,7 +18,7 @@
 
 
 
-NNS.FSD <- function(x,y){
+NNS.FSD <- function(x,y,type="discrete"){
 
   x_sort <- sort(x, decreasing=FALSE)
   y_sort <- sort(y, decreasing=FALSE)
@@ -23,22 +26,25 @@ NNS.FSD <- function(x,y){
   Combined = c(x_sort,y_sort)
   Combined_sort = sort(Combined, decreasing=FALSE)
 
- ## Indicator function ***for all values of x and y*** as the CDF target
-  LPM_x_sort=LPM(0,Combined_sort,x)
-  LPM_y_sort=LPM(0,Combined_sort,y)
+ ## Indicator function ***for all values of x and y*** as the continuous CDF target
+  if(type=="discrete"){degree=0}else{degree=1}
+  L.x = LPM(degree,Combined_sort,x)
+  LPM_x_sort=L.x/(UPM(degree,Combined_sort,x)+L.x)
+  L.y = LPM(degree,Combined_sort,y)
+  LPM_y_sort=L.y/(UPM(degree,Combined_sort,y)+L.y)
 
-  x.fsd.y=sum((LPM_y_sort-LPM_x_sort)>=0)
+  x.fsd.y=any(LPM_x_sort>LPM_y_sort)
 
-  y.fsd.x=sum((LPM_x_sort-LPM_y_sort)>=0)
+  y.fsd.x=any(LPM_y_sort>LPM_x_sort)
 
 
-    plot(Combined_sort,LPM_x_sort, type = "l", lwd =3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution")
+    plot(Combined_sort,LPM_x_sort, type = "l", lwd =3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution",ylim=c(0,1))
     lines(Combined_sort,LPM_y_sort, type = "l", lwd =3,col = "blue")
     legend("topleft", c("X","Y"), lwd=10,
            col=c("red","blue"))
 
      ## Verification of ***0 instances*** of CDFx > CDFy, and conversely of CDFy > CDFx
-    ifelse (x.fsd.y==length(Combined) & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),"X FSD Y",
-           ifelse (y.fsd.x==length(Combined) & min(y)>=min(x) & !identical(LPM_x_sort,LPM_y_sort),"Y FSD X","NO FSD EXISTS"))
+    ifelse (x.fsd.y==FALSE & min(x)>=min(y) & !identical(LPM_x_sort,LPM_y_sort),"X FSD Y",
+           ifelse (y.fsd.x==FALSE & min(y)>=min(x) & !identical(LPM_x_sort,LPM_y_sort),"Y FSD X","NO FSD EXISTS"))
 }
 

@@ -4,12 +4,14 @@
 \alias{NNS.FSD.uni}
 \title{NNS FSD Test uni-directional}
 \usage{
-NNS.FSD.uni(x, y)
+NNS.FSD.uni(x, y, type = "discrete")
 }
 \arguments{
 \item{x}{a numeric vector.}
 
 \item{y}{a numeric vector.}
+
+\item{type}{options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.}
 }
 \value{
 Returns (1) if \code{"X FSD Y"}, else (0).
@@ -24,6 +26,8 @@ NNS.FSD.uni(x,y)
 }
 \references{
 Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
+
+Viole, F. (2017) "A Note on Stochastic Dominance." \url{https://ssrn.com/abstract=3002675}.
 }
 \author{
 Fred Viole, OVVO Financial Systems
