@@ -4,9 +4,10 @@
 #'
 #' @param x a numeric vector, matrix or data frame.
 #' @param y \code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.
-#' @param tau integer; Number of lagged observations to consider.
+#' @param tau options: ("cs", "ts", integer); Number of lagged observations to consider (for time series data).  Otherwise, set \code{tau="cs"} for cross-sectional data.  \code{tau="ts"} automatically selects the lag of the time series data, while \code{tau=(integer)} specifies a time series lag.
+#' @param time.series logical; \code{FALSE} (default) If analyzing time series data with \code{tau=(integer)}, select \code{time.series=TRUE}.  Not required when \code{tau="ts"}.
 #' @param plot logical; \code{FALSE} (default) Plots the raw variables, tau normalized, and cross-normalized variables.
-#' @return Returns the directional causation (x ---> y) or (y ---> x) and net quantity of association.  For causal matrix, gross quantity of association is returned as (x[column] ---> y[row]).
+#' @return Returns the directional causation (x ---> y) or (y ---> x) and net quantity of association.  For causal matrix, directional causation is returned as ([column variable] ---> [row variable]).  Negative numbers represent causal direction attributed to [row variable].
 #' @keywords causation
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -15,7 +16,10 @@
 #' ## x clearly causes y...
 #' set.seed(123)
 #' x<-rnorm(100); y<-x^2
-#' NNS.caus(x,y,1)
+#' NNS.caus(x,y,tau="cs")
+#'
+#' x<- 1:100; y<-x^2
+#' NNS.caus(x,y,tau="ts",time.series=TRUE)
 #'
 #' ## Causal matrix
 #' \dontrun{
@@ -23,41 +27,97 @@
 #' }
 #' @export
 
-NNS.caus <- function(x,y,tau,plot=FALSE){
+NNS.caus <- function(x,y,tau,time.series=FALSE,plot=FALSE){
+
+  orig.tau=tau
+  orig.time.series=time.series
+  orig.plot=plot
 
   if(!missing(y)){
-  Causation.x.given.y = Uni.caus(x,y,tau,plot = FALSE)
-  Causation.y.given.x = Uni.caus(y,x,tau,plot = FALSE)
+    if(is.numeric(tau)){
+      Causation.x.given.y = Uni.caus(x,y,tau=tau,plot = FALSE,time.series=time.series)
+      Causation.y.given.x = Uni.caus(y,x,tau=tau,plot = FALSE,time.series=time.series)
 
-  if(abs(Causation.x.given.y)<=abs(Causation.y.given.x)){
-    if(plot==TRUE){
-    Uni.caus(y,x,tau,plot = plot)}
+      if(Causation.x.given.y==Causation.y.given.x |
+         Causation.x.given.y==0 | Causation.y.given.x==0){
+            Causation.x.given.y = Uni.caus(x,y,tau=tau,plot = FALSE,scale=TRUE,time.series=time.series)
+            Causation.y.given.x = Uni.caus(y,x,tau=tau,plot = FALSE,scale=TRUE,time.series=time.series)
+      }
+    }
+
+    if(tau=="cs"){
+    Causation.x.given.y = Uni.caus(x,y,tau=0,plot = FALSE)
+    Causation.y.given.x = Uni.caus(y,x,tau=0,plot = FALSE)
+
+    if(Causation.x.given.y==Causation.y.given.x |
+       Causation.x.given.y==0 | Causation.y.given.x==0){
+      Causation.x.given.y = Uni.caus(x,y,tau=0,plot = FALSE,scale=TRUE)
+      Causation.y.given.x = Uni.caus(y,x,tau=0,plot = FALSE,scale=TRUE)
+    }
+    }
+
+    if(tau=="ts"){
+    tau0=ceiling(.01*length(x))
+    tau1=ceiling(.02*length(x))
+    tau2=ceiling(.04*length(x))
+    tau3=ceiling(.08*length(x))
+    tau4=ceiling(.16*length(x))
+
+
+    Causation.x.given.y.tau0 = Uni.caus(x,y,tau=tau0,plot = FALSE,time.series = TRUE)
+    Causation.y.given.x.tau0 = Uni.caus(y,x,tau=tau0,plot = FALSE,time.series = TRUE)
+    Causation.x.given.y.tau1 = Uni.caus(x,y,tau=tau1,plot = FALSE,time.series = TRUE)
+    Causation.y.given.x.tau1 = Uni.caus(y,x,tau=tau1,plot = FALSE,time.series = TRUE)
+    Causation.x.given.y.tau2 = Uni.caus(x,y,tau=tau2,plot = FALSE,time.series = TRUE)
+    Causation.y.given.x.tau2 = Uni.caus(y,x,tau=tau2,plot = FALSE,time.series = TRUE)
+    Causation.x.given.y.tau3 = Uni.caus(x,y,tau=tau3,plot = FALSE,time.series = TRUE)
+    Causation.y.given.x.tau3 = Uni.caus(y,x,tau=tau3,plot = FALSE,time.series = TRUE)
+    Causation.x.given.y.tau4 = Uni.caus(x,y,tau=tau4,plot = FALSE,time.series = TRUE)
+    Causation.y.given.x.tau4 = Uni.caus(y,x,tau=tau4,plot = FALSE,time.series = TRUE)
+
+
+    Causes.xy=c(Causation.x.given.y.tau0,
+                Causation.x.given.y.tau1/2,
+                Causation.x.given.y.tau2/4,
+                Causation.x.given.y.tau3/8,
+                Causation.x.given.y.tau4/16)
+
+    Causes.yx=c(Causation.y.given.x.tau0,
+                Causation.y.given.x.tau1/2,
+                Causation.y.given.x.tau2/4,
+                Causation.y.given.x.tau3/8,
+                Causation.y.given.x.tau4/16)
+
+
+    Causation.x.given.y=mean(Causes.xy)
+
+    Causation.y.given.x=mean(Causes.yx)
+    }
+
+
+    if(abs(Causation.x.given.y)<=abs(Causation.y.given.x)){
+      if(plot==TRUE){
+        # For plotting only
+        if(tau=="cs"){tau=0}
+        if(tau=="ts"){tau=ceiling(0.03*length(x))}
+        Uni.caus(y,x,tau=tau,plot = plot)}
       return(c(Causation.x.given.y = Causation.x.given.y,
                Causation.y.given.x = Causation.y.given.x,
-        "C(y--->x)" =  Causation.y.given.x-Causation.x.given.y))
-  } else {
-    if(plot==TRUE){
-    Uni.caus(x,y,tau,plot = plot)}
+               "C(y--->x)" =  Causation.y.given.x-Causation.x.given.y))
+    } else {
+      if(plot==TRUE){
+        # For plotting only
+        if(tau=="cs"){tau=0}
+        if(tau=="ts"){tau=ceiling(0.03*length(x))}
+        Uni.caus(x,y,tau=tau,plot = plot)}
       return(c(Causation.x.given.y = Causation.x.given.y,
-                Causation.y.given.x = Causation.y.given.x,
-                "C(x--->y)" = Causation.x.given.y-Causation.y.given.x))
+               Causation.y.given.x = Causation.y.given.x,
+               "C(x--->y)" = Causation.x.given.y-Causation.y.given.x))
     }
   } else {
 
-    causes = list()
-
-    for(i in 1:ncol(x)){
-      causes[[i]]=sapply(1:ncol(x), function(b) Uni.caus(x[,i],x[,b],plot = F,tau=tau))
-    }
-
-    causes=do.call(cbind,causes)
-    diag(causes)=1
-
-    colnames(causes)=colnames(x)
-    rownames(causes)=colnames(x)
-
-    return(causes)
-}
+    NNS.caus.matrix(x,tau=orig.tau,time.series=orig.time.series,plot=orig.plot)
+  }
 
 
 }

@@ -66,11 +66,13 @@ UPM<- Vectorize(UPM,vectorize.args = 'target')
 
 
 Co.UPM<- function(degree.x,degree.y,x,y,target.x,target.y){
+  if(degree.x==0){x[x==target.x]<- target.x-1}
+  if(degree.y==0){y[y==target.y]<- target.y-1}
   x=x-target.x;y=y-target.y
-  x[x<=0]<- 0;y[y<=0]<- 0
+  x[x<0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
   y[y>0]<- y[y>0]^degree.y
-  return(sum(x*y)/length(x))
+  return(x%*%y/length(x))
   }
 Co.UPM<- Vectorize(Co.UPM,vectorize.args = c('target.x','target.y'))
 
@@ -96,11 +98,13 @@ Co.UPM<- Vectorize(Co.UPM,vectorize.args = c('target.x','target.y'))
 #' @export
 
 Co.LPM<- function(degree.x,degree.y,x,y,target.x,target.y){
+  if(degree.x==0){x[x==target.x]<- target.x-1}
+  if(degree.y==0){y[y==target.y]<- target.y-1}
   x=target.x-x;y=target.y-y
   x[x<0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
   y[y>0]<- y[y>0]^degree.y
-  return(sum(x*y)/length(x))
+  return(x%*%y/(length(x)))
   }
 Co.LPM<- Vectorize(Co.LPM,vectorize.args = c('target.x','target.y'))
 
@@ -126,11 +130,13 @@ Co.LPM<- Vectorize(Co.LPM,vectorize.args = c('target.x','target.y'))
 #' @export
 
 D.LPM<- function(degree.x,degree.y,x,y,target.x,target.y){
+  if(degree.x==0){x[x==target.x]<- target.x-1}
+  if(degree.y==0){y[y==target.y]<- target.y-1}
   x=x-target.x;y=target.y-y
-  x[x<=0]<- 0;y[y<0]<- 0
+  x[x<0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
   y[y>0]<- y[y>0]^degree.y
-  return(sum(x*y)/length(x))
+  return(x%*%y/length(x))
   }
 D.LPM<- Vectorize(D.LPM,vectorize.args = c('target.x','target.y'))
 
@@ -156,11 +162,13 @@ D.LPM<- Vectorize(D.LPM,vectorize.args = c('target.x','target.y'))
 #' @export
 
 D.UPM<- function(degree.x,degree.y,x,y,target.x,target.y){
+  if(degree.x==0){x[x==target.x]<- target.x-1}
+  if(degree.y==0){y[y==target.y]<- target.y-1}
   x=target.x-x;y=y-target.y
-  x[x<0]<- 0;y[y<=0]<- 0
+  x[x<0]<- 0;y[y<0]<- 0
   x[x>0]<- x[x>0]^degree.x
   y[y>0]<- y[y>0]^degree.y
-  return(sum(x*y)/length(x))
+  return(x%*%y/length(x))
  }
 D.UPM<- Vectorize(D.UPM,vectorize.args = c('target.x','target.y'))
 
@@ -312,9 +320,55 @@ LPM.ratio<- function(degree,target,variable){
 #' set.seed(123)
 #' x<-rnorm(100)
 #' UPM.ratio(0,mean(x),x)
+#'
+#' \dontrun{
+#' ## Plot Degree 0 (frequency) Joint CDF
+#' x=rnorm(100);y=rnorm(100)
+#' intervals=(max(x,y)-min(x,y))/100
+#' grid.points=seq(min(x,y),max(x,y),intervals)
+#' z=expand.grid(grid.points,grid.points)
+#' plot3d(z[,1],z[,2],LPM.ratio(0,z[,1],x)*LPM.ratio(0,z[,2],y))
+#'
+#' ## Plot Degree 1 (area) Joint CDF
+#' plot3d(z[,1],z[,2],LPM.ratio(0,z[,1],x)*LPM.ratio(0,z[,2],y))}
 #' @export
 
 
 UPM.ratio<- function(degree,target,variable){
   UPM(degree,target,variable)/(LPM(degree,target,variable)+UPM(degree,target,variable))
+}
+
+
+#' NNS PDF
+#'
+#' This function generates an empirical PDF using continuous CDFs from \link{LPM.ratio}.
+#'
+#' @param degree integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
+#' @param variable a numeric vector.
+#' @param target a numeric range of values [a,b] where a < b.  \code{NULL} (default) uses the \code{variable} observations.
+#' @param bins numeric; \code{NULL} (default) Selects number of observations as default bins.
+#' @param plot logical; plots PDF.
+#' @return vector representing PDF of a variable
+#' @keywords partial moments, PDF, continuous CDF
+#' @author Fred Viole, OVVO Financial Systems
+#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
+#' \url{http://amzn.com/1490523995}
+#' @examples
+#' set.seed(123)
+#' x<-rnorm(100)
+#' NNS.PDF(degree=1,x)
+#' @export
+
+
+NNS.PDF<-function(degree,variable,target=NULL,bins=NULL,plot=TRUE){
+if(is.null(target)){target=sort(variable)}
+# d/dx approximation
+if(is.null(bins)){bins=length(variable)}
+d.dx=(max(target)+abs(min(target)))/bins
+tgt=seq(min(target),max(target),d.dx)
+PDF=(LPM.ratio(degree,tgt+d.dx,variable)-LPM.ratio(degree,tgt-d.dx,variable))
+
+if(plot==TRUE){plot(sort(tgt),PDF,col='blue',type='l',lwd=3,xlab="X")}
+
+PDF
 }
