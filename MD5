@@ -1,7 +1,7 @@
-d5f7fffc2d9a3d18db937297fa8345d1 *DESCRIPTION
+a11b9b87140a9910bee3d60d7b7c46eb *DESCRIPTION
 891c40caa63e8a2ae80c2873f20f1c94 *NAMESPACE
 f4a8f15d726b29ec63505af15a03cef2 *R/ANOVA.R
-2f5d5aa673a344133afa7a2c7705b459 *R/ARMA.R
+0dbc1ef65fc79c2c3299a6f7ca334a59 *R/ARMA.R
 89b963beeebe5fd14a49d177c23479c7 *R/Binary_ANOVA.R
 ad3a514d125146b7a1d37f3dc066657a *R/Causal_matrix.R
 32def76c72b4a1bb01d15849cd62800c *R/Causation.R
@@ -16,8 +16,8 @@ e2383638526543dee3c7674df420951d *R/Multivariate_Regression.R
 2ac120def5b7310694ddd2bc1c70d255 *R/Normalization.R
 d0765b4db6e5370b9a3ff00e8e15b4a8 *R/Numerical_Differentiation.R
 099f7ceda2b54f3fc85050056fdbe0e2 *R/Partial_Moments.R
-9c7049f591d1171aaf91ef2c4f8327f0 *R/Partition_Map.R
-8c9a06f68cce515989a3594759f98f5c *R/Regression.R
+22ee4dda42ef14d84205487236520e56 *R/Partition_Map.R
+be47d1ab5dc822e190b3b5912224d212 *R/Regression.R
 4952619a8edd2b0f718b7bd38fb9a4a2 *R/SD_Efficient_Set.R
 3943487ae23088eb95ed6965cf651f63 *R/SSD.R
 6e94d7aaf689b2f6d872755fb616397e *R/Seasonality_Test.R
@@ -30,14 +30,14 @@ a18e021ab15b330edcf8a81162810ff6 *R/dy_dx.R
 8599c6de4c38b1e38dc19438a24a3fcd *R/gvload.R
 57ddd97ddb832215632057bdadb62336 *build/vignette.rds
 989f3dc37eb3dd9c4cbeb298983b6eae *inst/doc/NNSvignette_Clustering_and_Regression.R
-5ee7e2f062274fe541e82f10e679d40c *inst/doc/NNSvignette_Clustering_and_Regression.Rmd
-995090176d06988339ee85f2b29327f3 *inst/doc/NNSvignette_Clustering_and_Regression.html
+b5965e4e9fb5dc0b91be73406f6ecbf7 *inst/doc/NNSvignette_Clustering_and_Regression.Rmd
+437766bf9fa2698953c28f185a46d586 *inst/doc/NNSvignette_Clustering_and_Regression.html
 f469c64215ffc22dce9c016c234cc4b9 *inst/doc/NNSvignette_Correlation_and_Dependence.R
 fbcde37c3fb053c82f625730eb4e54cf *inst/doc/NNSvignette_Correlation_and_Dependence.Rmd
 48dbde485baec838d345cfb86a5afe48 *inst/doc/NNSvignette_Correlation_and_Dependence.html
 ba018ebd4be0f78303e14b12b5333793 *inst/doc/NNSvignette_Forecasting.R
-5d51d24cc21e27f49895d03407937ef9 *inst/doc/NNSvignette_Forecasting.Rmd
-8280e97f892cd76987808a0a74214d58 *inst/doc/NNSvignette_Forecasting.html
+a580cbdd59930a3b139fe1c34a2f62d2 *inst/doc/NNSvignette_Forecasting.Rmd
+ff9660d1d3c865fb6d76d677300fa340 *inst/doc/NNSvignette_Forecasting.html
 e807f5b54ee17bcf8aaa38369e207897 *inst/doc/NNSvignette_Partial_Moments.R
 8a894adc4bc3157cbd58ad7a1adcb44e *inst/doc/NNSvignette_Partial_Moments.Rmd
 04a5188764338d4bde351bd451d691a7 *inst/doc/NNSvignette_Partial_Moments.html
@@ -49,7 +49,7 @@ a9e25ff5cf89d7d5e904dab3a95bf453 *man/D.LPM.Rd
 c7534910e2dd65e821fe04d290e2d524 *man/LPM.VaR.Rd
 0816b80cfe59641c14d1d5966f6bffcc *man/LPM.ratio.Rd
 aea909555b3a31b4b38bc93d1a740601 *man/NNS.ANOVA.Rd
-3a86e1b97da2c739ac570a860d6d7cd6 *man/NNS.ARMA.Rd
+9cfa000e7ec358d213707c45dda9f025 *man/NNS.ARMA.Rd
 56c9eea6b980bcb2278a584e90a9ce04 *man/NNS.FSD.Rd
 dee64a13c997549ee82b3c5c3dffb8ce *man/NNS.FSD.uni.Rd
 e4595a354230e534337e47bebf737ae3 *man/NNS.PDF.Rd
@@ -65,7 +65,7 @@ c56e1e422f51c725caf340523bdd804d *man/NNS.cor.hd.Rd
 00bcb724dc2a948d99816e2a6930d8ef *man/NNS.diff.Rd
 8a81e563df2d501342f47300dc4c22fb *man/NNS.norm.Rd
 f35d38f100dba184542a5e434e500148 *man/NNS.part.Rd
-a6555dec597abf9aac4fad3e9a718673 *man/NNS.reg.Rd
+017af3ec0b2b09e2acb352819d295aae *man/NNS.reg.Rd
 47a8647065d781ca1dca803cc3e90c35 *man/NNS.seas.Rd
 cd1041b174ef8afab366a92957fc1039 *man/NNS.stack.Rd
 a89a470ab5f1929ff5632849c682a65b *man/NNS.term.matrix.Rd
@@ -75,7 +75,7 @@ a73757aa3f689776dcfc6cd3762e6ed8 *man/UPM.Rd
 b791ae1e55a154d26cf80493b1f34dd2 *man/UPM.ratio.Rd
 4c7cf1212eef066c27755dca2cd3351b *man/dy.d_.Rd
 d3e552cab15bd2bcb903ec697e80028a *man/dy.dx.Rd
-5ee7e2f062274fe541e82f10e679d40c *vignettes/NNSvignette_Clustering_and_Regression.Rmd
+b5965e4e9fb5dc0b91be73406f6ecbf7 *vignettes/NNSvignette_Clustering_and_Regression.Rmd
 fbcde37c3fb053c82f625730eb4e54cf *vignettes/NNSvignette_Correlation_and_Dependence.Rmd
-5d51d24cc21e27f49895d03407937ef9 *vignettes/NNSvignette_Forecasting.Rmd
+a580cbdd59930a3b139fe1c34a2f62d2 *vignettes/NNSvignette_Forecasting.Rmd
 8a894adc4bc3157cbd58ad7a1adcb44e *vignettes/NNSvignette_Partial_Moments.Rmd
