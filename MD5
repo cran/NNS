@@ -1,4 +1,4 @@
-a11b9b87140a9910bee3d60d7b7c46eb *DESCRIPTION
+f9c34a0d0187f2c5dda61e4ea84c8622 *DESCRIPTION
 891c40caa63e8a2ae80c2873f20f1c94 *NAMESPACE
 f4a8f15d726b29ec63505af15a03cef2 *R/ANOVA.R
 0dbc1ef65fc79c2c3299a6f7ca334a59 *R/ARMA.R
@@ -7,7 +7,7 @@ ad3a514d125146b7a1d37f3dc066657a *R/Causal_matrix.R
 32def76c72b4a1bb01d15849cd62800c *R/Causation.R
 3b2e3f3aeb7d1a35004d545a7a96e4d4 *R/Co_PM_cor.R
 043c1f4b6dbcc3a53d6eb4c069e47d92 *R/Correlation.R
-9caa900afb1e04aa7ad310391916077a *R/Dependence.R
+125f5d17417f4c45c2c0d68c6e267de0 *R/Dependence.R
 042eb827ec6a3db09215a8b86eb55288 *R/Dependence_matrix.R
 cdeea003a58fac84a4595edd28425085 *R/FSD.R
 513713a0b5de2796f67401f9bd4f3c47 *R/LPM_UPM_VaR.R
@@ -17,7 +17,7 @@ e2383638526543dee3c7674df420951d *R/Multivariate_Regression.R
 d0765b4db6e5370b9a3ff00e8e15b4a8 *R/Numerical_Differentiation.R
 099f7ceda2b54f3fc85050056fdbe0e2 *R/Partial_Moments.R
 22ee4dda42ef14d84205487236520e56 *R/Partition_Map.R
-be47d1ab5dc822e190b3b5912224d212 *R/Regression.R
+06ff9c40e5b11e4d91e83ba86f38a58d *R/Regression.R
 4952619a8edd2b0f718b7bd38fb9a4a2 *R/SD_Efficient_Set.R
 3943487ae23088eb95ed6965cf651f63 *R/SSD.R
 6e94d7aaf689b2f6d872755fb616397e *R/Seasonality_Test.R
@@ -31,7 +31,7 @@ a18e021ab15b330edcf8a81162810ff6 *R/dy_dx.R
 57ddd97ddb832215632057bdadb62336 *build/vignette.rds
 989f3dc37eb3dd9c4cbeb298983b6eae *inst/doc/NNSvignette_Clustering_and_Regression.R
 b5965e4e9fb5dc0b91be73406f6ecbf7 *inst/doc/NNSvignette_Clustering_and_Regression.Rmd
-437766bf9fa2698953c28f185a46d586 *inst/doc/NNSvignette_Clustering_and_Regression.html
+f3e22e66d4f2950f9d2cfd084affdfa2 *inst/doc/NNSvignette_Clustering_and_Regression.html
 f469c64215ffc22dce9c016c234cc4b9 *inst/doc/NNSvignette_Correlation_and_Dependence.R
 fbcde37c3fb053c82f625730eb4e54cf *inst/doc/NNSvignette_Correlation_and_Dependence.Rmd
 48dbde485baec838d345cfb86a5afe48 *inst/doc/NNSvignette_Correlation_and_Dependence.html
