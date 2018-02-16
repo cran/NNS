@@ -7,9 +7,9 @@
 NNS.reg(x, y, order = NULL, stn = 0.99, dim.red.method = NULL,
   tau = NULL, type = NULL, point.est = NULL, location = "top",
   return.values = TRUE, plot = TRUE, plot.regions = FALSE,
-  residual.plot = TRUE, threshold = 0, n.best = NULL,
-  noise.reduction = "mean", norm = NULL, dist = "L2",
-  multivariate.call = FALSE)
+  residual.plot = TRUE, std.errors = FALSE, confidence.interval = NULL,
+  threshold = 0, n.best = NULL, noise.reduction = "mean", norm = NULL,
+  dist = "L2", multivariate.call = FALSE)
 }
 \arguments{
 \item{x}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -40,6 +40,10 @@ NNS.reg(x, y, order = NULL, stn = 0.99, dim.red.method = NULL,
 
 \item{residual.plot}{logical; \code{TRUE} (default) To plot \code{y.hat} and \code{Y}.}
 
+\item{std.errors}{logical; \code{FALSE} (default) To provide standard errors of each linear segment in the \code{"Fitted.xy"} output.}
+
+\item{confidence.interval}{numeric [0,1]; \code{NULL} (default) Plots the associated confidence interval with the estimate and reports the standard error for each individual segment.}
+
 \item{threshold}{numeric [0,1]; \code{(threshold=0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}.}
 
 \item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at 2*(# of regressors).  \code{(n.best="all")} will select and weight all generated regression points.  Analogous to \code{k} in
@@ -58,7 +62,7 @@ UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 \itemize{
  \item{\code{"R2"}} provides the goodness of fit;
 
- \item{\code{"MSE"}} returns the MSE between \code{y} and \code{y.hat};
+ \item{\code{"SE"}} returns the overall standard error of the estimate between \code{y} and \code{y.hat};
 
  \item{\code{"Prediction.Accuracy"}} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y};
 
@@ -104,7 +108,7 @@ Please ensure \code{point.est} is of compatible dimensions to \code{x}, error me
 Identical regressors can be used as long as they do not share the same name. For instance,
 \code{NNS.reg(cbind(x,1*x),y)} will work as \code{NNS.reg} is not affected by multicollinearity.
 
-\code{NNS (>= v.0.3.4)} has repurposed parameter \code{(type="CLASS")}.  \code{(type="CLASS")} is now restricted to signifying a classification analysis for \code{NNS.reg} while \code{(dim.red=TRUE)} enables dimension reduction regressions.
+\code{NNS (>= v.0.3.4)} has repurposed parameter \code{(type="CLASS")}.  \code{(type="CLASS")} is now restricted to signifying a classification analysis for \code{NNS.reg} while \code{(dim.red.method)} enables dimension reduction regressions.
 }
 \examples{
 set.seed(123)

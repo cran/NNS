@@ -14,7 +14,8 @@ NNS.M.reg <- function (X_n,Y,order=NULL,stn=0.99,n.best=1,type=NULL,point.est=NU
   }
 
   np=nrow(point.est)
-  if(is.null(np)&!is.null(point.est)){point.est=t(point.est)
+  if(is.null(np)&!is.null(point.est)){
+    point.est=t(point.est)
   }else{point.est=point.est}
 
 
@@ -26,27 +27,32 @@ NNS.M.reg <- function (X_n,Y,order=NULL,stn=0.99,n.best=1,type=NULL,point.est=NU
 
   ### For Multiple regressions
   ###  Turn each column into numeric values
-  original.IVs = data.matrix(X_n)
+  original.IVs=data.matrix(X_n)
   original.DV=as.numeric(Y)
 
   if(!is.null(norm)){
-    if(norm=='std'){
-      original.IVs=apply(original.IVs,2,function(b) (b-min(b))/(max(b)-min(b)))}else{
-        original.IVs=NNS.norm(original.IVs)}
     if(!is.null(point.est)){
       point.B=rbind(point.est,original.IVs)
       colnames(point.B)=colnames(point.est)
       if(norm=='std'){
-        point.est=apply(point.B,2,function(c) (c-min(c))/(max(c)-min(c)))[1:np,]}else{
+        point.est=apply(point.B,2,function(c) (c-min(c))/(max(c)-min(c)))[1:np,]
+        original.IVs=apply(original.IVs,2,function(b) (b-min(b))/(max(b)-min(b))) }else{
           point.est=NNS.norm(point.B)[1:np,]
+          original.IVs=NNS.norm(original.IVs)}
+        }else{
+            if(norm=='std'){
+        original.IVs=apply(original.IVs,2,function(b) (b-min(b))/(max(b)-min(b)))}
+              else{original.IVs=NNS.norm(original.IVs)}
         }
-    }}
+    }
 
   original.matrix=data.frame(original.IVs,original.DV)
 
+  minimums=apply(original.IVs,2,min)
+  maximums=apply(original.IVs,2,max)
 
   reg.points=list()
-  sections = list()
+  sections=list()
 
   ###  Regression Point Matrix
   if(is.numeric(order)|is.null(order)){
@@ -173,22 +179,46 @@ NNS.M.reg <- function (X_n,Y,order=NULL,stn=0.99,n.best=1,type=NULL,point.est=NU
 
 
     ### Point estimates
-
+    central.points=apply(original.IVs,2,mean)
     predict.fit=numeric()
     predict.fit.iter=numeric()
     if(is.null(np)){
-      predict.fit = distance(dist.est = point.est)
-    }
-    if(!is.null(np)){
-      predict.fit.iter=apply(point.est,1,function(p) distance(dist.est = as.vector(p) ))
+      l=length(point.est)
 
-      predict.fit=as.vector(predict.fit.iter)
+      if(sum(point.est>=minimums & point.est<=maximums)==l){
+        predict.fit = distance(dist.est = point.est)}
+      else{
+
+      last.known.distance = sqrt(sum((pmin(pmax(point.est,minimums),maximums)-central.points)^2))
+      last.known.gradient=(distance(dist.est = pmin(pmax(point.est,minimums),maximums))-distance(dist.est =central.points))/last.known.distance
+
+      last.distance = sqrt(sum((point.est-pmin(pmax(point.est,minimums),maximums))^2))
+      predict.fit=last.distance*last.known.gradient + distance(dist.est = pmin(pmax(point.est,minimums),maximums))
+
+      }
     }
+
+    if(!is.null(np)){
+      for(i in 1:np){
+        p=as.vector(point.est[i,])
+        l=length(p)
+        if(sum(p>=minimums & p<=maximums)==l){
+          predict.fit.iter[i] = distance(dist.est = p)}
+        else{
+          last.known.distance = sqrt(sum((pmin(pmax(p,minimums),maximums)-central.points)^2))
+          last.known.gradient=(distance(dist.est = pmin(pmax(p,minimums),maximums))-distance(dist.est =central.points))/last.known.distance
+
+          last.distance = sqrt(sum((p-pmin(pmax(p,minimums),maximums))^2))
+          predict.fit.iter[i]=last.distance*last.known.gradient + distance(dist.est = pmin(pmax(p,minimums),maximums))
+        }
+      }
+      predict.fit=as.vector(predict.fit.iter)
+     }
 
   } else {predict.fit=NULL} #is.null point.est
 
 
-  R2=  (sum((y.hat-mean(original.DV))*(original.DV-mean(original.DV)))^2)/(sum((original.DV-mean(original.DV))^2)*sum((y.hat-mean(original.DV))^2))
+  R2=(sum((y.hat-mean(original.DV))*(original.DV-mean(original.DV)))^2)/(sum((original.DV-mean(original.DV))^2)*sum((y.hat-mean(original.DV))^2))
 
 
   ### 3d plot
