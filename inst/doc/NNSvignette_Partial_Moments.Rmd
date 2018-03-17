@@ -54,7 +54,7 @@ cov(x,y)
 (Co.LPM(1,1,x,y,mean(x),mean(y))+Co.UPM(1,1,x,y,mean(x),mean(y))-D.LPM(1,1,x,y,mean(x),mean(y))-D.UPM(1,1,x,y,mean(x),mean(y)))*(length(x)/(length(x)-1))
 ```
 
-##Covariance Elements
+##Covariance Elements and Covariance Matrix
 ```{r cov_dec}
 PM.matrix(LPM.degree = 1,UPM.degree = 1,target = 'mean', variable = cbind(x,y), pop.adj = TRUE)
 ```
@@ -69,7 +69,7 @@ cov.xy/(sd.x*sd.y)
 ```
 
 ##CDFs (Discrete and Continuous)
-```{r cdfs}
+```{r cdfs,fig.align="center",fig.width=5,fig.height=3}
 P=ecdf(x)
 P(0);P(1)
 LPM(0,0,x);LPM(0,1,x)
@@ -93,7 +93,7 @@ plot(sort(x),LPM.ratio(1,sort(x),x),type = 'l',col='blue',lwd=3,xlab="x")
 
 
 ##PDFs
-```{r pdfs}
+```{r pdfs,fig.align="center",fig.width=5,fig.height=3}
 NNS.PDF(degree=1,x)
 ```
 
@@ -119,10 +119,10 @@ $$P(A|B)=\frac{Co.UPM(0,0,A,B,0,0)}{UPM(0,0,B)}$$
 #References
 If the user is so motivated, detailed arguments and proofs are provided within the following:
 
-*[Nonlinear Nonparametric Statistics: Using Partial Moments](http://a.co/5bpHvUg)
+* [Nonlinear Nonparametric Statistics: Using Partial Moments](http://a.co/5bpHvUg)
 
-*[Cumulative Distribution Functions and UPM/LPM Analysis](https://ssrn.com/abstract=2148482)
+* [Cumulative Distribution Functions and UPM/LPM Analysis](https://ssrn.com/abstract=2148482)
 
-*[f(Newton)](https://ssrn.com/abstract=2186471)
+* [f(Newton)](https://ssrn.com/abstract=2186471)
 
-*[Bayes' Theorem From Partial Moments](https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/Bayes'%20Theorem%20From%20Partial%20Moments.pdf)
+* [Bayes' Theorem From Partial Moments](https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/Bayes'%20Theorem%20From%20Partial%20Moments.pdf)

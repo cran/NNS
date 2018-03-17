@@ -96,7 +96,7 @@ MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 
  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
 
- \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID}.
+ \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
 }
 }
 \description{
@@ -144,6 +144,9 @@ NNS.reg(iris[,1:4],iris[,5],dim.red.method="NNS.caus",order=5)
 
 # Multiple Regression:
 NNS.reg(iris[,1:4],iris[,5],order=2,noise.reduction="off")
+
+# Classification:
+NNS.reg(iris[,1:4],iris[,5],point.est=iris[1:10,1:4],type="CLASS")$Point.est
 
 ## To call fitted values:
 x<-rnorm(100); y<-rnorm(100)

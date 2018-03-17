@@ -64,7 +64,7 @@
 #'
 #'  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
 #'
-#'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID}.
+#'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
 #' }
 #'
 #' @note Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.  Also, upon visual inspection of the data, if a highly periodic variable is observed set \code{(stn=0)} or \code{(order="max")} to ensure a proper fit.
@@ -295,12 +295,12 @@ NNS.reg = function (x,y,
   if(is.null(original.columns)){
     synthetic.x.equation=NULL
     x.star=NULL
-    dependence = (NNS.dep(x,y,print.map = F)$Dependence)^(1/3)
+    dependence = (NNS.dep(x,y,print.map = F)$Dependence)^(1/exp(1))
 
   } else {
-    if(dim.red) dependence=(NNS.dep(x,y,print.map = F)$Dependence)^(1/3)}
+    if(dim.red) dependence=(NNS.dep(x,y,print.map = F)$Dependence)^(1/exp(1))}
   if(is.null(order)){
-    dep.reduced.order=floor(NNS.part(x,y,order='max')$order*dependence)}
+    dep.reduced.order=round(NNS.part(x,y,order='max')$order*dependence)}
   else {
     dep.reduced.order=order
   }
@@ -426,10 +426,11 @@ NNS.reg = function (x,y,
 
   SE = sqrt( sum(fitted[,((y.hat-y)^2)]) / deg.fr )
 
-
- ##### return(sd(fitted[,((y.hat-y))]))
-
   y.fitted=fitted[,y.hat]
+
+  gradient=Regression.Coefficients$Coefficient[findInterval(fitted$x,Regression.Coefficients$X.Lower.Range)]
+
+  fitted=cbind(fitted,gradient)
 
   if(!is.null(type)){
     Prediction.Accuracy=(length(y)-sum(abs(round(y.fitted)-(y))>0))/length(y)}
