@@ -1,4 +1,4 @@
-ec6ccca264828e292e9ae62165bab52a *DESCRIPTION
+822ba1a76afc444120ee290c5c95add2 *DESCRIPTION
 8133d10adadf1415cfb0ded4de1e7b10 *NAMESPACE
 ce41e9bbc4494cd86c9ecba9dd1f8639 *R/ANOVA.R
 d08b7f85d03ca928705c0e22243e30cd *R/ARMA.R
@@ -16,7 +16,7 @@ d114da681fcdefdb5a23b330be26884f *R/Multivariate_Regression.R
 17c7a276a1b3ba9e132008108725a3d3 *R/NNS_term_matrix.R
 428c68b301e3a8984646baef2d2e0b41 *R/Normalization.R
 14c7341dbd523427afde753ecd288b63 *R/Numerical_Differentiation.R
-f7f3258efe0e9450a5ad32775657d403 *R/Partial_Moments.R
+b99f46ee9de2fce204292e31ad78e66a *R/Partial_Moments.R
 6de3255bef593bda967aab9911b2eb5f *R/Partition_Map.R
 558eaf2895cbeb218f93bb6ced5914b7 *R/Regression.R
 5f04edb0e307e48f44ade33fab8d9e47 *R/SD_Efficient_Set.R
@@ -42,10 +42,10 @@ ea86340f89b79cb8a5b1c5d1641cfdd7 *inst/doc/NNSvignette_Correlation_and_Dependenc
 39969da842a1e93d11a944ed6f912d2a *inst/doc/NNSvignette_Partial_Moments.R
 96f1dedf9278083e0d446c6bd650e3cd *inst/doc/NNSvignette_Partial_Moments.Rmd
 b8e079eb0baf13038f027897f1c1be6c *inst/doc/NNSvignette_Partial_Moments.html
-3922192e83f18890b843859d6debd98c *man/Co.LPM.Rd
-fe518ffe8efc2799e0c0a33087652225 *man/Co.UPM.Rd
-8d6341b186f8a7e13254cd4c8866e092 *man/D.LPM.Rd
-23a9f9f717cbaa42b05d49787379bb52 *man/D.UPM.Rd
+d5e73472848cffeb3736249175de0e9f *man/Co.LPM.Rd
+7c953a89d585e252237efb281a59442b *man/Co.UPM.Rd
+2480ca6b943d766084546f755b1424d6 *man/D.LPM.Rd
+c7ffa08e795f6eee78d98ab18034e290 *man/D.UPM.Rd
 28824124c53c7e66754a5d982a01020c *man/LPM.Rd
 be60b23235d0051c17d90639709b5469 *man/LPM.VaR.Rd
 c09be3e60e76e41b2c32a7bdde916a68 *man/LPM.ratio.Rd
