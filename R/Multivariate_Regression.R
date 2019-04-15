@@ -1,4 +1,5 @@
-NNS.M.reg <- function (X_n, Y, order = NULL, stn = 0.99, n.best = 1, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', norm = NULL, dist = "L2", return.values = FALSE, plot.regions = FALSE){
+NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', norm = NULL, dist = "L2", return.values = FALSE, plot.regions = FALSE){
+
 
   if(is.null(ncol(X_n))){
     X_n = t(t(X_n))
@@ -72,7 +73,7 @@ NNS.M.reg <- function (X_n, Y, order = NULL, stn = 0.99, n.best = 1, type = NULL
   ###  Regression Point Matrix
   if(is.numeric(order) | is.null(order)){
 
-    reg.points = apply(original.IVs, 2, function(b) NNS.reg(b, original.DV, order = order, type = type, noise.reduction = noise.reduction, plot = FALSE, multivariate.call = TRUE)$x)
+    reg.points = apply(original.IVs, 2, function(b) NNS.reg(b, original.DV, factor.2.dummy = factor.2.dummy ,order = order, type = type, noise.reduction = noise.reduction, plot = FALSE, multivariate.call = TRUE)$x)
 
     if(all(sapply(reg.points, length) == length(reg.points[[1]])) == FALSE){
       reg.points.matrix = do.call('cbind', lapply(reg.points, `length<-`, max(lengths(reg.points))))
@@ -172,23 +173,24 @@ NNS.M.reg <- function (X_n, Y, order = NULL, stn = 0.99, n.best = 1, type = NULL
     n.best = n.best
   }
 
+  n2=(dim(REGRESSION.POINT.MATRIX[])[2]-1)
   ### DISTANCES
   ### Calculate distance from each point in REGRESSION.POINT.MATRIX
   if(!is.null(point.est)){
     distance <- function(dist.est){
 
-      for(j in 1 : n){
+      for(j in 1 : n2){
         set(REGRESSION.POINT.MATRIX, j = j, value = REGRESSION.POINT.MATRIX[[j]] - as.numeric(dist.est)[j])
       }
 
 
       if(dist == "L1"){
-        row.sums = as.numeric(rowSums(abs(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n)])))
+        row.sums = as.numeric(rowSums(abs(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n2)])))
       } else {
-        row.sums = as.numeric(rowSums(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n)] ^ 2))
+        row.sums = as.numeric(rowSums(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n2)] ^ 2))
       }
 
-      for(j in 1 : n){
+      for(j in 1 : n2){
         set(REGRESSION.POINT.MATRIX, j = j, value = REGRESSION.POINT.MATRIX[[j]] + as.numeric(dist.est)[j])
       }
 

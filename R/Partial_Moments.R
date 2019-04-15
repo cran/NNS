@@ -70,10 +70,13 @@ UPM <- Vectorize(UPM, vectorize.args = 'target')
 Co.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
   if(degree.x == 0){x[x == target.x] = target.x - 1}
   if(degree.y == 0){y[y == target.y] = target.y - 1}
+  z = cbind(x,y); z = z[complete.cases(z),]
+  x = z[,1]
+  y = z[,2]
   x = x - target.x
   y = y - target.y
-  x[x < 0] = 0
-  y[y < 0] = 0
+  x[x <= 0] = 0
+  y[y <= 0] = 0
   x[x > 0] = x[x > 0] ^ degree.x
   y[y > 0] = y[y > 0] ^ degree.y
   return(x %*% y / length(x))
@@ -104,10 +107,13 @@ Co.UPM <- Vectorize(Co.UPM, vectorize.args = c('target.x', 'target.y'))
 Co.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
   if(degree.x == 0){x[x == target.x] = target.x - 1}
   if(degree.y == 0){y[y == target.y] = target.y - 1}
+  z = cbind(x,y); z = z[complete.cases(z),]
+  x = z[,1]
+  y = z[,2]
   x = target.x - x
   y = target.y - y
-  x[x < 0] = 0
-  y[y < 0] = 0
+  x[x <= 0] = 0
+  y[y <= 0] = 0
   x[x > 0] = x[x > 0] ^ degree.x
   y[y > 0] = y[y > 0] ^ degree.y
   return(x %*% y / length(x))
@@ -138,10 +144,13 @@ Co.LPM <- Vectorize(Co.LPM, vectorize.args = c('target.x', 'target.y'))
 D.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
   if(degree.x == 0){x[x == target.x] = target.x - 1}
   if(degree.y == 0){y[y == target.y] = target.y - 1}
+  z = cbind(x,y); z = z[complete.cases(z),]
+  x = z[,1]
+  y = z[,2]
   x = x - target.x
   y = target.y - y
-  x[x < 0] = 0
-  y[y < 0] = 0
+  x[x <= 0] = 0
+  y[y <= 0] = 0
   x[x > 0] = x[x > 0] ^ degree.x
   y[y > 0] = y[y > 0] ^ degree.y
   return(x %*% y / length(x))
@@ -172,10 +181,13 @@ D.LPM <- Vectorize(D.LPM, vectorize.args = c('target.x', 'target.y'))
 D.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
   if(degree.x == 0){x[x == target.x] = target.x - 1}
   if(degree.y == 0){y[y == target.y] = target.y - 1}
+  z = cbind(x,y); z = z[complete.cases(z),]
+  x = z[,1]
+  y = z[,2]
   x = target.x - x
   y = y - target.y
-  x[x < 0] = 0
-  y[y < 0] = 0
+  x[x <= 0] = 0
+  y[y <= 0] = 0
   x[x > 0] = x[x > 0] ^ degree.x
   y[y > 0] = y[y > 0] ^ degree.y
   return(x %*% y / length(x))
@@ -258,8 +270,8 @@ PM.matrix <- function(LPM.degree, UPM.degree, target, variable, pop.adj=FALSE){
 
     dlpm.matrix <- matrix(unlist(dlpms), n, n)
     diag(dlpm.matrix) = 0
-    colnames(dlpm.matrix) <- colnames(variable)
-    rownames(dlpm.matrix) <- colnames(variable)
+    colnames(dlpm.matrix) = colnames(variable)
+    rownames(dlpm.matrix) = colnames(variable)
 
 
     dupms <- list()
@@ -389,14 +401,16 @@ UPM.ratio <- function(degree, target, variable){
 
 
 NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL, plot = TRUE){
-if(is.null(target)){target = sort(variable)}
+
+  if(is.null(target)){target = sort(variable)}
+
 # d/dx approximation
-if(is.null(bins)){bins = length(variable)}
-d.dx = (max(target) + abs(min(target))) / bins
-tgt = seq(min(target), max(target), d.dx)
-PDF = LPM.ratio(degree, tgt+d.dx, variable) - LPM.ratio(degree, tgt-d.dx, variable)
+  if(is.null(bins)){bins = length(variable)}
+  d.dx = (max(target) + abs(min(target))) / bins
+  tgt = seq(min(target), max(target), d.dx)
+  PDF = LPM.ratio(degree, tgt+d.dx, variable) - LPM.ratio(degree, tgt-d.dx, variable)
 
-if(plot){plot(sort(tgt), PDF, col = 'blue', type = 'l', lwd = 3, xlab = "X")}
+  if(plot){plot(sort(tgt), PDF, col = 'blue', type = 'l', lwd = 3, xlab = "X")}
 
-return(data.table(cbind("Intervals" = sort(tgt), PDF)))
+  return(data.table(cbind("Intervals" = sort(tgt), PDF)))
 }

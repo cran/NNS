@@ -63,9 +63,8 @@ NNS.stack <- function(IVs.train,
                       seed = 123){
 
 
-
-  IVs.train <- apply(IVs.train, 2, as.numeric)
   DV.train <- as.numeric(DV.train)
+
 
   n <- ncol(IVs.train)
 
@@ -79,11 +78,6 @@ NNS.stack <- function(IVs.train,
     }
   }
 
-  #IV test provided...
-  if(!is.null(IVs.test)){
-    IVs.test <- data.matrix(IVs.test)
-  }
-
   #No IV test provided...
 
   set.seed(seed * l)
@@ -95,8 +89,7 @@ NNS.stack <- function(IVs.train,
   CV.DV.train <- DV.train[c(-test.set)]
   CV.DV.test <- DV.train[c(test.set)]
 
-  IVs.train <- CV.IVs.train
-  DV.train <- CV.DV.train
+
 
   ### NORMALIZATION OF VARIABLES and SELECTION OF ORDER:
   np = nrow(CV.IVs.test)
@@ -138,9 +131,20 @@ NNS.stack <- function(IVs.train,
   if(2 %in% method){
     var.cutoffs = abs(round(NNS.reg(CV.IVs.train, CV.DV.train, dim.red.method = dim.red.method, plot = FALSE)$equation$Coefficient, digits = 2))
 
-    var.cutoffs = unique(var.cutoffs[var.cutoffs < max(var.cutoffs)])
+    var.cutoffs = var.cutoffs - .01
 
-    nns.ord = sapply(1 : length(var.cutoffs), function(i) sum((NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test, plot = FALSE, dim.red.method = dim.red.method, threshold = var.cutoffs[i])$Point.est - CV.DV.test) ^ 2))
+    var.cutoffs = var.cutoffs[var.cutoffs <= 1 & var.cutoffs >= 0]
+
+    var.cutoffs = rev(sort(unique(var.cutoffs)))
+
+    nns.ord = numeric()
+    nns.ord[1] = Inf
+
+    for(i in 2:length(var.cutoffs)){
+      nns.ord[i] = sum((NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test, plot = FALSE, dim.red.method = dim.red.method, threshold = var.cutoffs[i])$Point.est - CV.DV.test) ^ 2)
+
+      if(nns.ord[i] > nns.ord[i-1]) break
+    }
 
     nns.2 = NNS.reg(IVs.train, DV.train,point.est = IVs.test, dim.red.method = dim.red.method, plot = FALSE, threshold = var.cutoffs[which.min(nns.ord)])$Point.est
 

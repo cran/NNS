@@ -4,8 +4,9 @@
 #'
 #' @param x a vector, matrix or data frame of variables of numeric or factor data types.
 #' @param y a numeric or factor vector with compatible dimsensions to \code{x}.
+#' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{("order")} and endpoint determination.
+#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.98 to ensure high dependence for higher \code{("order")} and endpoint determination.
 #' @param dim.red.method options: ("cor", "NNS.cor", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.cor")} uses \link{NNS.cor} for nonlinear correlation weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param tau options("ts", NULL); \code{NULL}(default) If \code{(dim.red.method = "NNS.caus")} or
 #'
@@ -87,49 +88,59 @@
 #' NNS.reg(x, y)
 #'
 #' ## Manual {order} selection
-#' NNS.reg(x, y, order = 2)
+#' \dontrun{
+#' NNS.reg(x, y, order = 2)}
 #'
 #' ## Maximum {order} selection
-#' NNS.reg(x, y, order = "max")
+#' \dontrun{
+#' NNS.reg(x, y, order = "max")}
 #'
 #' ## x-only paritioning (Univariate only)
-#' NNS.reg(x, y, type = "XONLY")
+#' \dontrun{
+#' NNS.reg(x, y, type = "XONLY")}
 #'
 #' ## For Multiple Regression:
+#' \dontrun{
 #' x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y <- rnorm(100)
-#' NNS.reg(x, y, point.est = c(.25, .5, .75))
+#' NNS.reg(x, y, point.est = c(.25, .5, .75))}
 #'
 #' ## For Multiple Regression based on Synthetic X* (Dimension Reduction):
+#' \dontrun{
 #' x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y<-rnorm(100)
-#' NNS.reg(x, y, point.est = c(.25, .5, .75), dim.red.method = "cor")
+#' NNS.reg(x, y, point.est = c(.25, .5, .75), dim.red.method = "cor")}
 #'
 #' ## IRIS dataset examples:
 #' # Dimension Reduction:
-#' NNS.reg(iris[,1:4], iris[,5], dim.red.method = "cor", order = 5)
+#' \dontrun{
+#' NNS.reg(iris[,1:4], iris[,5], dim.red.method = "cor", order = 5)}
 #'
 #' # Dimension Reduction using causal weights:
-#' NNS.reg(iris[,1:4], iris[,5], dim.red.method = "NNS.caus", order = 5)
+#' \dontrun{
+#' NNS.reg(iris[,1:4], iris[,5], dim.red.method = "NNS.caus", order = 5)}
 #'
 #' # Multiple Regression:
-#' NNS.reg(iris[,1:4], iris[,5], order = 2, noise.reduction = "off")
+#' \dontrun{
+#' NNS.reg(iris[,1:4], iris[,5], order = 2, noise.reduction = "off")}
 #'
 #' # Classification:
-#' NNS.reg(iris[,1:4], iris[,5], point.est = iris[1:10, 1:4], type = "CLASS")$Point.est
+#' \dontrun{
+#' NNS.reg(iris[,1:4], iris[,5], point.est = iris[1:10, 1:4], type = "CLASS")$Point.est}
 #'
 #' ## To call fitted values:
+#' \dontrun{
 #' x <- rnorm(100) ; y <- rnorm(100)
-#' NNS.reg(x, y)$Fitted
+#' NNS.reg(x, y)$Fitted}
 #'
 #' ## To call partial derivative (univariate regression only):
-#' x <- rnorm(100) ; y <- rnorm(100)
-#' NNS.reg(x, y)$derivative
+#' \dontrun{
+#' NNS.reg(x, y)$derivative}
 #'
 #' @export
 
 
 NNS.reg = function (x, y,
-                    order = NULL,
-                    stn = .99,
+                    factor.2.dummy = TRUE, order = NULL,
+                    stn = .98,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
                     point.est = NULL,
@@ -157,12 +168,55 @@ NNS.reg = function (x, y,
       dim.red = TRUE
   }
 
+  if(class(y) == "factor"){
+    type = "CLASS"
+  }
+
+  if(factor.2.dummy){
+    factor_2_dummy = function(x){
+      if(class(x) == "factor"){
+        n = length(x)
+        data.fac = data.frame(x=x, y=1:n)
+        output = model.matrix(y~x, data.fac)[,-1]
+      }
+      else{
+        output = x
+      }
+      output
+    }
+
+
+    x = colwise(factor_2_dummy)(as.data.frame(x))
+    x = do.call(cbind, x)
+    x = as.data.frame(x)
+    if(dim(x)[2]==1){x = as.vector(x[,1])}
+
+      if(!is.null(point.est)){
+
+        point.est = colwise(factor_2_dummy)(as.data.frame(point.est))
+        point.est = do.call(cbind, point.est)
+        point.est = as.data.frame(point.est)
+
+        if(dim(point.est)[2]==1){point.est = as.vector(point.est[,1])}
+
+
+        ### Add 0's to data for missing regressors
+        Missing = setdiff(names(x),names(point.est))
+          if(!is.null(Missing)){
+            point.est[Missing] <- 0
+            point.est = point.est[names(x)]
+          }
+      }
+  }
+
+
 
   original.names = colnames(x)
   original.columns = ncol(x)
 
   y = as.numeric(y)
   original.y = y
+
 
   if(is.null(names(original.y))){
     y.label = "Y"
@@ -180,13 +234,13 @@ NNS.reg = function (x, y,
       point.est.y = NULL
     }
   } else {
-    x = apply(x, 2, as.numeric)
+    x = sapply(x, as.numeric)
     if(!is.null(point.est)){
       if(is.null(ncol(point.est))){
         point.est = as.numeric(point.est)
         point.est.y = numeric()
         } else {
-          point.est = apply(point.est, 2, as.numeric)
+          point.est = sapply(point.est, as.numeric)
           point.est.y = numeric()
         }
     } else {
@@ -203,8 +257,8 @@ NNS.reg = function (x, y,
   }
 
   if(!is.null(type) && type == "CLASS" && is.null(n.best)){
-   n.best = 1
-   }
+    n.best = 1
+  }
 
 
   if(!is.null(ncol(original.variable))){
@@ -222,7 +276,7 @@ NNS.reg = function (x, y,
           }
         }
 
-        return(NNS.M.reg(x, y, point.est = point.est, plot = plot, residual.plot = plot, order = order, n.best = n.best, type = type, location = location, noise.reduction = noise.reduction, norm = norm, dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions))
+        return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot, residual.plot = plot, order = order, n.best = n.best, type = type, location = location, noise.reduction = noise.reduction, norm = norm, dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions))
       } else { # Multivariate dim.red == FALSE
 
         if(is.null(original.names)){
@@ -312,15 +366,11 @@ NNS.reg = function (x, y,
     } #Univariate
   } #Multivariate
 
-
+  dependence = NNS.dep(x, y, print.map = FALSE)$Dependence ^ (1 / exp(1))
 
   if(is.null(original.columns)){
     synthetic.x.equation = NULL
     x.star = NULL
-    dependence = NNS.dep(x, y, print.map = FALSE)$Dependence ^ (1 / exp(1))
-
-  } else {
-    if(dim.red) dependence = NNS.dep(x, y, print.map = FALSE)$Dependence ^ (1 / exp(1))
   }
 
   if(is.null(order)){
@@ -342,16 +392,16 @@ NNS.reg = function (x, y,
       }
     } # type
   } else {
+    noise.reduction2 = ifelse(noise.reduction%in%c("median","mode"),noise.reduction,"median")
     if(is.null(type)){
-      part.map = NNS.part(x, y, noise.reduction = 'median', order = dep.reduced.order, type = "XONLY")
+      part.map = NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY")
       if(length(part.map$regression.points$x) == 0){
-        part.map = NNS.part(x, y, type = "XONLY", noise.reduction = 'median', order = min( nchar(part.map$dt$quadrant)), max.obs.req = 1)
+        part.map = NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), max.obs.req = 1)
       }
     } else {
-      if(is.null(noise.reduction)){noise.reduction = "median"}
-      part.map = NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction, order = dep.reduced.order)
+      part.map = NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction2, order = dep.reduced.order)
       if(length(part.map$regression.points$x) == 0){
-        part.map = NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), max.obs.req = 1)
+        part.map = NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction2, order = min(nchar(part.map$dt$quadrant)), max.obs.req = 1)
       }
     } # type
   } # Dependence < stn
@@ -367,8 +417,19 @@ NNS.reg = function (x, y,
   min.range = min(regression.points$x)
   max.range = max(regression.points$x)
 
-  Dynamic.average.min = mean(y[x <= min.range])
-  Dynamic.average.max = mean(y[x >= max.range])
+
+
+  mode = function(x){
+    if(length(x) > 1){
+      d <- density(x)
+      d$x[which.max(d$y)]
+    } else {
+      x
+    }
+  }
+
+    Dynamic.average.min = mean(median(y[x <= min.range]), mode(y[x <= min.range]))
+    Dynamic.average.max = mean(median(y[x >= max.range]), mode(y[x >= max.range]))
 
   ###Endpoints
   if(length(x[x < min.range]) > 0){
@@ -450,8 +511,15 @@ NNS.reg = function (x, y,
     point.est.y = ((point.est - regression.points[reg.point.interval, x]) * Regression.Coefficients[coef.point.interval, Coefficient]) + regression.points[reg.point.interval, y]
   }
 
+  colnames(estimate) = NULL
 
-  fitted = data.table(x = part.map$dt$x, y = part.map$dt$y, y.hat = estimate, NNS.ID = part.map$dt$quadrant)
+  fitted = data.table(x = part.map$dt$x,
+                      y = part.map$dt$y,
+                      y.hat = estimate,
+                      NNS.ID = part.map$dt$quadrant)
+
+  colnames(fitted) = gsub("y.hat.V1", "y.hat", colnames(fitted))
+
 
   Values = cbind(x, Fitted = fitted[ , y.hat], Actual = fitted[ , y], Difference = fitted[ , y.hat] - fitted[ , y],  Accuracy = abs(round(fitted[ , y.hat]) - fitted[ , y]))
 
