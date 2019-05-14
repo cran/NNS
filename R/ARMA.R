@@ -19,6 +19,7 @@
 #' @param plot logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.
 #' @param seasonal.plot logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.
 #' @param intervals logical; \code{FALSE} (default) Plots the surrounding forecasts around the final estimate when \code{(intervals = TRUE)} and \code{(seasonal.factor = FALSE)}.  There are no other forecasts to plot when a single \code{seasonal.factor} is selected.
+#' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @return Returns a vector of forecasts of length \code{(h)}.
 #' @note
 #' For monthly data series, increased accuracy may be realized from forcing seasonal factors to multiples of 12.  For example, if the best periods reported are: \{37, 47, 71, 73\}  use
@@ -66,7 +67,8 @@ NNS.ARMA <- function(variable,
                      dynamic = FALSE,
                      plot = TRUE,
                      seasonal.plot = TRUE,
-                     intervals = FALSE){
+                     intervals = FALSE,
+                     ncores = NULL){
 
   if(intervals && is.numeric(seasonal.factor)){
     stop('Hmmm...Seems you have "intervals" and "seasonal.factor" selected.  Please set "intervals=F" or "seasonal.factor=F"')
@@ -79,6 +81,17 @@ NNS.ARMA <- function(variable,
   if(is.numeric(seasonal.factor) && dynamic){
     stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic==TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic=F" or "seasonal.factor=F"')
   }
+
+
+  if (is.null(ncores)) {
+    num_cores <- detectCores() - 1
+  } else {
+    num_cores <- ncores
+  }
+
+#  cl <- makeCluster(num_cores)
+#  registerDoParallel(cl)
+
 
   if(!is.null(best.periods) && !is.numeric(seasonal.factor)){
     seasonal.factor = FALSE
@@ -179,7 +192,6 @@ NNS.ARMA <- function(variable,
 
   Estimate.band = list()
 
-
   # Regression for each estimate in h
   for (j in 1 : h){
     ## Regenerate seasonal.factor if dynamic
@@ -210,6 +222,7 @@ NNS.ARMA <- function(variable,
 
 
     if(method == 'nonlin' | method == 'both'){
+      Regression.Estimates = numeric()
       for(i in 1 : length(lag)){
         x = Component.index[[i]] ; y = Component.series[[i]]
         last.x = tail(x, 1)
@@ -230,6 +243,8 @@ NNS.ARMA <- function(variable,
         Regression.Estimates[i] = last.y + (rise / run)
       }
 
+      Regression.Estimates = unlist(Regression.Estimates)
+
       if(!negative.values){
         Regression.Estimates = pmax(0, Regression.Estimates)
       }
@@ -241,15 +256,19 @@ NNS.ARMA <- function(variable,
 
     if(method == 'lin' | method == 'both'){
 
+      Regression.Estimates = numeric()
       for(i in 1 : length(lag)){
         last.x = tail(Component.index[[i]], 1)
         coefs = coef(lm(Component.series[[i]] ~ Component.index[[i]]))
         Regression.Estimates[i] = coefs[1] + (coefs[2] * (last.x + 1))
       }
 
+      Regression.Estimates = unlist(Regression.Estimates)
+
       if(!negative.values){
         Regression.Estimates = pmax(0, Regression.Estimates)
       }
+
 
       L.Regression.Estimates = Regression.Estimates
       Lin.estimates = sum(Regression.Estimates * Weights)
@@ -279,23 +298,25 @@ NNS.ARMA <- function(variable,
 
   } # j loop
 
+#  stopCluster(cl)
 
   #### PLOTTING
   if(plot){
-    if(seasonal.plot){
-      par(mfrow = c(2, 1))
-      if(ncol(M) > 1){
-        plot(M[ , Period], M[ , Coefficient.of.Variance],
-             xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test", ylim = c(0, 2 * M[1, Variable.Coefficient.of.Variance]))
-        points(M[1, Period], M[1, Coefficient.of.Variance], pch = 19, col = 'red')
-        abline(h = M[1, Variable.Coefficient.of.Variance], col = "red", lty = 5)
-        text((M[ , min(Period)] + M[ , max(Period)]) / 2, M[1, Variable.Coefficient.of.Variance], pos = 3, "Variable Coefficient of Variance", col = 'red')
-      } else {
-        plot(1, 1, pch = 19, col = 'blue', xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test",
-             ylim = c(0, 2 * abs(sd(FV) / mean(FV))))
-        text(1, abs(sd(FV) / mean(FV)), pos = 3, "NO SEASONALITY DETECTED", col = 'red')
+      original.par = par()
+      if(seasonal.plot){
+          par(mfrow = c(2, 1))
+          if(ncol(M) > 1){
+              plot(M[ , Period], M[ , Coefficient.of.Variance],
+                    xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test", ylim = c(0, 2 * M[1, Variable.Coefficient.of.Variance]))
+              points(M[1, Period], M[1, Coefficient.of.Variance], pch = 19, col = 'red')
+              abline(h = M[1, Variable.Coefficient.of.Variance], col = "red", lty = 5)
+              text((M[ , min(Period)] + M[ , max(Period)]) / 2, M[1, Variable.Coefficient.of.Variance], pos = 3, "Variable Coefficient of Variance", col = 'red')
+          } else {
+              plot(1, 1, pch = 19, col = 'blue', xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test",
+                    ylim = c(0, 2 * abs(sd(FV) / mean(FV))))
+              text(1, abs(sd(FV) / mean(FV)), pos = 3, "NO SEASONALITY DETECTED", col = 'red')
+          }
       }
-    }
 
     label = names(variable)
     if(is.null(label)){
@@ -307,33 +328,31 @@ NNS.ARMA <- function(variable,
          ylab = label, ylim = c(min(Estimates, OV), max(OV, Estimates)))
 
     if(intervals){
-      for(i in 1 : h){
-        ys = unlist(Estimate.band[[i]])
-        points(rep(training.set + i, length(ys)), ys, col = rgb(1, 0, 0, 0.0125), pch = 15)
-      }
+        for(i in 1 : h){
+            ys = unlist(Estimate.band[[i]])
+            points(rep(training.set + i, length(ys)), ys, col = rgb(1, 0, 0, 0.0125), pch = 15)
+        }
 
-      lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
-      segments(training.set, FV[training.set], training.set + 1, Estimates[1],lwd = 2,lty = 1,col = 'red')
-      legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
-    } else{
-      if(training.set[1] < length(OV)){
-        lines((training.set + 1) : (training.set + h), Estimates, type = 'l',lwd = 2, lty = 3, col = 'red')
-
-        segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 3, col = 'red')
-        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 2), col = c('steelblue', 'red'), lwd = 2)
-      } else {
         lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
-
-        segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 1, col = 'red')
-        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")),lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
-      }
+        segments(training.set, FV[training.set], training.set + 1, Estimates[1],lwd = 2,lty = 1,col = 'red')
+        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
+    } else {
+        if(training.set[1] < length(OV)){
+            lines((training.set + 1) : (training.set + h), Estimates, type = 'l',lwd = 2, lty = 3, col = 'red')
+            segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 3, col = 'red')
+            legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 2), col = c('steelblue', 'red'), lwd = 2)
+        } else {
+            lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
+            segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 1, col = 'red')
+            legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")),lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
+        }
 
 
     }
     points(training.set, OV[training.set], col = "green", pch = 18)
     points(training.set + h, tail(FV, 1), col = "green", pch = 18)
 
-    par(mfrow=c(1, 1))
+    par(original.par)
   }
 
   return(Estimates)

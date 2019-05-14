@@ -1,12 +1,14 @@
 # Import calls and globalvariable calls
 
 #' @importFrom grDevices adjustcolor rainbow rgb
-#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext
-#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm
-#' @import rgl
+#' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext barplot hist strwidth
+#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm model.matrix fivenum
+#' @importFrom utils globalVariables tail combn flush.console
+#' @importFrom data.table data.table
 #' @import data.table
+#' @import doParallel
+#' @import rgl
 #' @import stringr
-#' @importFrom utils globalVariables tail combn
 
 
 
@@ -19,9 +21,17 @@
       "mean_y_seg","mean_x_seg","sub.clpm",'sub.cupm','sub.dlpm','sub.dupm','weight','mean.x','mean.y',
       "Coefficient","X.Lower.Range","X.Upper.Range","y.hat","interval",
       "NNS.ID","max.x1","max.x2","min.x1","min.x2","counts",'old.counts',
-      "Period","Coefficient.of.Variance","Variable.Coefficient.of.Variance",
-      "i.x","i.y","q_new","x.x","x.y","standard.errors"
+      "Period","Coefficient.of.Variance","Variable.Coefficient.of.Variance", "Sum", "j","lpm","upm",
+      "i.x","i.y","q_new","x.x","x.y","standard.errors",
+      "detectCores","makeCluster","%dopar%","foreach","stopCluster",
+      "%do%"
     ))
+
+  requireNamespace("data.table")
+
+  .datatable.aware = TRUE
+
   invisible()
+
 
 }

@@ -4,8 +4,10 @@
 \alias{NNS.ARMA.optim}
 \title{NNS ARMA Optimizer}
 \usage{
-NNS.ARMA.optim(variable, training.set, seasonal.factor, method = "seq",
-  negative.values = FALSE)
+NNS.ARMA.optim(variable, training.set, seasonal.factor,
+  negative.values = FALSE, obj.fn = expression(sum((predicted -
+  actual)^2)), objective = "min", linear.approximation = TRUE,
+  depth = 1, print.trace = TRUE)
 }
 \arguments{
 \item{variable}{a numeric vector.}
@@ -14,13 +16,21 @@ NNS.ARMA.optim(variable, training.set, seasonal.factor, method = "seq",
 
 \item{seasonal.factor}{integers; Multiple frequency integers considered for \link{NNS.ARMA} model, i.e. \code{(seasonal.factor = c(12, 24, 36))}}
 
-\item{method}{options: ("comb", "seq"); \code{"comb"} Tries all combinations of \code{"seasonal.factor"} provided, while \code{"seq"} (default) tests each by adding element to previous iteration of \code{"seasonal.factor"}.}
-
 \item{negative.values}{logical; \code{FALSE} (default) If the variable can be negative, set to
 \code{(negative.values = TRUE)}.}
+
+\item{obj.fn}{expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.}
+
+\item{objective}{options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
+
+\item{linear.approximation}{logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.}
+
+\item{depth}{integer; \code{depth = 1} (default) Sets the level from which further combinations are generated containing only members from prior level's best \code{seasonal.factors}.}
+
+\item{print.trace}{logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!}
 }
 \value{
-Returns a list containing a vector of optimal seasonal periods \code{$period}, the minimum SSE value \code{$SSE}, and the \code{$method} identifying which \link{NNS.ARMA} method was used.
+Returns a list containing a vector of optimal seasonal periods \code{$period}, the minimum objective function value \code{$obj.fn}, and the \code{$method} identifying which \link{NNS.ARMA} method was used.
 }
 \description{
 Wrapper function for optimizing any combination of a given \code{seasonal.factor} vector in \link{NNS.ARMA}.  Minimum sum of squared errors (forecast-actual) is used to determine optimum across all \link{NNS.ARMA} methods.
@@ -32,15 +42,16 @@ The number of combinations will grow prohibitively large, they should be kept to
 }
 \examples{
 
-## Nonlinear NNS.ARMA period optimization using 5 yearly lags on AirPassengers monthly data
+## Nonlinear NNS.ARMA period optimization using 2 yearly lags on AirPassengers monthly data
 \dontrun{
-nns.optims <- NNS.ARMA.optim(AirPassengers, training.set = 132, seasonal.factor = seq(12, 60, 12))
+nns.optims <- NNS.ARMA.optim(AirPassengers[1:132], training.set = 120,
+seasonal.factor = seq(12, 24, 6))
 }
 
-## Then use optimal parameters in NNS.ARMA
+## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample
 \dontrun{
-NNS.ARMA(AirPassengers, training.set=132, seasonal.factor = nns.optims$periods,
-method = nns.optims$method)
+NNS.ARMA(AirPassengers, h=12, training.set=132,
+seasonal.factor = nns.optims$periods, method = nns.optims$method)
 }
 
 }

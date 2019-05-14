@@ -6,7 +6,6 @@ require(NNS)
 require(knitr)
 require(rgl)
 require(data.table)
-require(plyr)
 
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center"----------------
 nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "lin", plot = TRUE, seasonal.factor = 12, seasonal.plot = FALSE)
@@ -33,7 +32,10 @@ nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "both", seaso
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
 ## ----best optim,fig.width=5,fig.height=3,fig.align = "center"------------
-nns.optimal = NNS.ARMA.optim(AirPassengers, training.set = 100, seasonal.factor = seq(12, 48, 12), method = "comb")
+nns.optimal = NNS.ARMA.optim(AirPassengers[1:100], 
+                             training.set = 88, 
+                             seasonal.factor = seq(12, 24, 6),
+                             obj.fn = expression( sqrt(mean((predicted - actual)^2)) ))
 
 nns.optimal
 

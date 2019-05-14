@@ -56,11 +56,16 @@ NNS.part = function(x, y, Voronoi = FALSE, type = NULL, order = NULL, max.obs.re
   x = as.numeric(x)
   y = as.numeric(y)
 
+  if(length(x)<8){
+    order=1
+    max.obs.req=0
+  }
+
   PART = data.table(x, y, quadrant = "q", prior.quadrant = "pq")[ , counts := .N, by = "quadrant"][ , old.counts := .N, by = "prior.quadrant"]
 
   mode = function(x){
-    if(length(x) > 1){
-      d <- density(x)
+    if(length(na.omit(x)) > 1){
+      d <- density(na.omit(x))
       d$x[which.max(d$y)]
     } else {
       x
@@ -185,16 +190,20 @@ NNS.part = function(x, y, Voronoi = FALSE, type = NULL, order = NULL, max.obs.re
       i = i + 1L
     }
 
+    if(!is.numeric(order)){RP=PART[,c("quadrant","x","y")]}
+    else{ RP[ , `:=` (prior.quadrant = NULL)] }
+
+    PART[ ,`:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
+    DT = PART[]
+    RP = setorder(RP[], quadrant)[]
+
 
     if(Voronoi){
       points(RP$x, RP$y, pch = 15, lwd = 2, col = 'red')
       title(main = paste0("NNS Order = ", i), cex.main = 2)
     }
 
-    RP[ , `:=` (prior.quadrant = NULL)]
-    PART[ ,`:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
-    DT = PART[]
-    RP = setorder(RP[], quadrant)[]
+
     return(list("order" = i,
                 "dt" = DT,
                 "regression.points" = RP))
@@ -267,6 +276,13 @@ NNS.part = function(x, y, Voronoi = FALSE, type = NULL, order = NULL, max.obs.re
       i = i + 1L
     }
 
+    if(!is.numeric(order)){RP=PART[,c("quadrant","x","y")]}
+    else{ RP[ , `:=` (prior.quadrant = NULL)] }
+
+    PART[ ,`:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
+    DT = PART[]
+
+    RP = setorder(RP[], quadrant)[]
 
     if(Voronoi){
       abline(v = RP$x, lty = 3)
@@ -275,11 +291,6 @@ NNS.part = function(x, y, Voronoi = FALSE, type = NULL, order = NULL, max.obs.re
     }
 
 
-    RP[ ,`:=` (prior.quadrant = NULL)]
-    PART[ ,`:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
-    DT = PART[]
-
-    RP = setorder(RP[], quadrant)[]
     return(list("order" = i,
                 "dt" = DT,
                 "regression.points" = RP))

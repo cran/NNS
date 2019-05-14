@@ -4,9 +4,10 @@
 \alias{NNS.ARMA}
 \title{NNS ARMA}
 \usage{
-NNS.ARMA(variable, h = 1, training.set = NULL, seasonal.factor = TRUE,
-  best.periods = 2, negative.values = FALSE, method = "nonlin",
-  dynamic = FALSE, plot = TRUE, seasonal.plot = TRUE, intervals = FALSE)
+NNS.ARMA(variable, h = 1, training.set = NULL,
+  seasonal.factor = TRUE, best.periods = 2, negative.values = FALSE,
+  method = "nonlin", dynamic = FALSE, plot = TRUE,
+  seasonal.plot = TRUE, intervals = FALSE, ncores = NULL)
 }
 \arguments{
 \item{variable}{a numeric vector.}
@@ -36,6 +37,8 @@ NNS.ARMA(variable, h = 1, training.set = NULL, seasonal.factor = TRUE,
 \item{seasonal.plot}{logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.}
 
 \item{intervals}{logical; \code{FALSE} (default) Plots the surrounding forecasts around the final estimate when \code{(intervals = TRUE)} and \code{(seasonal.factor = FALSE)}.  There are no other forecasts to plot when a single \code{seasonal.factor} is selected.}
+
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of forecasts of length \code{(h)}.

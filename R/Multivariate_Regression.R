@@ -1,11 +1,17 @@
-NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', norm = NULL, dist = "L2", return.values = FALSE, plot.regions = FALSE){
+NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.95, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', norm = NULL, dist = "L2", return.values = FALSE, plot.regions = FALSE, ncores=ncores){
 
+
+
+  ### For Multiple regressions
+  ###  Turn each column into numeric values
+  original.IVs = data.matrix(X_n)
+  original.DV = as.numeric(Y)
 
   if(is.null(ncol(X_n))){
     X_n = t(t(X_n))
   }
 
-  n = ncol(X_n)
+  n = ncol(original.IVs)
 
   if(is.null(names(Y))){
     y.label = "Y"
@@ -24,6 +30,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
   }
 
   np = nrow(point.est)
+
   if(is.null(np) & !is.null(point.est)){
     point.est = t(point.est)
   } else {
@@ -37,10 +44,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
     }
   }
 
-  ### For Multiple regressions
-  ###  Turn each column into numeric values
-  original.IVs = data.matrix(X_n)
-  original.DV = as.numeric(Y)
+
 
   if(!is.null(norm)){
     if(!is.null(point.est)){
@@ -60,9 +64,9 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
         original.IVs = NNS.norm(original.IVs)
       }
     }
-  }
+  } # Normalization
 
-  original.matrix = data.frame(original.IVs, original.DV)
+  original.matrix = cbind.data.frame(original.IVs, original.DV)
 
   minimums = apply(original.IVs, 2, min)
   maximums = apply(original.IVs, 2, max)
@@ -108,16 +112,30 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
   }
 
   reg.points.matrix = unique(reg.points.matrix)
-  ### Find intervals in regression points for each variable, use left.open T and F for endpoints.
-  NNS.ID = list()
 
-  for(j in 1 : n){
-    sorted.reg.points = sort(reg.points.matrix[ , j])
-    sorted.reg.points = sorted.reg.points[!is.na(sorted.reg.points)]
-    NNS.ID[[j]] = findInterval(original.IVs[ , j], sorted.reg.points, left.open = FALSE)
+  ### Find intervals in regression points for each variable, use left.open T and F for endpoints.
+  ### PARALLEL
+
+
+  if (is.null(ncores)) {
+    num_cores <- detectCores() - 1
+  } else {
+    num_cores <- ncores
   }
 
-  NNS.ID = matrix(unlist(NNS.ID), nrow = length(Y),ncol = n)
+  NNS.ID = list()
+
+  for(j in 1:n){
+    sorted.reg.points = sort(reg.points.matrix[ , j])
+    sorted.reg.points = sorted.reg.points[!is.na(sorted.reg.points)]
+
+    NNS.ID[[j]] =  findInterval(original.IVs[ , j], sorted.reg.points, left.open = FALSE)
+  }
+
+
+  NNS.ID = do.call(cbind,NNS.ID)
+
+
 
   ### Create unique identifier of each observation's interval
   NNS.ID = apply(NNS.ID, 1 , paste , collapse = "." )
@@ -127,6 +145,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
   obs = c(1 : length(Y))
 
   mean.by.id.matrix = data.table(original.IVs, original.DV, NNS.ID, obs)
+
   setkey(mean.by.id.matrix, 'NNS.ID', 'obs')
 
   if(noise.reduction == 'mean' | noise.reduction == 'off'){
@@ -141,6 +160,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
 
   y.identifier = mean.by.id.matrix[ , NNS.ID]
 
+
   ###Order y.hat to order of original Y
   resid.plot = mean.by.id.matrix[]
   setkey(resid.plot, 'obs')
@@ -150,7 +170,6 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
 
   setkey(mean.by.id.matrix, 'NNS.ID')
   REGRESSION.POINT.MATRIX = mean.by.id.matrix[ , obs := NULL]
-
 
 
   if(noise.reduction == 'mean' | noise.reduction == 'off'){
@@ -173,48 +192,43 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
     n.best = n.best
   }
 
-  n2=(dim(REGRESSION.POINT.MATRIX[])[2]-1)
+
   ### DISTANCES
   ### Calculate distance from each point in REGRESSION.POINT.MATRIX
+
+  n2=(dim(REGRESSION.POINT.MATRIX[])[2]-1)
+
   if(!is.null(point.est)){
-    distance <- function(dist.est){
 
-      for(j in 1 : n2){
-        set(REGRESSION.POINT.MATRIX, j = j, value = REGRESSION.POINT.MATRIX[[j]] - as.numeric(dist.est)[j])
+      distance <- function(dist.est){
+          if(dist=="L2"){
+              row.sums = REGRESSION.POINT.MATRIX[,  `:=`(Sum= Reduce(`+`, lapply(1 : n2,function(i)(REGRESSION.POINT.MATRIX[[i]]-as.numeric(dist.est)[i])^2)))][,Sum]
+          } else {
+              row.sums = REGRESSION.POINT.MATRIX[,  `:=`(Sum= Reduce(`+`, lapply(1 : n2,function(i)(REGRESSION.POINT.MATRIX[[i]]-as.numeric(dist.est)[i]))))][,Sum]
+          }
+
+          row.sums[row.sums == 0] <- 1e-10
+          total.row.sums = sum(1 / row.sums)
+          weights = (1 / row.sums) / total.row.sums
+
+          highest = rev(order(weights))[1 : min(n.best, length(weights))]
+
+          weights[-highest] <- 0
+          weights.sum = sum(weights)
+
+          weights = weights / weights.sum
+          single.estimate = sum(weights * REGRESSION.POINT.MATRIX$y.hat)
+
+          return(single.estimate)
       }
-
-
-      if(dist == "L1"){
-        row.sums = as.numeric(rowSums(abs(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n2)])))
-      } else {
-        row.sums = as.numeric(rowSums(REGRESSION.POINT.MATRIX[ , .SD, .SDcols = c(1 : n2)] ^ 2))
-      }
-
-      for(j in 1 : n2){
-        set(REGRESSION.POINT.MATRIX, j = j, value = REGRESSION.POINT.MATRIX[[j]] + as.numeric(dist.est)[j])
-      }
-
-      row.sums[row.sums == 0] <- 1e-10
-      total.row.sums = sum(1 / row.sums)
-      weights = (1 / row.sums) / total.row.sums
-
-
-      highest = rev(order(weights))[1 : min(n.best, length(weights))]
-
-      weights[-highest] <- 0
-      weights.sum = sum(weights)
-
-      weights = weights / weights.sum
-      single.estimate = sum(weights * REGRESSION.POINT.MATRIX$y.hat)
-
-      return(single.estimate)
-    }
 
 
     ### Point estimates
-    central.points = apply(original.IVs,2,mean)
+    central.points = apply(original.IVs,2,function(x) mean(c(median(x),mode(x))))
+
     predict.fit = numeric()
-    predict.fit.iter = numeric()
+    predict.fit.iter = list()
+
     if(is.null(np)){
       l = length(point.est)
 
@@ -224,31 +238,60 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
         last.known.distance = sqrt(sum((pmin(pmax(point.est, minimums), maximums) - central.points) ^ 2))
         last.known.gradient = (distance(dist.est = pmin(pmax(point.est, minimums), maximums)) - distance(dist.est = central.points)) / last.known.distance
 
-      last.distance = sqrt(sum((point.est - pmin(pmax(point.est, minimums), maximums)) ^ 2))
-      predict.fit = last.distance * last.known.gradient + distance(dist.est = pmin(pmax(point.est, minimums), maximums))
+        last.distance = sqrt(sum((point.est - pmin(pmax(point.est, minimums), maximums)) ^ 2))
+        predict.fit = last.distance * last.known.gradient + distance(dist.est = pmin(pmax(point.est, minimums), maximums))
       }
     }
 
     if(!is.null(np)){
-      for(i in 1 : np){
-        p = as.vector(point.est[i, ])
-        l = length(p)
-        if(sum(p >= minimums & p <= maximums) == l){
-          predict.fit.iter[i] = distance(dist.est = p)
-        } else {
-          last.known.distance = sqrt(sum((pmin(pmax(p, minimums), maximums) - central.points) ^ 2))
-          last.known.gradient = (distance(dist.est = pmin(pmax(p, minimums), maximums)) - distance(dist.est = central.points)) / last.known.distance
+        lows = logical(); highs = logical()
+        outsiders = numeric()
+        DISTANCES = numeric()
 
-          last.distance = sqrt(sum((p - pmin(pmax(p, minimums), maximums)) ^ 2))
-          predict.fit.iter[i] = last.distance * last.known.gradient + distance(dist.est = pmin(pmax(p, minimums), maximums))
+        DISTANCES = apply(point.est,1,function(x) distance(x))
+
+        lows = do.call(pmin,as.data.frame(t(point.est)))<minimums
+        highs = do.call(pmax,as.data.frame(t(point.est)))>maximums
+
+        outsiders = lows + highs
+
+        if(sum(outsiders)>0){
+              outside.columns = numeric()
+              outside.columns = which(outsiders>0)
+
+              # Find rows from those columns
+              outside.index = list()
+              for(i in 1:length(outside.columns)){
+                  outside.index[[i]] = which(point.est[,outside.columns[i]]>maximums[outside.columns[i]]
+              | point.est[,outside.columns[i]]<minimums[outside.columns[i]])
+              }
+
+              outside.index = unique(unlist(outside.index))
+
+              for(i in outside.index){
+                  p = point.est[i,]
+
+                  last.known.distance = sqrt(sum((pmin(pmax(p, minimums), maximums) - central.points) ^ 2))
+
+                  q = distance(dist.est = pmin(pmax(p, minimums), maximums))
+                  last.known.gradient = (q - distance(dist.est = central.points)) / last.known.distance
+
+                  last.distance = sqrt(sum((p - pmin(pmax(p, minimums), maximums)) ^ 2))
+
+                  DISTANCES[i] <- last.distance * last.known.gradient + q
+
+              }
         }
-      }
-      predict.fit = as.vector(predict.fit.iter)
+
+      predict.fit = DISTANCES
+
     }
+
 
   } else {
     predict.fit = NULL
   } #is.null point.est
+
 
 
   R2 = (sum((y.hat - mean(original.DV)) * (original.DV - mean(original.DV))) ^ 2) / (sum((original.DV - mean(original.DV)) ^ 2) * sum((y.hat - mean(original.DV)) ^ 2))
@@ -309,12 +352,15 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = 0.99, 
     r2.leg = bquote(bold(R ^ 2 == .(format(R2, digits = 4))))
     matplot(resids, type = 'l', xlab = "Index", ylab = expression(paste("y (black)   ", hat(y), " (red)")), cex.lab = 1.5, mgp = c(2, .5, 0))
 
-    title(main = paste0("NNS Order = ", order), cex.main = 2)
+    title(main = paste0("NNS Order = multiple"), cex.main = 2)
     legend(location, legend = r2.leg, bty = 'n')
   }
 
 
   rhs.partitions = data.table(reg.points.matrix)
+
+
+
   ### Return Values
   if(return.values){
 
