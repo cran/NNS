@@ -5,7 +5,6 @@
 #' @param y a numeric vector.
 #' @param type options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.
 #' @return Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
-#' @keywords stochastic dominance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{http://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
 #'
@@ -23,23 +22,23 @@ NNS.FSD <- function(x, y, type="discrete"){
   x_sort <- sort(x, decreasing = FALSE)
   y_sort <- sort(y, decreasing = FALSE)
 
-  Combined = c(x_sort, y_sort)
-  Combined_sort = sort(Combined, decreasing = FALSE)
+  Combined <- c(x_sort, y_sort)
+  Combined_sort <- sort(Combined, decreasing = FALSE)
 
  ## Indicator function ***for all values of x and y*** as the continuous CDF target
   if(type == "discrete"){
-      degree = 0
+      degree <- 0
   } else {
-      degree = 1
+      degree <- 1
   }
 
-    LPM_x_sort = LPM.ratio(degree, Combined_sort, x)
-    LPM_y_sort = LPM.ratio(degree, Combined_sort, y)
+    LPM_x_sort <- LPM.ratio(degree, Combined_sort, x)
+    LPM_y_sort <- LPM.ratio(degree, Combined_sort, y)
 
 
-  x.fsd.y = any(LPM_x_sort > LPM_y_sort)
+  x.fsd.y <- any(LPM_x_sort > LPM_y_sort)
 
-  y.fsd.x = any(LPM_y_sort > LPM_x_sort)
+  y.fsd.x <- any(LPM_y_sort > LPM_x_sort)
 
 
     plot(Combined_sort, LPM_x_sort, type = "l", lwd = 3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution", ylim = c(0, 1))

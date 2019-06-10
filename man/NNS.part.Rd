@@ -5,7 +5,7 @@
 \title{NNS Partition Map}
 \usage{
 NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL,
-  max.obs.req = 8, min.obs.stop = FALSE, noise.reduction = "mean")
+  obs.req = 8, min.obs.stop = FALSE, noise.reduction = "mean")
 }
 \arguments{
 \item{x}{a numeric vector.}
@@ -18,9 +18,9 @@ NNS.part(x, y, Voronoi = FALSE, type = NULL, order = NULL,
 
 \item{order}{integer; Number of partial moment quadrants to be generated.  \code{(order = "max")} will institute a perfect fit.}
 
-\item{max.obs.req}{integer; (8 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(max.obs.req = 1)}.}
+\item{obs.req}{integer; (8 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.}
 
-\item{min.obs.stop}{logical; \code{FALSE} (default) Stopping condition where quadrants will not be further partitioned if a single cluster contains less than the entered value of \code{max.obs.req}.}
+\item{min.obs.stop}{logical; \code{FALSE} (default) Stopping condition where quadrants will not be further partitioned if a single cluster contains less than the entered value of \code{obs.req}.}
 
 \item{noise.reduction}{the method of determing regression points options: ("mean", "median", "mode", "off"); \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction = "mean")}, while \code{(noise.reduction = "off")} will partition quadrant to a single observation for a given \code{(order = ...)}.}
 }
@@ -50,7 +50,7 @@ NNS.part(x, y, order = 1)$regression.points
 NNS.part(x, y, Voronoi = TRUE)
 
 ## Examine final counts by quadrant
-DT = NNS.part(x, y)$dt
+DT <- NNS.part(x, y)$dt
 DT[ , counts := .N, by = quadrant]
 DT
 }
@@ -61,5 +61,3 @@ Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Par
 \author{
 Fred Viole, OVVO Financial Systems
 }
-\keyword{cluster}
-\keyword{partitioning,}

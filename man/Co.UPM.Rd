@@ -29,7 +29,7 @@ This function generates a co-upper partial moment between two equal length varia
 }
 \examples{
 set.seed(123)
-x<-rnorm(100) ; y<-rnorm(100)
+x <- rnorm(100) ; y <- rnorm(100)
 Co.UPM(0,0,x,y,mean(x),mean(y))
 }
 \references{
@@ -39,6 +39,3 @@ Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Par
 \author{
 Fred Viole, OVVO Financial Systems
 }
-\keyword{covariance}
-\keyword{moments,}
-\keyword{partial}

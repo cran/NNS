@@ -7,7 +7,6 @@
 #' @param order integer; Controls the level of quadrant partitioning.  Defualts to \code{(order = NULL)}.  Errors can generally be rectified by setting \code{(order = 1)}.
 #' @param degree integer; \code{(degree = 0)} is frequency based correlations, while \code{(degree = 1)} is for area based correlations.  Defaults to \code{(degree = 0)} for smaller number of observations.
 #' @return Returns nonlinear correlation coefficient between two variables, or nonlinear correlation matrix for matrix input.
-#' @keywords nonlinear correlation
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -30,9 +29,7 @@ NNS.cor = function(x,
                    degree= NULL){
 
   if(is.null(y)){
-    NNS.dep(x, order = order, degree = degree)$Correlation
+      NNS.dep(x, order = order, degree = degree)$Correlation
   } else {
-    NNS.dep(x, y, order = order, degree = degree)$Correlation}
-
-
-}
+      NNS.dep(x, y, order = order, degree = degree)$Correlation}
+  }

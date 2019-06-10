@@ -25,9 +25,7 @@ NNS.reg(x, y, factor.2.dummy = TRUE, order = NULL, stn = 0.95,
 
 \item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.}
 
-\item{tau}{options("ts", NULL); \code{NULL}(default) If \code{(dim.red.method = "NNS.caus")} or
-
-\code{(dim.red.method = "all")} and the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.}
+\item{tau}{options("ts", NULL); \code{NULL}(default) To be used in conjuction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.}
 
 \item{type}{\code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.}
 
@@ -108,12 +106,7 @@ MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 Generates a nonlinear regression based on partial moment quadrant means.
 }
 \note{
-Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.  Also, upon visual inspection of the data, if a highly periodic variable is observed set \code{(stn = 0)} or \code{(order = "max")} to ensure a proper fit.
-
-Identical regressors can be used as long as they do not share the same name. For instance,
-\code{NNS.reg(cbind(x, 1 * x), y)} will work as \code{NNS.reg} is not affected by multicollinearity.
-
-\code{NNS (>= v.0.3.4)} has repurposed parameter \code{(type = "CLASS")}.  \code{(type = "CLASS")} is now restricted to signifying a classification analysis for \code{NNS.reg} while \code{(dim.red.method)} enables dimension reduction regressions.
+Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
 }
 \examples{
 \dontrun{
@@ -180,6 +173,3 @@ Vinod, H. and Viole, F. (2017) "Nonparametric Regression Using Clusters"
 \author{
 Fred Viole, OVVO Financial Systems
 }
-\keyword{classifier}
-\keyword{nonlinear}
-\keyword{regression,}

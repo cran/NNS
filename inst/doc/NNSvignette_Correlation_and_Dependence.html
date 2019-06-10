@@ -288,7 +288,9 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <h1>Correlation and Dependence</h1>
 <p>The limitations of linear correlation are well known. Often one uses correlation, when dependence is the intended measure for defining the relationship between variables. NNS dependence <code>NNS.dep</code> is a signal:noise measure robust to nonlinear signals.</p>
 <p>Below are some examples comparing NNS correlation <code>NNS.cor</code> and <code>NNS.dep</code> with the standard Pearson’s correlation coefficient <code>cor</code>.</p>
-<p>##Linear Equivalence Note the fact that all observations occupy the co-partial moment quadrants.</p>
+<div id="linear-equivalence" class="section level2">
+<h2>Linear Equivalence</h2>
+<p>Note the fact that all observations occupy the co-partial moment quadrants.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">x =<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">3</span>, <span class="fl">.01</span>) ; y =<span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x</a>
 <a class="sourceLine" id="cb2-2" title="2"></a>
 <a class="sourceLine" id="cb2-3" title="3"><span class="kw">cor</span>(x, y)</a></code></pre></div>
@@ -300,7 +302,10 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## $Dependence
 ## [1] 1</code></pre>
-<p>##Nonlinear Relationship Note the fact that all observations occupy the co-partial moment quadrants.</p>
+</div>
+<div id="nonlinear-relationship" class="section level2">
+<h2>Nonlinear Relationship</h2>
+<p>Note the fact that all observations occupy the co-partial moment quadrants.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">x=<span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">3</span>, <span class="fl">.01</span>) ; y =<span class="st"> </span>x <span class="op">^</span><span class="st"> </span><span class="dv">10</span></a>
 <a class="sourceLine" id="cb6-2" title="2"></a>
 <a class="sourceLine" id="cb6-3" title="3"><span class="kw">cor</span>(x, y)</a></code></pre></div>
@@ -312,7 +317,10 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## $Dependence
 ## [1] 0.9413457</code></pre>
-<p>##Dependence Note the fact that all observations occupy only co- or divergent partial moment quadrants for a given subquadrant.</p>
+</div>
+<div id="dependence" class="section level2">
+<h2>Dependence</h2>
+<p>Note the fact that all observations occupy only co- or divergent partial moment quadrants for a given subquadrant.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">set.seed</span>(<span class="dv">123</span>)</a>
 <a class="sourceLine" id="cb10-2" title="2">df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="kw">runif</span>(<span class="dv">10000</span>, <span class="dv">-1</span>, <span class="dv">1</span>), <span class="dt">y =</span> <span class="kw">runif</span>(<span class="dv">10000</span>, <span class="dv">-1</span>, <span class="dv">1</span>))</a>
 <a class="sourceLine" id="cb10-3" title="3">df &lt;-<span class="st"> </span><span class="kw">subset</span>(df, (x <span class="op">^</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y <span class="op">^</span><span class="st"> </span><span class="dv">2</span> <span class="op">&lt;=</span><span class="st"> </span><span class="dv">1</span> <span class="op">&amp;</span><span class="st"> </span>x <span class="op">^</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y <span class="op">^</span><span class="st"> </span><span class="dv">2</span> <span class="op">&gt;=</span><span class="st"> </span><span class="fl">0.95</span>))</a>
@@ -323,7 +331,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 
 ## $Dependence
 ## [1] 0.9963612</code></pre>
-<p>#References If the user is so motivated, detailed arguments and proofs are provided within the following:</p>
+</div>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<p>If the user is so motivated, detailed arguments and proofs are provided within the following:</p>
 <ul>
 <li><p><a href="http://a.co/5bpHvUg">Nonlinear Nonparametric Statistics: Using Partial Moments</a></p></li>
 <li><p><a href="https://ssrn.com/abstract=3010414">Nonlinear Correlation and Dependence Using NNS</a></p></li>

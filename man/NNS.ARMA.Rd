@@ -5,9 +5,10 @@
 \title{NNS ARMA}
 \usage{
 NNS.ARMA(variable, h = 1, training.set = NULL,
-  seasonal.factor = TRUE, best.periods = 2, negative.values = FALSE,
-  method = "nonlin", dynamic = FALSE, plot = TRUE,
-  seasonal.plot = TRUE, intervals = FALSE, ncores = NULL)
+  seasonal.factor = TRUE, weights = NULL, best.periods = 2,
+  negative.values = FALSE, method = "nonlin", dynamic = FALSE,
+  plot = TRUE, seasonal.plot = TRUE, intervals = FALSE,
+  ncores = NULL)
 }
 \arguments{
 \item{variable}{a numeric vector.}
@@ -19,6 +20,8 @@ NNS.ARMA(variable, h = 1, training.set = NULL,
  \code{(variable[1 : training.set])} to monitor performance of forecast over in-sample range.}
 
 \item{seasonal.factor}{logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}}
+
+\item{weights}{numeric; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains.}
 
 \item{best.periods}{integer; [2] (default) used in conjuction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
 
@@ -38,7 +41,7 @@ NNS.ARMA(variable, h = 1, training.set = NULL,
 
 \item{intervals}{logical; \code{FALSE} (default) Plots the surrounding forecasts around the final estimate when \code{(intervals = TRUE)} and \code{(seasonal.factor = FALSE)}.  There are no other forecasts to plot when a single \code{seasonal.factor} is selected.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of forecasts of length \code{(h)}.
@@ -81,5 +84,3 @@ Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Par
 \author{
 Fred Viole, OVVO Financial Systems
 }
-\keyword{Autoregressive}
-\keyword{model}

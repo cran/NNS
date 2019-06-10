@@ -8,7 +8,7 @@ require(rgl)
 require(data.table)
 
 ## ----rhs-----------------------------------------------------------------
-NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE)$rhs.partitions
+NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 
 ## ----NNSBOOST,fig.align = "center", fig.height = 8,fig.width=6.5---------
 set.seed(123)
@@ -16,7 +16,8 @@ test.set = sample(150,10)
 
 a = NNS.boost(iris[-test.set, 1:4], iris[-test.set, 5],
               IVs.test = iris[test.set, 1:4],
-              epochs = 100, learner.trials = 100, status = FALSE)
+              epochs = 100, learner.trials = 100, status = FALSE,
+              ncores = 1, subcores = 1)
 
 mean(round(a)==as.numeric(iris[test.set,5]))
 

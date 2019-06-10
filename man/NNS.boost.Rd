@@ -5,9 +5,11 @@
 \title{NNS Boost}
 \usage{
 NNS.boost(IVs.train, DV.train, IVs.test, representative.sample = TRUE,
-  depth = "max", n.best = 3, learner.trials = NULL, epochs = NULL,
-  CV.size = 0.25, threshold = NULL, extreme = FALSE,
-  feature.importance = TRUE, status = TRUE, ncores = NULL)
+  depth = NULL, n.best = 3, learner.trials = NULL, epochs = NULL,
+  CV.size = 0.25, threshold = NULL,
+  obj.fn = expression(mean(round(predicted) == as.numeric(actual))),
+  objective = "max", extreme = FALSE, feature.importance = TRUE,
+  status = TRUE, ncores = NULL, subcores = NULL)
 }
 \arguments{
 \item{IVs.train}{a matrix or data frame of variables of numeric or factor data types.}
@@ -18,7 +20,7 @@ NNS.boost(IVs.train, DV.train, IVs.test, representative.sample = TRUE,
 
 \item{representative.sample}{logical; \code{TRUE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.}
 
-\item{depth}{integer; \code{"max"} (default) Specifies the \code{order} parameter in the \code{NNS.reg} routine, assigning a number of splits in the regressors.}
+\item{depth}{integer; \code{NULL} (default) Specifies the \code{order} parameter in the \code{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")} will be signifcantly faster, but increase the variance of results.}
 
 \item{n.best}{integer; \code{3} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.}
 
@@ -30,13 +32,20 @@ NNS.boost(IVs.train, DV.train, IVs.test, representative.sample = TRUE,
 
 \item{threshold}{numeric [0, 1]; \code{NULL} (default) Sets the \code{obj.fn} accuracy threshold to keep feature combinations.}
 
-\item{extreme}{logical; \code{FALSE} (default) Uses the maximum \code{threshold} obtained from the \code{learner.trials}, rather than the upper quintile level.}
+\item{obj.fn}{expression;
+\code{expression(mean(round(predicted)==as.numeric(actual)))} (default) Mean accuracy is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.}
+
+\item{objective}{options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
+
+\item{extreme}{logical; \code{FALSE} (default) Uses the maximum (minimum) \code{threshold} obtained from the \code{learner.trials}, rather than the upper (lower) quintile level for maximization (minimization) \code{objective}.}
 
 \item{feature.importance}{logical; \code{TRUE} (default) Plots the frequency of features used in the final estimate.}
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.}
+
+\item{subcores}{integer; value specifying the number of cores to be used in the parallelized procedure in the subroutine \link{NNS.reg}.  If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set.
@@ -44,13 +53,10 @@ Returns a vector of fitted values for the dependent variable test set.
 \description{
 Ensemble method for classification using the predictions of the NNS multivariate regression \link{NNS.reg} collected from uncorrelated feature combinations.
 }
-\note{
-Currently only objective function is to maximize \code{mean(round(predicted)==as.numeric(actual))} since it is a classifier.  For a regression problem, simply use \code{NNS.reg}!
-}
 \examples{
  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
  \dontrun{
- a = NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
+ a <- NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
  IVs.test = iris[141:150, 1:4],
  epochs = 100, learner.trials = 100)
 
@@ -66,4 +72,3 @@ Viole, F. (2016) "Classification Using NNS Clustering Analysis"
 \author{
 Fred Viole, OVVO Financial Systems
 }
-\keyword{classifier}

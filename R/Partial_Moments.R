@@ -5,7 +5,6 @@
 #' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
 #' @param variable a numeric vector.
 #' @return LPM of variable
-#' @keywords partial moments, mean, variance, CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -29,7 +28,6 @@ LPM <- Vectorize(LPM, vectorize.args = 'target')
 #' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
 #' @param variable a numeric vector.
 #' @return UPM of variable
-#' @keywords partial moments, mean, variance, upper CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -56,29 +54,28 @@ UPM <- Vectorize(UPM, vectorize.args = 'target')
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Co-UPM of two variables
-#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
 #' @examples
 #' set.seed(123)
-#' x<-rnorm(100) ; y<-rnorm(100)
+#' x <- rnorm(100) ; y <- rnorm(100)
 #' Co.UPM(0,0,x,y,mean(x),mean(y))
 #' @export
 
 
 Co.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-  if(degree.x == 0){x[x == target.x] = target.x - 1}
-  if(degree.y == 0){y[y == target.y] = target.y - 1}
-  z = cbind(x,y); z = z[complete.cases(z),]
-  x = z[,1]
-  y = z[,2]
-  x = x - target.x
-  y = y - target.y
-  x[x <= 0] = 0
-  y[y <= 0] = 0
-  x[x > 0] = x[x > 0] ^ degree.x
-  y[y > 0] = y[y > 0] ^ degree.y
+  if(degree.x == 0){x[x == target.x] <- target.x - 1}
+  if(degree.y == 0){y[y == target.y] <- target.y - 1}
+  z <- cbind(x,y); z <- z[complete.cases(z),]
+  x <- z[,1]
+  y <- z[,2]
+  x <- x - target.x
+  y <- y - target.y
+  x[x <= 0] <- 0
+  y[y <= 0] <- 0
+  x[x > 0] <- x[x > 0] ^ degree.x
+  y[y > 0] <- y[y > 0] ^ degree.y
   return(x %*% y / length(x))
   }
 Co.UPM <- Vectorize(Co.UPM, vectorize.args = c('target.x', 'target.y'))
@@ -94,7 +91,6 @@ Co.UPM <- Vectorize(Co.UPM, vectorize.args = c('target.x', 'target.y'))
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Co-LPM of two variables
-#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -105,17 +101,17 @@ Co.UPM <- Vectorize(Co.UPM, vectorize.args = c('target.x', 'target.y'))
 #' @export
 
 Co.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-  if(degree.x == 0){x[x == target.x] = target.x - 1}
-  if(degree.y == 0){y[y == target.y] = target.y - 1}
-  z = cbind(x,y); z = z[complete.cases(z),]
-  x = z[,1]
-  y = z[,2]
-  x = target.x - x
-  y = target.y - y
-  x[x <= 0] = 0
-  y[y <= 0] = 0
-  x[x > 0] = x[x > 0] ^ degree.x
-  y[y > 0] = y[y > 0] ^ degree.y
+  if(degree.x == 0){x[x == target.x] <- target.x - 1}
+  if(degree.y == 0){y[y == target.y] <- target.y - 1}
+  z <- cbind(x,y); z <- z[complete.cases(z),]
+  x <- z[,1]
+  y <- z[,2]
+  x <- target.x - x
+  y <- target.y - y
+  x[x <= 0] <- 0
+  y[y <= 0] <- 0
+  x[x > 0] <- x[x > 0] ^ degree.x
+  y[y > 0] <- y[y > 0] ^ degree.y
   return(x %*% y / length(x))
   }
 Co.LPM <- Vectorize(Co.LPM, vectorize.args = c('target.x', 'target.y'))
@@ -131,7 +127,6 @@ Co.LPM <- Vectorize(Co.LPM, vectorize.args = c('target.x', 'target.y'))
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Divergent LPM of two variables
-#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -142,17 +137,17 @@ Co.LPM <- Vectorize(Co.LPM, vectorize.args = c('target.x', 'target.y'))
 #' @export
 
 D.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-  if(degree.x == 0){x[x == target.x] = target.x - 1}
-  if(degree.y == 0){y[y == target.y] = target.y - 1}
-  z = cbind(x,y); z = z[complete.cases(z),]
-  x = z[,1]
-  y = z[,2]
-  x = x - target.x
-  y = target.y - y
-  x[x <= 0] = 0
-  y[y <= 0] = 0
-  x[x > 0] = x[x > 0] ^ degree.x
-  y[y > 0] = y[y > 0] ^ degree.y
+  if(degree.x == 0){x[x == target.x] <- target.x - 1}
+  if(degree.y == 0){y[y == target.y] <- target.y - 1}
+  z <- cbind(x,y); z <- z[complete.cases(z),]
+  x <- z[,1]
+  y <- z[,2]
+  x <- x - target.x
+  y <- target.y - y
+  x[x <= 0] <- 0
+  y[y <= 0] <- 0
+  x[x > 0] <- x[x > 0] ^ degree.x
+  y[y > 0] <- y[y > 0] ^ degree.y
   return(x %*% y / length(x))
   }
 D.LPM <- Vectorize(D.LPM, vectorize.args = c('target.x', 'target.y'))
@@ -168,7 +163,6 @@ D.LPM <- Vectorize(D.LPM, vectorize.args = c('target.x', 'target.y'))
 #' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
 #' @return Divergent UPM of two variables
-#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -179,17 +173,17 @@ D.LPM <- Vectorize(D.LPM, vectorize.args = c('target.x', 'target.y'))
 #' @export
 
 D.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-  if(degree.x == 0){x[x == target.x] = target.x - 1}
-  if(degree.y == 0){y[y == target.y] = target.y - 1}
-  z = cbind(x,y); z = z[complete.cases(z),]
-  x = z[,1]
-  y = z[,2]
-  x = target.x - x
-  y = y - target.y
-  x[x <= 0] = 0
-  y[y <= 0] = 0
-  x[x > 0] = x[x > 0] ^ degree.x
-  y[y > 0] = y[y > 0] ^ degree.y
+  if(degree.x == 0){x[x == target.x] <- target.x - 1}
+  if(degree.y == 0){y[y == target.y] <- target.y - 1}
+  z <- cbind(x,y); z <- z[complete.cases(z),]
+  x <- z[,1]
+  y <- z[,2]
+  x <- target.x - x
+  y <- y - target.y
+  x[x <= 0] <- 0
+  y[y <= 0] <- 0
+  x[x > 0] <- x[x > 0] ^ degree.x
+  y[y > 0] <- y[y > 0] ^ degree.y
   return(x %*% y / length(x))
  }
 D.UPM <- Vectorize(D.UPM, vectorize.args = c('target.x', 'target.y'))
@@ -206,7 +200,6 @@ D.UPM <- Vectorize(D.UPM, vectorize.args = c('target.x', 'target.y'))
 #' @param pop.adj logical; \code{FALSE} (default) Adjusts the sample co-partial moment matrices for population statistics.
 #' @return Matrix of partial moment quadrant values.  Uncalled quadrants will return a matrix of zeros.
 #' @note For divergent asymmetical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
-#' @keywords partial moments, covariance
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -217,11 +210,11 @@ D.UPM <- Vectorize(D.UPM, vectorize.args = c('target.x', 'target.y'))
 #' PM.matrix(LPM.degree = 1, UPM.degree = 1, target = "mean", variable = A)
 #'
 #' ## Calling Individual Partial Moment Quadrants
-#' cov.mtx = PM.matrix(LPM.degree = 1, UPM.degree = 1, target = "mean", variable = A)
+#' cov.mtx <- PM.matrix(LPM.degree = 1, UPM.degree = 1, target = "mean", variable = A)
 #' cov.mtx$cupm
 #'
 #' ## Full covariance matrix
-#' cov.mtx$matrix
+#' cov.mtx$cov.matrix
 #' @export
 
 
@@ -231,84 +224,83 @@ PM.matrix <- function(LPM.degree, UPM.degree, target, variable, pop.adj=FALSE){
   if(is.null(n)){stop("supply a matrix-like 'variable'")}
 
     clpms <- list()
+
     for(i in 1 : n){
-      if(is.numeric(target)){
-      clpms[[i]] = sapply(1 : n, function(b) Co.LPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = target, target.y = target))
-      } else {
-      clpms[[i]] = sapply(1 : n, function(b) Co.LPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
-      }
+        if(is.numeric(target)){
+            clpms[[i]] <- sapply(1 : n, function(b) Co.LPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = target, target.y = target))
+        } else {
+            clpms[[i]] <- sapply(1 : n, function(b) Co.LPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
+        }
     }
 
     clpm.matrix <- matrix(unlist(clpms), n, n)
-    colnames(clpm.matrix) = colnames(variable)
-    rownames(clpm.matrix) = colnames(variable)
+    colnames(clpm.matrix) <- colnames(variable)
+    rownames(clpm.matrix) <- colnames(variable)
 
 
     cupms <- list()
+
     for(i in 1 : n){
-      if(is.numeric(target)){
-        cupms[[i]] = sapply(1 : n, function(b) Co.UPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = UPM.degree, target.x = target, target.y = target))
+        if(is.numeric(target)){
+            cupms[[i]] <- sapply(1 : n, function(b) Co.UPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = UPM.degree, target.x = target, target.y = target))
         } else {
-        cupms[[i]] = sapply(1 : n, function(b) Co.UPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = UPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
+            cupms[[i]] <- sapply(1 : n, function(b) Co.UPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = UPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
         }
     }
 
     cupm.matrix <- matrix(unlist(cupms), n, n)
-    colnames(cupm.matrix) = colnames(variable)
-    rownames(cupm.matrix) = colnames(variable)
-
+    colnames(cupm.matrix) <- colnames(variable)
+    rownames(cupm.matrix) <- colnames(variable)
 
 
     dlpms <- list()
+
     for(i in 1 : n){
-      if(is.numeric(target)){
-        dlpms[[i]] = sapply(1 : n, function(b) D.LPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = LPM.degree, target.x = target, target.y = target))
+        if(is.numeric(target)){
+            dlpms[[i]] <- sapply(1 : n, function(b) D.LPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = LPM.degree, target.x = target, target.y = target))
         } else {
-        dlpms[[i]] = sapply(1 : n, function(b) D.LPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = LPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
+            dlpms[[i]] <- sapply(1 : n, function(b) D.LPM(x = variable[ , i], y = variable[ , b], degree.x = UPM.degree, degree.y = LPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
         }
     }
 
     dlpm.matrix <- matrix(unlist(dlpms), n, n)
-    diag(dlpm.matrix) = 0
-    colnames(dlpm.matrix) = colnames(variable)
-    rownames(dlpm.matrix) = colnames(variable)
+    diag(dlpm.matrix) <- 0
+    colnames(dlpm.matrix) <- colnames(variable)
+    rownames(dlpm.matrix) <- colnames(variable)
 
 
     dupms <- list()
+
     for(i in 1 : n){
-      if(is.numeric(target)){
-        dupms[[i]] = sapply(1 : n, function(b) D.UPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = UPM.degree, target.x = target, target.y = target))
-      } else {
-        dupms[[i]] = sapply(1 : n, function(b) D.UPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = UPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
-      }
+        if(is.numeric(target)){
+            dupms[[i]] <- sapply(1 : n, function(b) D.UPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = UPM.degree, target.x = target, target.y = target))
+        } else {
+            dupms[[i]] <- sapply(1 : n, function(b) D.UPM(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = UPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
+        }
     }
 
     dupm.matrix <- matrix(unlist(dupms), n, n)
-    diag(dupm.matrix) = 0
-    colnames(dupm.matrix) = colnames(variable)
-    rownames(dupm.matrix) = colnames(variable)
+    diag(dupm.matrix) <- 0
+    colnames(dupm.matrix) <- colnames(variable)
+    rownames(dupm.matrix) <- colnames(variable)
 
 
   if(pop.adj){
-    adjustment = length(variable[ , 1]) / (length(variable[ , 1]) - 1)
-    clpm.matrix = clpm.matrix*adjustment
-    cupm.matrix = cupm.matrix*adjustment
-    dlpm.matrix = dlpm.matrix*adjustment
-    dupm.matrix = dupm.matrix*adjustment
+    adjustment <- length(variable[ , 1]) / (length(variable[ , 1]) - 1)
+    clpm.matrix <- clpm.matrix*adjustment
+    cupm.matrix <- cupm.matrix*adjustment
+    dlpm.matrix <- dlpm.matrix*adjustment
+    dupm.matrix <- dupm.matrix*adjustment
   }
 
-  components = list(clpm = clpm.matrix,
-                    cupm = cupm.matrix,
-                    dlpm = dlpm.matrix,
-                    dupm = dupm.matrix)
+  cov.matrix <- cupm.matrix + clpm.matrix - dupm.matrix - dlpm.matrix
 
-  cov.matrix = components$clpm + components$cupm - components$dlpm - components$dupm
-
-  return(list(clpm = components$clpm,
-              cupm = components$cupm,
-              dlpm = components$dlpm,
-              dupm = components$dupm,
-              matrix = cov.matrix))
+  return(list(cov.matrix = cov.matrix,
+              cupm = cupm.matrix,
+              dupm = dupm.matrix,
+              dlpm = dlpm.matrix,
+              clpm = clpm.matrix
+              ))
 }
 
 
@@ -319,7 +311,6 @@ PM.matrix <- function(LPM.degree, UPM.degree, target, variable, pop.adj=FALSE){
 #' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
 #' @param variable a numeric vector.
 #' @return Standardized LPM of variable
-#' @keywords partial moments, mean, variance, continuous CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -341,8 +332,8 @@ PM.matrix <- function(LPM.degree, UPM.degree, target, variable, pop.adj=FALSE){
 #' @export
 
 LPM.ratio <- function(degree, target, variable){
-  lpm = LPM(degree, target, variable)
-  upm = UPM(degree, target, variable)
+  lpm <- LPM(degree, target, variable)
+  upm <- UPM(degree, target, variable)
 
   lpm / (lpm + upm)
 }
@@ -356,7 +347,6 @@ LPM.ratio <- function(degree, target, variable){
 #' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
 #' @param variable a numeric vector.
 #' @return Standardized UPM of variable
-#' @keywords partial moments, mean, variance, upper continuous CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -375,8 +365,8 @@ LPM.ratio <- function(degree, target, variable){
 
 
 UPM.ratio <- function(degree, target, variable){
-  lpm = LPM(degree, target, variable)
-  upm = UPM(degree, target, variable)
+  lpm <- LPM(degree, target, variable)
+  upm <- UPM(degree, target, variable)
 
   upm / (lpm + upm)
 }
@@ -392,7 +382,6 @@ UPM.ratio <- function(degree, target, variable){
 #' @param bins numeric; \code{NULL} (default) Selects number of observations as default bins.
 #' @param plot logical; plots PDF.
 #' @return Returns a data.table containing the intervals used and resulting PDF of the variable.
-#' @keywords partial moments, PDF, continuous CDF
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -408,16 +397,18 @@ UPM.ratio <- function(degree, target, variable){
 
 NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL, plot = TRUE){
 
-  if(is.null(target)){target = sort(variable)}
+  if(is.null(target)){target <- sort(variable)}
 
 # d/dx approximation
-  if(is.null(bins)){bins = length(variable)}
+  if(is.null(bins)){bins <- length(variable)}
 
-  d.dx = (max(target) + abs(min(target))) / bins
-  tgt = seq(min(target), max(target), d.dx)
-  PDF = LPM.ratio(degree, tgt+d.dx, variable) - LPM.ratio(degree, tgt-d.dx, variable)
+  d.dx <- (abs(max(target)) + abs(min(target))) / bins
+  tgt <- seq(min(target), max(target), d.dx)
+  PDF <- abs((diff(LPM.ratio(degree, tgt, variable),2)))
 
-  if(plot){plot(sort(tgt), PDF, col = 'blue', type = 'l', lwd = 3, xlab = "X")}
+  Intervals <- (sort(tgt)+(d.dx/2))[1:length(PDF)]
 
-  return(data.table(cbind("Intervals" = sort(tgt), PDF)))
+  if(plot){plot(Intervals, PDF, col = 'steelblue', type = 'l', lwd = 3, xlab = "X")}
+
+  return(data.table(cbind("Intervals" = Intervals, PDF)))
 }

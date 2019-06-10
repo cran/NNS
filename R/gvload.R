@@ -11,7 +11,6 @@
 #' @import stringr
 
 
-
 .onLoad <- function(libname = find.package("NNS"), pkgname = "NNS"){
 
   # CRAN Note avoidance
@@ -23,8 +22,9 @@
       "NNS.ID","max.x1","max.x2","min.x1","min.x2","counts",'old.counts',
       "Period","Coefficient.of.Variance","Variable.Coefficient.of.Variance", "Sum", "j","lpm","upm",
       "i.x","i.y","q_new","x.x","x.y","standard.errors",
-      "detectCores","makeCluster","%dopar%","foreach","stopCluster",
-      "%do%"
+      "detectCores","makeCluster","registerDoSEQ","clusterExport",
+      "%dopar%","foreach","stopCluster",
+      "%do%", "k"
     ))
 
   requireNamespace("data.table")

@@ -12,14 +12,20 @@
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
 #' @param depth integer; \code{depth = 1} (default) Sets the level from which further combinations are generated containing only members from prior level's best \code{seasonal.factors}.
 #' @param print.trace logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
+#' @param ncores integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.
+#' @param subcores integer; value specifying the number of cores to be used in the parallelized procedure in the subroutine \link{NNS.ARMA}.  If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.
 #'
-#' @return Returns a list containing a vector of optimal seasonal periods \code{$period}, the minimum objective function value \code{$obj.fn}, and the \code{$method} identifying which \link{NNS.ARMA} method was used.
-#'
+#' @return Returns a list containing:
+#' \itemize{
+#' \item{\code{$period}} a vector of optimal seasonal periods
+#' \item{\code{$weights}} the optimal weights of each seasonal period between an equal weight or NULL weighting
+#' \item{\code{$obj.fn}} the minimum objective function value
+#' \item{\code{$method}} the method identifying which \link{NNS.ARMA} method was used.
+#'}
 #' @note The number of combinations will grow prohibitively large, they should be kept to a minimum when \code{(method = "comb")}.
 #'
 #' \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 #'
-#' @keywords Autoregressive model
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -39,161 +45,243 @@
 #'
 #' @export
 
-NNS.ARMA.optim=function(variable, training.set,
+NNS.ARMA.optim <- function(variable, training.set,
                         seasonal.factor,
                         negative.values = FALSE,
                         obj.fn = expression(sum((predicted - actual)^2)),
                         objective = "min",
                         linear.approximation = TRUE,
                         depth = 1,
-                        print.trace = TRUE){
+                        print.trace = TRUE,
+                        ncores = NULL, subcores = NULL){
 
-    training.set = floor(training.set)
 
-    if(!is.null(training.set)){
-        seasonal.factor = seasonal.factor[seasonal.factor<training.set/3 & seasonal.factor>0]
+
+  if (is.null(ncores)) {
+      cores <- detectCores()
+      num_cores <- as.integer(cores / 2)
   } else {
-        seasonal.factor = seasonal.factor[seasonal.factor<length(variable)/3 & seasonal.factor>0]
+      cores <- detectCores()
+      num_cores <- ncores
   }
 
+  if (is.null(subcores)) {
+    subcores <- as.integer(cores / 2) - 1
+  }
 
-  variable = as.numeric(variable)
+  if((num_cores+subcores)>cores){ stop(paste0("Please ensure total number of cores [ncores + subcores] is less than ", cores))}
 
-  h = length(variable) - training.set
-  actual = tail(variable, h)
+  if(is.null(training.set)){training.set <- 0}
+  training.set <- floor(training.set)
 
-  nns.estimates = list()
-  seasonal.combs = list()
+  variable <- as.numeric(variable)
 
-  overall.seasonals = list()
-  overall.estimates = list()
+  h <- length(variable) - training.set
+  actual <- tail(variable, h)
 
-  previous.estimates = list()
-  previous.seasonals = list()
+  if(is.null(training.set)){
+      l <- length(variable)
+  } else {
+      l <- training.set
+  }
 
-for(j in c('lin','nonlin','both')){
-    current.seasonals = list()
-    current.estimate = numeric()
-    seasonal.combs = list()
+  denominator <- min(5,max(2, as.integer(l/100)))
 
-    for(i in 1 : length(seasonal.factor)){
-        nns.estimates.indiv = numeric()
+  seasonal.factor <- seasonal.factor[seasonal.factor<=(l/denominator)]
 
-            seasonal.combs[[i]] = combn(seasonal.factor, i)
+  nns.estimates <- list()
+  seasonal.combs <- list()
 
+  overall.seasonals <- list()
+  overall.estimates <- list()
 
-                if(i == 1){
-                    if(linear.approximation  && j!="lin"){
-                        seasonal.combs[[1]] = matrix(unlist(overall.seasonals[[1]]),ncol=1)
-                        current.seasonals[[1]] = unlist(overall.seasonals[[1]])
-                    } else {current.seasonals[[i]] = as.numeric(unlist(seasonal.combs[[1]]))}
-                } else {
-                    if(linear.approximation  && j!="lin"){
-                        next
-                    } else {
-                        current.seasonals[[i]] = as.numeric(unlist(current.seasonals[[i-1]])) }
-                }
+  previous.estimates <- list()
+  previous.seasonals <- list()
 
-            if(i > depth){
-                seasonal.combs[[i]] = seasonal.combs[[i]][,apply(seasonal.combs[[i]],2, function(z) sum(current.seasonals[[i]]%in%z))==length(current.seasonals[[i]])]
-            }
+  for(j in c('lin','nonlin','both')){
+      current.seasonals <- list()
+      current.estimate <- numeric()
+      seasonal.combs <- list()
 
+      for(i in 1 : length(seasonal.factor)){
+          nns.estimates.indiv <- list()
 
+          seasonal.combs[[i]] <- combn(seasonal.factor, i)
 
-            if(is.null(ncol(seasonal.combs[[i]]))){ break }
-            if(dim(seasonal.combs[[i]])[2]==0){ break }
+      if(i == 1){
+          if(linear.approximation  && j!="lin"){
+              seasonal.combs[[1]] <- matrix(unlist(overall.seasonals[[1]]),ncol=1)
+              current.seasonals[[1]] <- unlist(overall.seasonals[[1]])
+          } else {
+              current.seasonals[[i]] <- as.numeric(unlist(seasonal.combs[[1]]))
+          }
+      } else {
+          if(linear.approximation  && j!="lin"){
+              next
+          } else {
+              current.seasonals[[i]] <- as.numeric(unlist(current.seasonals[[i-1]]))
+          }
+      }
 
-            for(k in 1 : ncol(seasonal.combs[[i]])){
-                # Find the min (obj.fn) for a given seasonals sequence
-                predicted = NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values)
-
-                nns.estimates.indiv[k] = eval(obj.fn)
-                if(objective=='min'){
-                    nns.estimates.indiv[is.na(nns.estimates.indiv)] = Inf
-                } else {
-                    nns.estimates.indiv[is.na(nns.estimates.indiv)] = -Inf
-                }
-            } # for k in ncol(seasonal.combs)
-
-
-            nns.estimates[[i]] = nns.estimates.indiv
-            nns.estimates.indiv = numeric()
-
-            if(objective=='min'){
-                current.seasonals[[i]] = seasonal.combs[[i]][,which.min(nns.estimates[[i]])]
-                current.estimate[i] = min(nns.estimates[[i]])
-                if(i > 1 && current.estimate[i] > current.estimate[i-1]){
-                  current.seasonals = current.seasonals[-length(current.estimate)]
-                  current.estimate = current.estimate[-length(current.estimate)]
-                  break
-                }
-            } else {
-                current.seasonals[[i]] = seasonal.combs[[i]][,which.max(nns.estimates[[i]])]
-                current.estimate[i] = max(nns.estimates[[i]])
-                if(i > 1 && current.estimate[i] <= current.estimate[i-1]){
-                  current.seasonals = current.seasonals[-length(current.estimate)]
-                  current.estimate = current.estimate[-length(current.estimate)]
-                  break
-                }
-            }
+      if(i > depth){
+          seasonal.combs[[i]] <- seasonal.combs[[i]][,apply(seasonal.combs[[i]],2, function(z) sum(current.seasonals[[i]]%in%z))==length(current.seasonals[[i]])]
+      }
 
 
-            if(print.trace){
-                if(i == 1){
-                  print(j)
-                  print("COPY LATEST PARAMETERS DIRECTLY FOR NNS.ARMA() IF ERROR:")
-                }
-                print(paste("CURRENT method = ", paste0("'",j,"'"), ", seasonal.factor = ", paste("c(", paste(unlist(current.seasonals[[i]]), collapse = ", ")),")"))
-                print(paste0("CURRENT ", j, " OBJECTIVE FUNCTION = ", current.estimate[i]))
-            }
+
+      if(is.null(ncol(seasonal.combs[[i]]))){ break }
+      if(dim(seasonal.combs[[i]])[2]==0){ break }
 
 
-### BREAKING PROCEDURE FOR IDENTICAL PERIODS ACROSS METHODS
-        if(which(c("lin",'nonlin','both')==j) > 1 ){
-            if(sum(as.numeric(unlist(current.seasonals[[i]]))%in%as.numeric(unlist(previous.seasonals[[which(c("lin",'nonlin','both')==j)-1]][i])))==length(as.numeric(unlist(current.seasonals[[i]])))){
+
+      if(j!="lin" && linear.approximation){
+
+          # Find the min (obj.fn) for a given seasonals sequence
+          actual <- tail(variable, h)
+
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = unlist(overall.seasonals[[1]]), method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
+
+          nns.estimates.indiv <- eval(obj.fn)
+
+      } else {
+
+          if(num_cores>1){
+              cl <- makeCluster(num_cores)
+              registerDoParallel(cl)
+          } else { cl <- NULL }
+
+          nns.estimates.indiv <- foreach(k = 1 : ncol(seasonal.combs[[i]]),.packages = "NNS")%dopar%{
+          actual <- tail(variable, h)
+
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor =  seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
+
+          eval(obj.fn)
+        }
+
+        if(!is.null(cl)){
+            stopCluster(cl)
+            registerDoSEQ()
+        }
+
+      }
+
+
+      nns.estimates.indiv <- unlist(nns.estimates.indiv)
+
+      if(objective=='min'){
+          nns.estimates.indiv[is.na(nns.estimates.indiv)] <- Inf
+      } else {
+          nns.estimates.indiv[is.na(nns.estimates.indiv)] <- -Inf
+      }
+
+      nns.estimates[[i]] <- nns.estimates.indiv
+      nns.estimates.indiv <- numeric()
+
+      if(objective=='min'){
+          current.seasonals[[i]] <- seasonal.combs[[i]][,which.min(nns.estimates[[i]])]
+          current.estimate[i] <- min(nns.estimates[[i]])
+        if(i > 1 && current.estimate[i] > current.estimate[i-1]){
+          current.seasonals <- current.seasonals[-length(current.estimate)]
+          current.estimate <- current.estimate[-length(current.estimate)]
+          break
+        }
+      } else {
+          current.seasonals[[i]] <- seasonal.combs[[i]][,which.max(nns.estimates[[i]])]
+          current.estimate[i] <- max(nns.estimates[[i]])
+        if(i > 1 && current.estimate[i] <= current.estimate[i-1]){
+          current.seasonals <- current.seasonals[-length(current.estimate)]
+          current.estimate <- current.estimate[-length(current.estimate)]
+          break
+        }
+      }
+
+
+      if(print.trace){
+        if(i == 1){
+          print(paste0("CURRNET METHOD: ",j))
+          print("COPY LATEST PARAMETERS DIRECTLY FOR NNS.ARMA() IF ERROR:")
+        }
+        print(paste("NNS.ARMA(... method = ", paste0("'",j,"'"), ", seasonal.factor = ", paste("c(", paste(unlist(current.seasonals[[i]]), collapse = ", ")),") ...)"))
+        print(paste0("CURRENT ", j, " OBJECTIVE FUNCTION = ", current.estimate[i]))
+      }
+
+
+      ### BREAKING PROCEDURE FOR IDENTICAL PERIODS ACROSS METHODS
+      if(which(c("lin",'nonlin','both')==j) > 1 ){
+          if(sum(as.numeric(unlist(current.seasonals[[i]]))%in%as.numeric(unlist(previous.seasonals[[which(c("lin",'nonlin','both')==j)-1]][i])))==length(as.numeric(unlist(current.seasonals[[i]])))){
 
               if(objective=='min'){
-                if(current.estimate[i] >= previous.estimates[[which(c("lin",'nonlin','both')==j)-1]][i]) break
-                } else{
-                  if(current.estimate[i] <= previous.estimates[[which(c("lin",'nonlin','both')==j)-1]][i])  break
-                }
-            }
-        }
+                  if(current.estimate[i] >= previous.estimates[[which(c("lin",'nonlin','both')==j)-1]][i]) break
+              } else {
+                  if(current.estimate[i] <= previous.estimates[[which(c("lin",'nonlin','both')==j)-1]][i]) break
+              }
+          }
+      }
+
+      if(j!='lin' && linear.approximation){ break }
 
     } # for i in 1:length(seasonal factor)
 
-    previous.seasonals[[which(c("lin",'nonlin','both')==j)]] = current.seasonals
-    previous.estimates[[which(c("lin",'nonlin','both')==j)]] = current.estimate
+    previous.seasonals[[which(c("lin",'nonlin','both')==j)]] <- current.seasonals
+    previous.estimates[[which(c("lin",'nonlin','both')==j)]] <- current.estimate
 
-    overall.seasonals[[which(c("lin",'nonlin','both')==j)]] = current.seasonals[length(current.estimate)]
+    overall.seasonals[[which(c("lin",'nonlin','both')==j)]] <- current.seasonals[length(current.estimate)]
     overall.estimates[[which(c("lin",'nonlin','both')==j)]] = current.estimate[length(current.estimate)]
 
     if(print.trace){
         if(i > 1){
             print(paste0("BEST method = ", paste0("'",j,"'"),  ", seasonal.factor = ", paste("c(", paste(unlist(current.seasonals[length(current.estimate)]), collapse = ", ")),")"))
             print(paste0("BEST ", j, " OBJECTIVE FUNCTION = ", current.estimate[length(current.estimate)]))
-        }
-      else {
+        } else {
             print(paste0("BEST method = ", paste0("'",j,"'"), " PATH MEMBER = ", paste("c(", paste(unlist(current.seasonals), collapse = ", ")),")"))
             print(paste0("BEST ", j, " OBJECTIVE FUNCTION = ", current.estimate[1]))
         }
     }
 
+    gc()
 
 
-} # for j in c('lin','nonlin','both')
 
-        if(objective=='min'){
-            nns.periods = unlist(overall.seasonals[[which.min(unlist(overall.estimates))]])
-            nns.method = c("lin","nonlin","both")[which.min(unlist(overall.estimates))]
-            nns.SSE = min(unlist(overall.estimates))
-        } else {
-            nns.periods = unlist(overall.seasonals[[which.max(unlist(overall.estimates))]])
-            nns.method = c("lin","nonlin","both")[which.max(unlist(overall.estimates))]
-            nns.SSE = max(unlist(overall.estimates))
-        }
+  } # for j in c('lin','nonlin','both')
 
-return(list(periods = nns.periods,
-            obj.fn = nns.SSE,
-            method = nns.method))
+
+
+  if(objective=='min'){
+      nns.periods <- unlist(overall.seasonals[[which.min(unlist(overall.estimates))]])
+      nns.method <- c("lin","nonlin","both")[which.min(unlist(overall.estimates))]
+      nns.SSE <- min(unlist(overall.estimates))
+
+    if(length(nns.periods)>1){
+        predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = subcores, weights = rep((1/length(nns.periods)),length(nns.periods)))
+
+        weight.SSE <- eval(obj.fn)
+
+        if(weight.SSE<nns.SSE){
+            nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
+        } else { nns.weights <- NULL }
+    } else { nns.weights <- NULL }
+
+  } else {
+      nns.periods <- unlist(overall.seasonals[[which.max(unlist(overall.estimates))]])
+      nns.method <- c("lin","nonlin","both")[which.max(unlist(overall.estimates))]
+      nns.SSE <- max(unlist(overall.estimates))
+
+      if(length(nns.periods)>1){
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = subcores, weights = rep((1/length(nns.periods)),length(nns.periods)))
+
+          weight.SSE <- eval(obj.fn)
+
+          if(weight.SSE>nns.SSE){
+              nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
+          } else { nns.weights <- NULL }
+    } else { nns.weights <- NULL }
+
+  }
+
+
+
+  return(list(periods = nns.periods,
+              weights = nns.weights,
+              obj.fn = nns.SSE,
+              method = nns.method))
 }
