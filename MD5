@@ -1,10 +1,10 @@
-19650a05ba52777b673ff969fd869189 *DESCRIPTION
+fe0520bab27da7d79cba75dc100b24bf *DESCRIPTION
 fd17d3775ba27657dccc56e0b8edd5fa *NAMESPACE
 0ab6f7efbe8a85236af6d65912e7d25f *R/ANOVA.R
 061ead16803f193a45f2737ed639def1 *R/ARMA.R
 bfa33e28e63b286563df2a3f8aa327f9 *R/ARMA_optim.R
 8217b4ddc59205639c471c5fc120be62 *R/Binary_ANOVA.R
-ed1a83995bacd148accc7b85b42bd9de *R/Boost.R
+b798eddca8f85ef6ed3002c3a4f9d052 *R/Boost.R
 5a44cffeac0ac57ea8c910bc5322a57a *R/Causal_matrix.R
 ab888dbff9bb74a8e9fa8eec641ca56f *R/Causation.R
 d28b82150c9aed4c3473daf865ac0f6f *R/Co_PM_cor.R
@@ -22,7 +22,7 @@ f579e52a5ffef2290fda7a0a4f2a4659 *R/NNS_Distance.R
 13920019566c7e4450a7410ac321c144 *R/Numerical_Differentiation.R
 38f709a66418accaf9285a156d3aa95e *R/Partial_Moments.R
 03216298255d02d02c261d0bb85e2650 *R/Partition_Map.R
-1e52cf5b07c3c23f4e465231ffaab724 *R/Regression.R
+977c76c64f5534b9ade05f48a7accca7 *R/Regression.R
 aebc0ad38acb017847a408ce9a73aa48 *R/SD_Efficient_Set.R
 9a852b21d0b415dddecf1a94e63c34ff *R/SSD.R
 bb9a8e40de93537f90abd4f3eb411e46 *R/Seasonality_Test.R

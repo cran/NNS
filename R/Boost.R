@@ -142,7 +142,7 @@ NNS.boost <- function(IVs.train,
       rep.y <- unlist(rep.x[,1])
       rep.x <- rep.x[,-1]
 
-      if(dim(x)[2]!=dim(rep.x)[2]){
+      if(dim(t(t(x)))[2]!=dim(rep.x)[2]){
         Missing <- setdiff(colnames(x),colnames(rep.x))
         if(length(Missing)>0){
             rep.x[Missing] <- 0

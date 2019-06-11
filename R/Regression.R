@@ -219,7 +219,7 @@ NNS.reg = function (x, y,
               point.est <- factor_2_dummy(point.est)
               if(is.null(dim(point.est))){
                   point.est <- as.double(point.est)
-                  l <- length(point.est)
+                  l <- dim(t(t(point.est)))[2]
               } else {
                   point.est <- apply(point.est,2,as.double)
                   if(is.null(colnames(point.est))) {colnames(point.est) <- colnames(point.est, do.NULL = FALSE)}
@@ -230,7 +230,7 @@ NNS.reg = function (x, y,
           }
 
           ### Add 0's to data for missing regressors
-          if(dim(x)[2]!=l){
+          if(dim(t(t(x)))[2]!=l){
               Missing <- setdiff(colnames(x),colnames(point.est))
               point.est[Missing] <- 0
               point.est <- point.est[colnames(x)]
