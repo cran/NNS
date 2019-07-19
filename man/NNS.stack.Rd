@@ -7,7 +7,8 @@
 NNS.stack(IVs.train, DV.train, IVs.test = NULL,
   obj.fn = expression(sum((predicted - actual)^2)), objective = "min",
   CV.size = NULL, folds = 5, order = NULL, norm = NULL,
-  method = c(1, 2), dim.red.method = "cor", ncores = NULL)
+  method = c(1, 2), dim.red.method = "cor", status = TRUE,
+  ncores = NULL)
 }
 \arguments{
 \item{IVs.train}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -31,6 +32,8 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL,
 \item{method}{numeric options: (1, 2); Select the NNS method to include in stack.  \code{(method = 1)} selects \link{NNS.reg}; \code{(method = 2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method = c(1, 2)}, including both NNS regression methods in the stack.}
 
 \item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for weights.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.}
+
+\item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 
 \item{ncores}{integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.}
 }
@@ -63,14 +66,12 @@ reduce the \code{CV.size}.
 \examples{
  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
  \dontrun{
- NNS.stack(iris[1:140, 1:4], iris[1:140, 5], IVs.test = iris[141:150, 1:4])}
+ NNS.stack(iris[1:140, 1:4], iris[1:140, 5], IVs.test = iris[141:150, 1:4])
 
  ## Using 'iris' dataset to determine [n.best] and [threshold] with no test set.
- \dontrun{
- NNS.stack(iris[ , 1:4], iris[ , 5])}
+ NNS.stack(iris[ , 1:4], iris[ , 5])
 
  ## Selecting NNS.reg and dimension reduction techniques.
- \dontrun{
  NNS.stack(iris[1:140, 1:4], iris[1:140, 5], iris[141:150, 1:4], method = c(1, 2))}
 
 }

@@ -7,7 +7,7 @@ require(knitr)
 require(rgl)
 require(data.table)
 
-## ----rhs-----------------------------------------------------------------
+## ----rhs, rows.print=18--------------------------------------------------
 NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 
 ## ----NNSBOOST,fig.align = "center", fig.height = 8,fig.width=6.5---------

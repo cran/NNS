@@ -31,7 +31,7 @@ We can see how `NNS` partitions each regressor by calling the `$rhs.partitions` 
 
 Higher dependence between a regressor and the dependent variable will allow for a larger number of partitions.  This is determined internally with the `NNS.dep` measure.
 
-```{r rhs}
+```{r rhs, rows.print=18}
 NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 ```
 

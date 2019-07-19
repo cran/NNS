@@ -7,13 +7,19 @@ require(knitr)
 require(rgl)
 require(data.table)
 
-## ----linear,results='hide'-----------------------------------------------
+## ----linear--------------------------------------------------------------
 x = seq(-5, 5, .05); y = x ^ 3
 
 for(i in 1 : 4){NNS.part(x, y, order = i, noise.reduction = "off", Voronoi = TRUE)}
 
+## ----res, echo=FALSE-----------------------------------------------------
+NNS.part(x,y,order = 4, noise.reduction = "off")
+
 ## ----x part,results='hide'-----------------------------------------------
 for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
+
+## ----res2, echo=FALSE----------------------------------------------------
+NNS.part(x,y,order = 4, type = "XONLY")
 
 ## ----depreg,results='hide'-----------------------------------------------
 for(i in 1 : 3){NNS.part(x, y, order = i, Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
@@ -28,7 +34,7 @@ g = f(z[ , 1], z[ , 2])
 NNS.reg(z, g, order = "max", ncores = 1)
 
 ## ----iris point.est,fig.width=5,fig.height=3,fig.align = "center"--------
-NNS.reg(iris[ , 1 : 4], iris[ , 5], type = "CLASS", point.est = iris[141:150, 1 : 4], location = "topleft", ncores = 1)$Point.est
+NNS.reg(iris[ , 1 : 4], iris[ , 5], type = "CLASS", point.est = iris[1:10, 1 : 4], location = "topleft", ncores = 1)$Point.est
 
 ## ----nonlinear class,fig.width=5,fig.height=3,fig.align = "center"-------
 NNS.reg(iris[ , 1 : 4], iris[ , 5], dim.red.method = "cor", location = "topleft", ncores = 1)$equation
