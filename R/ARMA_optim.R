@@ -10,7 +10,6 @@
 #' @param obj.fn expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
-#' @param depth integer; \code{depth = 1} (default) Sets the level from which further combinations are generated containing only members from prior level's best \code{seasonal.factors}.
 #' @param print.trace logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.
 #' @param subcores integer; value specifying the number of cores to be used in the parallelized procedure in the subroutine \link{NNS.ARMA}.  If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.
@@ -37,7 +36,7 @@
 #' seasonal.factor = seq(12, 24, 6))
 #'
 #' ## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample
-#' NNS.ARMA(AirPassengers, h=12, training.set=132,
+#' NNS.ARMA(AirPassengers, h = 12, training.set = 132,
 #' seasonal.factor = nns.optims$periods, method = nns.optims$method)
 #' }
 #'
@@ -49,7 +48,6 @@ NNS.ARMA.optim <- function(variable, training.set,
                         obj.fn = expression(sum((predicted - actual)^2)),
                         objective = "min",
                         linear.approximation = TRUE,
-                        depth = 1,
                         print.trace = TRUE,
                         ncores = NULL, subcores = NULL){
 
@@ -87,6 +85,8 @@ NNS.ARMA.optim <- function(variable, training.set,
 
   seasonal.factor <- seasonal.factor[seasonal.factor<=(l/denominator)]
 
+  if(length(seasonal.factor)==0){stop(paste0('Please ensure "seasonal.factor" contains elements less than ', l/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))}
+
   nns.estimates <- list()
   seasonal.combs <- list()
 
@@ -104,25 +104,27 @@ NNS.ARMA.optim <- function(variable, training.set,
       for(i in 1 : length(seasonal.factor)){
           nns.estimates.indiv <- list()
 
-          seasonal.combs[[i]] <- combn(seasonal.factor, i)
+          if(i == 1){
+              seasonal.combs[[i]] <- t(seasonal.factor)
+          } else {
+              remaining.index <- !(seasonal.factor%in%current.seasonals[[i-1]])
+              if(sum(remaining.index)==0){ break }
+              seasonal.combs[[i]] <- rbind(replicate(length(seasonal.factor[remaining.index]), current.seasonals[[i-1]]), as.integer(seasonal.factor[remaining.index]))
+          }
 
       if(i == 1){
           if(linear.approximation  && j!="lin"){
               seasonal.combs[[1]] <- matrix(unlist(overall.seasonals[[1]]),ncol=1)
               current.seasonals[[1]] <- unlist(overall.seasonals[[1]])
           } else {
-              current.seasonals[[i]] <- as.numeric(unlist(seasonal.combs[[1]]))
+              current.seasonals[[i]] <- as.integer(unlist(seasonal.combs[[1]]))
           }
       } else {
           if(linear.approximation  && j!="lin"){
               next
           } else {
-              current.seasonals[[i]] <- as.numeric(unlist(current.seasonals[[i-1]]))
+              current.seasonals[[i]] <- as.integer(unlist(current.seasonals[[i-1]]))
           }
-      }
-
-      if(i > depth){
-          seasonal.combs[[i]] <- seasonal.combs[[i]][,apply(seasonal.combs[[i]],2, function(z) sum(current.seasonals[[i]]%in%z))==length(current.seasonals[[i]])]
       }
 
 
@@ -154,6 +156,7 @@ NNS.ARMA.optim <- function(variable, training.set,
           predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor =  seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
 
           eval(obj.fn)
+
         }
 
         if(!is.null(cl)){
@@ -163,7 +166,7 @@ NNS.ARMA.optim <- function(variable, training.set,
 
       }
 
-
+      gc()
       nns.estimates.indiv <- unlist(nns.estimates.indiv)
 
       if(objective=='min'){
@@ -186,7 +189,7 @@ NNS.ARMA.optim <- function(variable, training.set,
       } else {
           current.seasonals[[i]] <- seasonal.combs[[i]][,which.max(nns.estimates[[i]])]
           current.estimate[i] <- max(nns.estimates[[i]])
-        if(i > 1 && current.estimate[i] <= current.estimate[i-1]){
+        if(i > 1 && current.estimate[i] < current.estimate[i-1]){
           current.seasonals <- current.seasonals[-length(current.estimate)]
           current.estimate <- current.estimate[-length(current.estimate)]
           break

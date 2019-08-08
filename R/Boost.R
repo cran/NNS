@@ -21,7 +21,7 @@
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.
 #' @param subcores integer; value specifying the number of cores to be used in the parallelized procedure in the subroutine \link{NNS.reg}.  If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.
 #'
-#' @return Returns a vector of fitted values for the dependent variable test set.
+#' @return Returns a vector of fitted values for the dependent variable test set \code{$results}, and the final feature loadings \code{$feature.weights}.
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Classification Using NNS Clustering Analysis"
@@ -34,7 +34,7 @@
 #'  epochs = 100, learner.trials = 100)
 #'
 #'  ## Test accuracy
-#'  mean(round(a)==as.numeric(iris[141:150,5]))
+#'  mean(round(a$results)==as.numeric(iris[141:150,5]))
 #'  }
 #'
 #' @export
@@ -84,6 +84,7 @@ NNS.boost <- function(IVs.train,
   y <- DV.train
   z <- IVs.test
 
+
   if(!is.null(dim(x))){
       if(!is.numeric(x)){
           x <- sapply(x,factor_2_dummy)
@@ -103,6 +104,8 @@ NNS.boost <- function(IVs.train,
           x <- apply(x,2,as.double)
       }
   }
+
+
 
   if(is.null(colnames(x))) {colnames(x) <- colnames(x, do.NULL = FALSE)}
   colnames(x) <- make.unique(colnames(x),sep = "_")
@@ -370,7 +373,7 @@ NNS.boost <- function(IVs.train,
               if(status){
                   message("% of Final Estimate = ", format(i/length(keeper.features),digits =  3,nsmall = 2),"     ","\r",appendLF=FALSE)
                   if(i == length(keeper.features)){
-                      message("% of Final Estimate = 1.000             ","\r",appendLF=FALSE)
+                      message("% of Final Estimate = 1.000             ","\r",appendLF=TRUE)
                       flush.console()
                   }
               }
@@ -392,30 +395,31 @@ NNS.boost <- function(IVs.train,
       estimates <- lapply(estimates, function(i) pmax(i,min(as.numeric(y))))
 
 
-  if(feature.importance==TRUE){
       plot.table <- table(unlist(keeper.features))
-
       names(plot.table) <- colnames(x[as.numeric(names(plot.table))])
 
-      linch <-  max(strwidth(names(plot.table), "inch")+0.4, na.rm = TRUE)
-      par(mai=c(1.0,linch,0.8,0.5))
+      if(feature.importance){
 
-      if(length(plot.table)!=1){
-          barplot(rev(sort(plot.table,decreasing = TRUE))[1:min(n,10)],
-                horiz = TRUE,
-                col='steelblue',
-                main="Feature Importance in Final Estimate",
-                xlab = "Frequency",las=1)
-      } else {
-          barplot(plot.table[1:min(n,10)],
-                horiz = TRUE,
-                col='steelblue',
-                main="Feature Importance in Final Estimate",
-                xlab = "Frequency",las=1)
+          linch <-  max(strwidth(names(plot.table), "inch")+0.4, na.rm = TRUE)
+          par(mai=c(1.0,linch,0.8,0.5))
+
+          if(length(plot.table)!=1){
+              barplot(sort(plot.table,decreasing = FALSE)[1:min(n,10)],
+                    horiz = TRUE,
+                    col='steelblue',
+                    main="Feature Frequency in Final Estimate",
+                    xlab = "Frequency",las=1)
+          } else {
+              barplot(sort(plot.table,decreasing = FALSE)[1:min(n,10)],
+                    horiz = TRUE,
+                    col='steelblue',
+                    main="Feature Frequency in Final Estimate",
+                    xlab = "Frequency",las=1)
       }
      par(mar=c(5.1, 4.1, 4.1, 2.1))
      par(original.par)
   }
   gc()
-  return(apply(do.call(cbind,estimates),1,mode))
+  return(list("results"=apply(do.call(cbind,estimates),1,mode),
+              "feature.weights"=plot.table/sum(plot.table)))
 }

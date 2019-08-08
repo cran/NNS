@@ -2,9 +2,10 @@
 #'
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
 #' @param A a numeric matrix or data frame.
+#' @param linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
 #' @param chart.type  options: ("l", "b"); \code{NULL} (default).  Set \code{(chart.type = "l")} for line,
 #' \code{(chart.type = "b")} for boxplot.
-#' @param linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
+#' @param location Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.
 #' @return Returns a \link{data.frame} of normalized values.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -16,7 +17,10 @@
 #' NNS.norm(A)
 #' @export
 
-NNS.norm <- function(A, chart.type = NULL, linear = FALSE) {
+NNS.norm <- function(A,
+                     linear = FALSE,
+                     chart.type = NULL, location = "topleft"){
+
   m  <- colMeans(A)
   m[m==0] <- 1e-10
   RG <- m %o% (1 / m)
@@ -57,13 +61,13 @@ if(!is.null(chart.type)){
             par(mar = c(3, 2, 2, 2))
             par(mfrow = c(2, 1))
 
-            matplot(A,type = 'l', col = c('steelblue', rainbow(n)), ylab = '', xaxt = 'n', lwd = 2)
-            legend('top', inset = c(0,0), c(colnames(A)), lty = 1, col = c('steelblue', rainbow(n)), bty = 'n',horiz = TRUE, lwd = 2)
+            matplot(A,type = 'l', col = c('steelblue', rainbow(n)), ylab = '', xaxt = 'n', lwd = 2, las = 1)
+            legend(location, inset = c(0,0), c(colnames(A)), lty = 1, col = c('steelblue', rainbow(n)), bty = 'n', ncol = floor(n/sqrt(n)), lwd = 2, cex = n/sqrt(n)^exp(1))
             axis(1, at = seq(length(A[ , 1]), 1, -round(sqrt(length(A[ , 1])))), labels = rownames(A[seq(length(A[ , 1]), 1,-round(sqrt(length(A[ , 1])))),]),las = 1,cex.axis = 1)
 
-            matplot(A_Normalized, type = 'l', col = c('steelblue', rainbow(n)), ylab = '', xaxt = 'n', lwd = 2)
+            matplot(A_Normalized, type = 'l', col = c('steelblue', rainbow(n)), ylab = '', xaxt = 'n', lwd = 2, las = 1)
             axis(1, at = seq(length(A[ , 1]), 1, -round(sqrt(length(A[ , 1])))), labels = rownames(A[seq(length(A[ , 1]), 1, -round(sqrt(length(A[ , 1])))),]), las = 1, cex.axis = 1)
-            legend('top', c(paste0(colnames(A), " Normalized")), lty = 1, col = c('steelblue', rainbow(n)), bty = 'n', horiz = TRUE, lwd = 2)
+            legend(location, c(paste0(colnames(A), " Normalized")), lty = 1, col = c('steelblue', rainbow(n)), bty = 'n', ncol = ceiling(n/sqrt(n)), lwd = 2, cex = n/sqrt(n)^exp(1))
         }
 
   par(original.par)
@@ -72,6 +76,6 @@ if(!is.null(chart.type)){
 
 
 
-  return(data.table(A_Normalized))
+  return(A_Normalized)
 
 }

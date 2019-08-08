@@ -27,7 +27,7 @@ for(i in 1 : 3){NNS.part(x, y, order = i, Voronoi = TRUE) ; NNS.reg(x, y, order 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"-------------
 NNS.reg(x, y, order = 4, noise.reduction = "off", ncores = 1)
 
-## ----nonlinear multi,results='hide',fig.width=5,fig.height=3,fig.align = "center"----
+## ----nonlinear multi,fig.width=5,fig.height=3,fig.align = "center"-------
 f= function(x, y) x ^ 3 + 3 * y - y ^ 3 - 3 * x
 y = x ; z = expand.grid(x, y)
 g = f(z[ , 1], z[ , 2])

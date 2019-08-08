@@ -17,7 +17,7 @@ NNS.dep(x, y, print.map = TRUE, order = 3)
 x=seq(0, 3, .01) ; y = x ^ 10
 
 cor(x, y)
-NNS.dep(x, y, print.map = TRUE, order = 3)
+NNS.dep(x, y, print.map = TRUE)
 
 ## ----dependence,fig.width=5,fig.height=3,fig.align = "center"------------
 set.seed(123)

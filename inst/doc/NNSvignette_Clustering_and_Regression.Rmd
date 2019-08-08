@@ -63,8 +63,8 @@ NNS.reg(x, y, order = 4, noise.reduction = "off", ncores = 1)
 ```
 
 ### Multivariate:
-Multivariate regressions return a plot of $y$ and $\hat{y}$.
-```{r nonlinear multi,results='hide',fig.width=5,fig.height=3,fig.align = "center"}
+Multivariate regressions return a plot of $y$ and $\hat{y}$, as well as the regression points (`$RPM`) and partitions (`$rhs.partitions`) for each regressor.
+```{r nonlinear multi,fig.width=5,fig.height=3,fig.align = "center"}
 f= function(x, y) x ^ 3 + 3 * y - y ^ 3 - 3 * x
 y = x ; z = expand.grid(x, y)
 g = f(z[ , 1], z[ , 2])
