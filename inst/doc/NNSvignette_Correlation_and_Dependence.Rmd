@@ -51,6 +51,18 @@ df <- subset(df, (x ^ 2 + y ^ 2 <= 1 & x ^ 2 + y ^ 2 >= 0.95))
 NNS.dep(df$x, df$y, print.map = TRUE)
 ```
 
+
+# Multi-Dimensional Dependence
+These partial moment insights permit us to extend the analysis to multivariate
+instances. This level of analysis is simply impossible with Pearson or other rank
+based correlation methods, which are restricted to pairwise cases.
+
+```{r multi}
+set.seed(123)
+x=rnorm(1000);y=rnorm(1000);z=rnorm(1000)
+NNS.dep.hd(cbind(x,y,z),plot=TRUE,independence.overlay=TRUE)
+```
+
 # References
 If the user is so motivated, detailed arguments and proofs are provided within the following:
 

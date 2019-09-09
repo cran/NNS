@@ -5,23 +5,18 @@
 #' @param x a numeric matrix or data frame.
 #' @param y a numeric vector with compatible dimsensions to \code{x}.
 #' @param wrt integer; Selects the regressor to differentiate with respect to.
-#' @param order integer; \link{NNS.reg} \code{"order"}, defaults to NULL.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order = NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.
 #' @param eval.points numeric or options: ("mean", median", "last"); Regressor points to be evaluated.  \code{(eval.points = "median")} (default) to find partial derivatives at the median of every variable.  Set to \code{(eval.points = "last")} to find partial derivatives at the last value of every variable.  Set to \code{(eval.points="mean")} to find partial derivatives at the mean value of every variable. Set to \code{(eval.points = "all")} to find partial derivatives at every observation.
-#' @param h numeric [0, ...]; Percentage step used for finite step method.  Defaults to \code{h = .05} representing a 5 percent step from the value of the regressor.
-#' @param n.best integer; Sets the number of closest regression points to use in estimating finite difference points in \link{NNS.reg}.  \code{NULL} (default) Uses \code{ceiling(sqrt(ncol(x)))}.
-#' @param mixed logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.  Only for single valued \code{eval.points}.
+#' @param mixed logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.
+#' @param folds integer; 5 (default) Sets the number of \code{folds} in the \link{NNS.stack} procedure for optimal \code{n.best} parameter.
 #' @param plot logical; \code{FALSE} (default) Set to \code{(plot = TRUE)} to view plot.
-#' @param noise.reduction the method of determing regression points options: ("mean", "median", "mode", "off"); In low signal to noise situations, \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  \code{(noise.reduction = "off")}  allows for maximum possible fit in \link{NNS.reg}.
 #' Default setting is \code{(noise.reduction = "mean")}.
+#' @param messages logical; \code{TRUE} (default) Prints status messages of cross-validation on \code{n.best} parameter for \link{NNS.reg}.
 #' @return Returns:
 #' \itemize{
 #' \item{\code{dy.d_(...)$"First Derivative"}} the 1st derivative
 #' \item{\code{dy.d_(...)$"Second Derivative"}} the 2nd derivative
 #' \item{\code{dy.d_(...)$"Mixed Derivative"}} the mixed derivative (for two independent variables only).
 #' }
-#' Retuns a vector of partial derivatives when \code{(eval.points = "all")}.
-#' @note For known function testing and analysis, regressors should be transformed via \link{expand.grid} to fill the dimensions with \code{(order = "max")}.  Example provided below.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
@@ -35,80 +30,95 @@
 #' ## Known function analysis: [y = a ^ 2 * b ^ 2]
 #' x_1 <- seq(0, 1, .1) ; x_2 <- seq(0, 1, .1)
 #' B <- expand.grid(x_1, x_2) ; y <- B[ , 1] ^ 2 * B[ , 2] ^ 2
-#' dy.d_(B, y, wrt = 1, eval.points = c(.5, .5), order = "max")}
+#' dy.d_(B, y, wrt = 1, eval.points = c(.5, .5))}
 #' @export
 
 
-dy.d_<- function(x, y, wrt, eval.points = "median", order = NULL, stn = 0.99, h = .05, n.best = NULL, mixed = FALSE, plot = FALSE, noise.reduction = 'mean'){
-  if(is.null(n.best)){
-    n.best = ceiling(sqrt(ncol(x)))
-  } else {
-      n.best = n.best
+dy.d_<- function(x, y, wrt,
+                 eval.points = "median",
+                 folds = 5,
+                 mixed = FALSE,
+                 plot = FALSE,
+                 messages = TRUE){
+
+  order = NULL
+
+  h = max(0.01, 1 - NNS.dep.hd(cbind(x,y))$Dependence^(1/exp(1)))
+
+  if(messages){
+    message("Currently determining [n.best] clusters...","\r",appendLF=TRUE)
   }
+
+  n.best <- NNS.stack(x, y, folds = folds,
+                      status = messages, method = 1,
+                      order = order)$NNS.reg.n.best
 
   if(is.character(eval.points)){
     if(eval.points == "median"){
-      eval.points = numeric()
       eval.points = apply(x, 2, median)
     } else {
-    if(eval.points == "last"){
-      eval.points = numeric()
-      eval.points = as.numeric(x[length(x[ , 1]), ])
-    } else {
-    if(eval.points == "mean"){
-      eval.points = numeric()
-      eval.points = apply(x, 2, mean)
-    } else {
-    if(eval.points == "all"){
-      eval.points=x
-    }
-    }
-    }
+      if(eval.points == "last"){
+        eval.points = as.numeric(x[length(x[ , 1]), ])
+      } else {
+        if(eval.points == "mean"){
+          eval.points = apply(x, 2, mean)
+        } else {
+          if(eval.points == "all"){
+            eval.points=x
+          }
+        }
+      }
     }
   }
 
 
-  original.eval.points.min = eval.points
-  original.eval.points.max = eval.points
+  original.eval.points.min <- eval.points
+  original.eval.points.max <- eval.points
+
+  if(messages){
+    message("Currently generating NNS.reg finite difference estimates...","\r",appendLF=TRUE)
+  }
 
   if(is.null(dim(eval.points))){
-  original.eval.points.min[wrt] = (1 - h) * original.eval.points.min[wrt]
-  original.eval.points.max[wrt] = (1 + h) * original.eval.points.max[wrt]
+    original.eval.points.min[wrt] <- (1 - h) * original.eval.points.min[wrt]
+    original.eval.points.max[wrt] <- (1 + h) * original.eval.points.max[wrt]
 
-  deriv.points = matrix(c(original.eval.points.min, eval.points, original.eval.points.max), ncol = length(eval.points), byrow = TRUE)
+    deriv.points <- matrix(c(original.eval.points.min, eval.points, original.eval.points.max), ncol = length(eval.points), byrow = TRUE)
 
-  estimates = NNS.reg(x, y, order = order, point.est = deriv.points, n.best = n.best, stn = stn, plot = plot, noise.reduction = noise.reduction)$Point.est
+    estimates <- NNS.reg(x, y, order = order, point.est = deriv.points,
+                         n.best = n.best,
+                         residual.plot = plot, plot = plot)$Point.est
 
-  lower = estimates[1]
-  two.f.x = 2 * estimates[2]
-  upper = estimates[3]
+    lower <- estimates[1]
+    two.f.x <- 2 * estimates[2]
+    upper <- estimates[3]
 
-  rise = upper - lower
+    rise <- upper - lower
 
-  distance.1 = sqrt(sum(sweep(t(c(original.eval.points.max)), 2, t(c(eval.points))) ^ 2))
-  distance.2 = sqrt(sum(sweep(t(c(original.eval.points.min)), 2, t(c(eval.points))) ^ 2))
-  run = distance.1 + distance.2
+    distance_wrt <-  original.eval.points.max[wrt] - original.eval.points.min[wrt]
   } else {
+    n <- dim(eval.points)[1]
+    original.eval.points <- eval.points
+    original.eval.points.min[ , wrt] <- (1 - h) * original.eval.points.min[ , wrt]
+    original.eval.points.max[ , wrt] <- (1 + h) * original.eval.points.max[ , wrt]
 
-    original.eval.points = eval.points
-    original.eval.points.min[ , wrt] = (1 - h) * original.eval.points.min[ , wrt]
-    original.eval.points.max[ , wrt] = (1 + h) * original.eval.points.max[ , wrt]
+    original.eval.points <- rbind(original.eval.points.min,
+                                  original.eval.points,
+                                  original.eval.points.max)
 
-    estimates = NNS.reg(x, y, order = order, point.est = original.eval.points, n.best = n.best, stn = stn, plot = plot, noise.reduction = noise.reduction)$Point.est
-    estimates.min = NNS.reg(x, y, order = order, point.est = original.eval.points.min, n.best = n.best, stn = stn, plot = plot, noise.reduction = noise.reduction)$Point.est
-    estimates.max = NNS.reg(x, y, order = order, point.est = original.eval.points.max, n.best = n.best, stn = stn, plot = plot, noise.reduction = noise.reduction)$Point.est
+    estimates <- NNS.reg(x, y, order = order, point.est = original.eval.points,
+                         n.best = n.best,
+                         residual.plot = plot, plot = plot)$Point.est
 
-    lower = estimates.min
-    two.f.x = 2 * estimates
-    upper = estimates.max
 
-    rise = upper - lower
+    lower <- head(estimates,n)
+    two.f.x <- 2 * estimates[(n+1):(2*n)]
+    upper <- tail(estimates,n)
 
-    distance.1 = rowSums(abs(original.eval.points.max - eval.points))
-    distance.2 = rowSums(abs(original.eval.points.min - eval.points))
-    run = distance.1 + distance.2
+    rise <- upper - lower
+
+    distance_wrt <- original.eval.points.max[ , wrt] - original.eval.points.min[ , wrt]
   }
-
 
 
   if(mixed){
@@ -122,30 +132,42 @@ dy.d_<- function(x, y, wrt, eval.points = "median", order = NULL, stn = 0.99, h 
       }
     }
 
-    mixed.deriv.points = matrix(c((1 + h) * eval.points,
-                                (1 - h) * eval.points[1], (1 + h) * eval.points[2],
-                                (1 + h) * eval.points[1], (1 - h) * eval.points[2],
-                                (1 - h) * eval.points), ncol = 2, byrow = TRUE)
+    if(!is.null(dim(eval.points))){
+
+      mixed.deriv.points <- matrix(c((1 + h) * eval.points[,1],(1 + h) * eval.points[,2],
+                                     (1 - h) * eval.points[,1], (1 + h) * eval.points[,2],
+                                     (1 + h) * eval.points[,1], (1 - h) * eval.points[,2],
+                                     (1 - h) * eval.points[,1], (1 - h) * eval.points[,2]), ncol = 2, byrow = TRUE)
+      mixed.distances <- 2 * (h * abs(eval.points[,1])) * 2 * (h * abs(eval.points[,2]))
+
+    } else {
+      mixed.deriv.points <- matrix(c((1 + h) * eval.points,
+                                     (1 - h) * eval.points[1], (1 + h) * eval.points[2],
+                                     (1 + h) * eval.points[1], (1 - h) * eval.points[2],
+                                     (1 - h) * eval.points), ncol = 2, byrow = TRUE)
+
+      mixed.distances <- (2 * (h * abs(eval.points[1]))) * (2 * (h * abs(eval.points[2])))
+    }
+
+    mixed.estimates <- NNS.reg(x, y, order = order, point.est = mixed.deriv.points,
+                               n.best = n.best,
+                               residual.plot = plot, plot = plot)$Point.est
+
+    if(messages){
+      message("Done :-)","\r",appendLF=TRUE)
+    }
+
+    z <- matrix(mixed.estimates, ncol=4, byrow=TRUE)
+    z <- z[,1]+z[,4]-z[,2]-z[,3]
+    mixed <- (z/mixed.distances)
 
 
-  mixed.estimates = NNS.reg(x, y, order = order, point.est = mixed.deriv.points, n.best = n.best, stn = stn, plot=plot, noise.reduction = noise.reduction)$Point.est
-
-  mixed.first = mixed.estimates[1]
-
-  mixed.second = mixed.estimates[2]
-
-  mixed.third = mixed.estimates[3]
-
-  mixed.fourth = mixed.estimates[4]
-
-
-
-  return(list("First Derivative" = rise / run,
-              "Second Derivative" = (upper - two.f.x + lower) / ((.5 * run) ^ 2),
-              "Mixed Derivative" = (mixed.first - mixed.second - mixed.third + mixed.fourth) / (4 * ((.5 * run) ^ 2))))
+    return(list("First Derivative" = rise / distance_wrt,
+                "Second Derivative" = (upper - two.f.x + lower) / ((distance_wrt) ^ 2),
+                "Mixed Derivative" = mixed))
   } else {
-    return(list("First Derivative" = rise / run,
-                "Second Derivative" = (upper - two.f.x + lower) / ((.5 * run) ^ 2)))
+    return(list("First Derivative" = rise / distance_wrt,
+                "Second Derivative" = (upper - two.f.x + lower) / ((distance_wrt) ^ 2)))
   }
 
 

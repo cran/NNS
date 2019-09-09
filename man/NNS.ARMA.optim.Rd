@@ -38,15 +38,18 @@ Returns a list containing:
 \item{\code{$weights}} the optimal weights of each seasonal period between an equal weight or NULL weighting
 \item{\code{$obj.fn}} the minimum objective function value
 \item{\code{$method}} the method identifying which \link{NNS.ARMA} method was used.
+\item{\code{$bias.shift}} a numerical result of the overall bias of the optimum objective function result.  To be added to the final result when using the \link{NNS.ARMA} with the derived parameters.
 }
 }
 \description{
 Wrapper function for optimizing any combination of a given \code{seasonal.factor} vector in \link{NNS.ARMA}.  Minimum sum of squared errors (forecast-actual) is used to determine optimum across all \link{NNS.ARMA} methods.
 }
 \note{
-The number of combinations will grow prohibitively large, they should be kept to a minimum when \code{(method = "comb")}.
+\itemize{
+\item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 
-\code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
+\item{} If variable cannot logically assume negative values, then the \code{$bias.shift} must be limited to 0 via a \code{pmax(0,...)} call.
+}
 }
 \examples{
 
@@ -55,9 +58,13 @@ The number of combinations will grow prohibitively large, they should be kept to
 nns.optims <- NNS.ARMA.optim(AirPassengers[1:132], training.set = 120,
 seasonal.factor = seq(12, 24, 6))
 
-## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample
-NNS.ARMA(AirPassengers, h = 12, training.set = 132,
-seasonal.factor = nns.optims$periods, method = nns.optims$method)
+## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample.
+## Note the {$bias.shift} usage in the {NNS.ARMA} function:
+nns.estimates <- NNS.ARMA(AirPassengers, h = 12, training.set = 132,
+seasonal.factor = nns.optims$periods, method = nns.optims$method) + nns.optims$bias.shift
+
+## If variable cannot logically assume negative values
+nns.estimates <- pmax(0, nns.estimates)
 }
 
 }

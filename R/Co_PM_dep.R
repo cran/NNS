@@ -1,22 +1,27 @@
-#' NNS Co-Partial Moments Higher Dimension Correlation
+#' NNS Co-Partial Moments Higher Dimension Dependence
 #'
-#' Determines higher dimension correlation coefficients based on degree 0 co-partial moments.
+#' Determines higher dimension dependence coefficients based on degree 0 co-partial moments.
 #'
 #' @param x a numeric matrix or data frame.
 #' @param plot logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.
 #' @param independence.overlay logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.
-#' @return Returns multivariate nonlinear correlation coefficient
+#' @return
+#' \itemize{
+#' \item{$actual.observations} Number of \link{Co.LPM} and \link{Co.UPM} observations.
+#' \item{$independent.null} Expected number of \link{Co.LPM} and \link{Co.UPM} observations under the null hypothesis of independence.
+#' \item{$Dependence} Multivariate nonlinear dependence coefficient [0,1]
+#' }
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Beyond Correlation: Using the Elements of Variance for Conditional Means and Probabilities"  \url{http://ssrn.com/abstract=2745308}.
 #' @examples
 #' set.seed(123)
 #' x <- rnorm(1000) ; y <- rnorm(1000) ; z <- rnorm(1000)
 #' A <- data.frame(x, y, z)
-#' NNS.cor.hd(A, plot = TRUE, independence.overlay = TRUE)
+#' NNS.dep.hd(A, plot = TRUE, independence.overlay = TRUE)
 #' @export
 
 
-NNS.cor.hd <- function (x, plot = FALSE, independence.overlay = FALSE){
+NNS.dep.hd <- function (x, plot = FALSE, independence.overlay = FALSE){
     A <- x
     n <- ncol(A)
     l <- length(A[ , 1])
@@ -29,13 +34,14 @@ NNS.cor.hd <- function (x, plot = FALSE, independence.overlay = FALSE){
         colnames(A) <- c(colnames.list)
     }
 
-    A_upm <- t(apply(A, 1, function(x) x > colMeans(A)))
-    A_lpm <- t(apply(A, 1, function(x) x <= colMeans(A)))
+    A_upm <- apply(A, 2, function(x) x > mean(x))
+    A_lpm <- apply(A, 2, function(x) x <= mean(x))
 
+    upm_prods <- RP(A_upm)
+    lpm_prods <- RP(A_lpm)
 
-    CO_upm <- sum(apply(A_upm, 1, prod)) / l
-    CO_lpm <- sum(apply(A_lpm, 1, prod)) / l
-
+    CO_upm <- sum(upm_prods) / l
+    CO_lpm <- sum(lpm_prods) / l
 
     observed <- CO_upm + CO_lpm
     independence <- 2 * (.5 ^ n)
@@ -75,5 +81,16 @@ NNS.cor.hd <- function (x, plot = FALSE, independence.overlay = FALSE){
 
     }
 
-    return((observed - independence) / (1 - independence))
+
+    if(observed > independence){
+            return(list(actual.observations = observed * l,
+                        independent.null = independence * l,
+                        Dependence = (observed - independence) /(1 - independence)))
+    } else {
+            return(list(actual.observations = observed * l,
+                        independent.null = independence * l,
+                        Dependence = (independence - observed) / independence))
+    }
+
+
 }

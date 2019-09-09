@@ -22,7 +22,7 @@ for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
 NNS.part(x,y,order = 4, type = "XONLY")
 
 ## ----depreg,results='hide'-----------------------------------------------
-for(i in 1 : 3){NNS.part(x, y, order = i, Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
+for(i in 1 : 3){NNS.part(x, y, order = i, noise.reduction = "off", Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"-------------
 NNS.reg(x, y, order = 4, noise.reduction = "off", ncores = 1)

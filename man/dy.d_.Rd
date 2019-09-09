@@ -4,9 +4,8 @@
 \alias{dy.d_}
 \title{Partial Derivative dy/d_[wrt]}
 \usage{
-dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.99,
-  h = 0.05, n.best = NULL, mixed = FALSE, plot = FALSE,
-  noise.reduction = "mean")
+dy.d_(x, y, wrt, eval.points = "median", folds = 5, mixed = FALSE,
+  plot = FALSE, messages = TRUE)
 }
 \arguments{
 \item{x}{a numeric matrix or data frame.}
@@ -17,20 +16,14 @@ dy.d_(x, y, wrt, eval.points = "median", order = NULL, stn = 0.99,
 
 \item{eval.points}{numeric or options: ("mean", median", "last"); Regressor points to be evaluated.  \code{(eval.points = "median")} (default) to find partial derivatives at the median of every variable.  Set to \code{(eval.points = "last")} to find partial derivatives at the last value of every variable.  Set to \code{(eval.points="mean")} to find partial derivatives at the mean value of every variable. Set to \code{(eval.points = "all")} to find partial derivatives at every observation.}
 
-\item{order}{integer; \link{NNS.reg} \code{"order"}, defaults to NULL.}
+\item{folds}{integer; 5 (default) Sets the number of \code{folds} in the \link{NNS.stack} procedure for optimal \code{n.best} parameter.}
 
-\item{stn}{numeric [0, 1]; Signal to noise parameter, sets the threshold of \link{NNS.dep} which reduces \code{"order"} when \code{(order = NULL)}.  Defaults to 0.99 to ensure high dependence for higher \code{"order"} and endpoint determination.}
+\item{mixed}{logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.}
 
-\item{h}{numeric [0, ...]; Percentage step used for finite step method.  Defaults to \code{h = .05} representing a 5 percent step from the value of the regressor.}
-
-\item{n.best}{integer; Sets the number of closest regression points to use in estimating finite difference points in \link{NNS.reg}.  \code{NULL} (default) Uses \code{ceiling(sqrt(ncol(x)))}.}
-
-\item{mixed}{logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.  Only for single valued \code{eval.points}.}
-
-\item{plot}{logical; \code{FALSE} (default) Set to \code{(plot = TRUE)} to view plot.}
-
-\item{noise.reduction}{the method of determing regression points options: ("mean", "median", "mode", "off"); In low signal to noise situations, \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  \code{(noise.reduction = "off")}  allows for maximum possible fit in \link{NNS.reg}.
+\item{plot}{logical; \code{FALSE} (default) Set to \code{(plot = TRUE)} to view plot.
 Default setting is \code{(noise.reduction = "mean")}.}
+
+\item{messages}{logical; \code{TRUE} (default) Prints status messages of cross-validation on \code{n.best} parameter for \link{NNS.reg}.}
 }
 \value{
 Returns:
@@ -39,13 +32,9 @@ Returns:
 \item{\code{dy.d_(...)$"Second Derivative"}} the 2nd derivative
 \item{\code{dy.d_(...)$"Mixed Derivative"}} the mixed derivative (for two independent variables only).
 }
-Retuns a vector of partial derivatives when \code{(eval.points = "all")}.
 }
 \description{
 Returns the numerical partial derivate of \code{y} with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as \code{f(x + h)} and \code{f(x - h)} values.
-}
-\note{
-For known function testing and analysis, regressors should be transformed via \link{expand.grid} to fill the dimensions with \code{(order = "max")}.  Example provided below.
 }
 \examples{
 \dontrun{
@@ -57,7 +46,7 @@ dy.d_(B, y, wrt = 1, eval.points = c(.5, .5))
 ## Known function analysis: [y = a ^ 2 * b ^ 2]
 x_1 <- seq(0, 1, .1) ; x_2 <- seq(0, 1, .1)
 B <- expand.grid(x_1, x_2) ; y <- B[ , 1] ^ 2 * B[ , 2] ^ 2
-dy.d_(B, y, wrt = 1, eval.points = c(.5, .5), order = "max")}
+dy.d_(B, y, wrt = 1, eval.points = c(.5, .5))}
 }
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"

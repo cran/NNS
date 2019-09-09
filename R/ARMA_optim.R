@@ -20,10 +20,16 @@
 #' \item{\code{$weights}} the optimal weights of each seasonal period between an equal weight or NULL weighting
 #' \item{\code{$obj.fn}} the minimum objective function value
 #' \item{\code{$method}} the method identifying which \link{NNS.ARMA} method was used.
+#' \item{\code{$bias.shift}} a numerical result of the overall bias of the optimum objective function result.  To be added to the final result when using the \link{NNS.ARMA} with the derived parameters.
 #'}
-#' @note The number of combinations will grow prohibitively large, they should be kept to a minimum when \code{(method = "comb")}.
+#' @note
+#' \itemize{
+#' \item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 #'
-#' \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
+#' \item{} If variable cannot logically assume negative values, then the \code{$bias.shift} must be limited to 0 via a \code{pmax(0,...)} call.
+#'}
+#'
+#'
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -35,9 +41,13 @@
 #' nns.optims <- NNS.ARMA.optim(AirPassengers[1:132], training.set = 120,
 #' seasonal.factor = seq(12, 24, 6))
 #'
-#' ## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample
-#' NNS.ARMA(AirPassengers, h = 12, training.set = 132,
-#' seasonal.factor = nns.optims$periods, method = nns.optims$method)
+#' ## Then use optimal parameters in NNS.ARMA to predict 12 periods in-sample.
+#' ## Note the {$bias.shift} usage in the {NNS.ARMA} function:
+#' nns.estimates <- NNS.ARMA(AirPassengers, h = 12, training.set = 132,
+#' seasonal.factor = nns.optims$periods, method = nns.optims$method) + nns.optims$bias.shift
+#'
+#' ## If variable cannot logically assume negative values
+#' nns.estimates <- pmax(0, nns.estimates)
 #' }
 #'
 #' @export
@@ -87,6 +97,9 @@ NNS.ARMA.optim <- function(variable, training.set,
 
   if(length(seasonal.factor)==0){stop(paste0('Please ensure "seasonal.factor" contains elements less than ', l/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))}
 
+  oldw <- getOption("warn")
+  options(warn = -1)
+
   nns.estimates <- list()
   seasonal.combs <- list()
 
@@ -116,6 +129,7 @@ NNS.ARMA.optim <- function(variable, training.set,
           if(linear.approximation  && j!="lin"){
               seasonal.combs[[1]] <- matrix(unlist(overall.seasonals[[1]]),ncol=1)
               current.seasonals[[1]] <- unlist(overall.seasonals[[1]])
+
           } else {
               current.seasonals[[i]] <- as.integer(unlist(seasonal.combs[[1]]))
           }
@@ -124,6 +138,7 @@ NNS.ARMA.optim <- function(variable, training.set,
               next
           } else {
               current.seasonals[[i]] <- as.integer(unlist(current.seasonals[[i-1]]))
+
           }
       }
 
@@ -131,7 +146,6 @@ NNS.ARMA.optim <- function(variable, training.set,
 
       if(is.null(ncol(seasonal.combs[[i]]))){ break }
       if(dim(seasonal.combs[[i]])[2]==0){ break }
-
 
 
       if(j!="lin" && linear.approximation){
@@ -181,6 +195,7 @@ NNS.ARMA.optim <- function(variable, training.set,
       if(objective=='min'){
           current.seasonals[[i]] <- seasonal.combs[[i]][,which.min(nns.estimates[[i]])]
           current.estimate[i] <- min(nns.estimates[[i]])
+
         if(i > 1 && current.estimate[i] > current.estimate[i-1]){
           current.seasonals <- current.seasonals[-length(current.estimate)]
           current.estimate <- current.estimate[-length(current.estimate)]
@@ -259,8 +274,31 @@ NNS.ARMA.optim <- function(variable, training.set,
 
         if(weight.SSE<nns.SSE){
             nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
-        } else { nns.weights <- NULL }
-    } else { nns.weights <- NULL }
+
+            bias <- mode(predicted - actual)
+            predicted <- predicted+bias
+            bias.SSE <- eval(obj.fn)
+
+            if(bias.SSE>weight.SSE){bias <- 0}
+
+        } else {
+            nns.weights <- NULL
+
+            bias <- mode(predicted - actual)
+            predicted <- predicted+bias
+            bias.SSE <- eval(obj.fn)
+
+            if(bias.SSE>nns.SSE){bias <- 0}
+        }
+    } else {
+        nns.weights <- NULL
+
+        bias <- mode(predicted - actual)
+        predicted <- predicted+bias
+        bias.SSE <- eval(obj.fn)
+
+        if(bias.SSE>nns.SSE){bias <- 0}
+    }
 
   } else {
       nns.periods <- unlist(overall.seasonals[[which.max(unlist(overall.estimates))]])
@@ -274,15 +312,39 @@ NNS.ARMA.optim <- function(variable, training.set,
 
           if(weight.SSE>nns.SSE){
               nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
-          } else { nns.weights <- NULL }
-    } else { nns.weights <- NULL }
+
+              bias <- mode(predicted - actual)
+              predicted <- predicted+bias
+              bias.SSE <- eval(obj.fn)
+
+              if(bias.SSE<weight.SSE){bias <- 0}
+
+          } else {
+              nns.weights <- NULL
+
+              bias <- mode(predicted - actual)
+              predicted <- predicted+bias
+              bias.SSE <- eval(obj.fn)
+
+              if(bias.SSE<nns.SSE){bias <- 0}
+          }
+      } else {
+          nns.weights <- NULL
+
+          bias <- mode(predicted - actual)
+          predicted <- predicted+bias
+          bias.SSE <- eval(obj.fn)
+
+          if(bias.SSE<nns.SSE){bias <- 0}
+      }
 
   }
 
-
+  options(warn = oldw)
 
   return(list(periods = nns.periods,
               weights = nns.weights,
               obj.fn = nns.SSE,
-              method = nns.method))
+              method = nns.method,
+              bias.shift = bias))
 }

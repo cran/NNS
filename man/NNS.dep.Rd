@@ -27,9 +27,10 @@ Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlati
 Returns the dependence and nonlinear correlation between two variables based on higher order partial moment matrices measured by frequency or area.
 }
 \note{
-p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or dependence between \code{x,y}.
+p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or independence between \code{x,y}.
 }
 \examples{
+\dontrun{
 set.seed(123)
 x <- rnorm(100) ; y <- rnorm(100)
 NNS.dep(x, y)
@@ -39,7 +40,7 @@ x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
 B <- cbind(x, y, z)
 NNS.dep(B)
 
-\dontrun{
+
 ## p-values for [NNS.dep]
 x=seq(-5,5,.1);y=x^2+rnorm(length(x))
 

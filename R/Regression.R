@@ -6,7 +6,7 @@
 #' @param y a numeric or factor vector with compatible dimsensions to \code{x}.
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
+#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.96 to ensure high dependence for higher \code{("order")} and endpoint determination.
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjuction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.
@@ -42,8 +42,6 @@
 #'
 #'  \item{\code{"regression.points"}} provides the points used in the regression equation for the given order of partitions;
 #'
-#'  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
-#'
 #'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID};
 #' }
 #'
@@ -61,8 +59,6 @@
 #'  \item{\code{"RPM"}} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions;
 #'
 #'  \item{\code{"Point.est"}} returns the predicted value generated;
-#'
-#'  \item{\code{"Fitted"}} returns a vector containing only the fitted values, \code{y.hat};
 #'
 #'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
 #' }
@@ -123,7 +119,7 @@
 
 NNS.reg = function (x, y,
                     factor.2.dummy = TRUE, order = NULL,
-                    stn = .95,
+                    stn = .96,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
                     point.est = NULL,
@@ -142,75 +138,73 @@ NNS.reg = function (x, y,
   options(warn = -1)
 
   if(plot.regions && !is.null(order) && order == 'max'){
-      stop('Please reduce the "order" or set "plot.regions = FALSE".')
+    stop('Please reduce the "order" or set "plot.regions = FALSE".')
   }
 
   if(!is.null(confidence.interval) && std.errors == FALSE){
-      std.errors <- TRUE
+    std.errors <- TRUE
   }
 
 
   if(class(y) == "factor"){
-      type <- "CLASS"
-      noise.reduction <- "mode"
+    type <- "CLASS"
+    noise.reduction <- "mode"
   }
 
   if(factor.2.dummy && !multivariate.call){
-      if(!is.null(dim(x))){
-          x <- apply(x,2,factor_2_dummy)
-          if(is.null(colnames(x))) {colnames(x) <- colnames(x, do.NULL = FALSE)}
-          colnames(x) <- make.unique(colnames(x),sep = "_")
+    if(is.list(x)){
+      x <- do.call(cbind,x)
+    }
 
-          if(is.list(x)){
-              x <- do.call(cbind,x)
-              x <- apply(x,2,factor_2_dummy)
-              if(is.null(colnames(x))) {colnames(x) <- colnames(x, do.NULL = FALSE)}
-              colnames(x) <- make.unique(colnames(x),sep = "_")
-          }
+    if(!is.null(dim(x))){
+      x <- apply(x,2,factor_2_dummy)
+      if(is.null(colnames(x))) {colnames(x) <- colnames(x, do.NULL = FALSE)}
+      colnames(x) <- make.unique(colnames(x),sep = "_")
 
-      } else {
-          x <- factor_2_dummy(x)
-      }
+    } else {
+      x <- factor_2_dummy(x)
+    }
 
+    x <- data.matrix(x)
 
     if(!is.null(point.est)){
-        point.est.y <- numeric()
-        if(!is.null(dim(x))){
-            if(!is.null(dim(point.est)) && dim(point.est)[1]>1) {
-                point.est <- apply(point.est,2,factor_2_dummy)
-            } else {
-                point.est <- t(point.est)
-                point.est <- t(apply(point.est,2,factor_2_dummy))
-            }
+      point.est.y <- numeric()
+      if(is.list(point.est)){
+        point.est <- do.call(cbind,point.est)
+      }
 
-            if(is.null(colnames(point.est))) {colnames(point.est) <- colnames(x, do.NULL = FALSE)}
+      if(!is.null(dim(x))){
+        if(!is.null(dim(point.est)) && dim(point.est)[1]>1) {
+          point.est <- apply(point.est,2,factor_2_dummy)
+        } else {
+          point.est <- t(point.est)
+          point.est <- t(apply(point.est,2,factor_2_dummy))
+        }
 
-
-        if(is.list(point.est)){
-            point.est <- do.call(cbind,point.est)
-            point.est <- apply(point.est,2,factor_2_dummy)
-            if(is.null(colnames(point.est))) {colnames(point.est) <- colnames(x, do.NULL = FALSE)}
+        if(is.null(colnames(point.est)) && !is.null(dim(point.est))){
+          colnames(point.est) <- colnames(x, do.NULL = FALSE)
         }
 
         point.est <- as.matrix(point.est)
         l <- dim(point.est)[2]
 
       } else { # !is.null(dim(x))...implying univariate regression
-          point.est <- factor_2_dummy(point.est)
-          l <- dim(t(t(point.est)))[2]
-          if(is.null(names(point.est))) {names(point.est) <- names(x)}
-
+        point.est <- factor_2_dummy(point.est)
+        l <- dim(t(t(point.est)))[2]
+        if(is.null(names(point.est))) {names(point.est) <- names(x)}
       }
 
       ### Add 0's to data for missing regressors
       if(dim(t(t(x)))[2]!=l){
-          Missing <- setdiff(colnames(x),colnames(point.est))
-          point.est[Missing] <- 0
-          point.est <- point.est[colnames(x)]
+        Missing <- setdiff(colnames(x),colnames(point.est))
+        point.est[Missing] <- 0
+        point.est <- point.est[colnames(x)]
       }
 
+      point.est <- data.matrix(point.est)
+
     } else { # is.null(point.est)
-        point.est.y <- NULL
+      point.est.y <- NULL
     }
 
   } #if(factor.2.dummy && !multivariate.call)
@@ -238,13 +232,13 @@ NNS.reg = function (x, y,
         point.est.y <- NULL
       }
     } else {
-      x <- apply(x, 2, as.double)
+      x <- data.matrix(x)
       if(!is.null(point.est)){
         if(is.null(ncol(point.est))){
           point.est <- as.double(point.est)
           point.est.y <- numeric()
         } else {
-          point.est <- apply(point.est,2,as.double)
+          point.est <- data.matrix(point.est)
           point.est.y <- numeric()
         }
       } else {
@@ -252,7 +246,6 @@ NNS.reg = function (x, y,
       }
     }
   } # !factor to dummy
-
 
 
   original.variable <- x
@@ -274,13 +267,16 @@ NNS.reg = function (x, y,
       if(is.null(dim.red.method)){
         if(!is.null(original.columns)){
           if(is.null(n.best)){
-            n.best <- ceiling(sqrt(original.columns))
+            n.best <- floor(sqrt(original.columns))
           }
         } else {
           if(is.null(n.best)){
             n.best <- 2
           }
         }
+
+
+        stn <- 1 - NNS.dep.hd(cbind(x,y))$Dependence^(1/exp(1))
 
         return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot, residual.plot = residual.plot, order = order, n.best = n.best, type = type, location = location, noise.reduction = noise.reduction, norm = norm, dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions, ncores = ncores))
       } else { # Multivariate dim.red == FALSE
@@ -297,121 +293,125 @@ NNS.reg = function (x, y,
         x <- apply(data.matrix(x),2,as.numeric)
         y <- as.numeric(y)
 
+        if(!is.null(dim.red.method)){
+          x.star.matrix <- matrix(nrow = length(y))
 
-        x.star.matrix <- matrix(nrow = length(y))
-
-        if(dim.red.method!="cor"){
-          x.star.dep <- NNS.dep(cbind(x, y),print.map = FALSE)
-          x.star.dep[is.na(x.star.dep)] <- 0
-          x.star.cor <- cor(cbind(x, y))
-          x.star.cor[is.na(x.star.cor)] <- 0
-        } else {
-          x.star.cor <- cor(cbind(x, y))
-          x.star.cor[is.na(x.star.cor)] <- 0
-        }
-
-        if(dim.red.method == "NNS.dep"){
-          x.star.coef <- x.star.dep$Dependence[- (ncol(x) + 1), (ncol(x) + 1)]
-          x.star.coef[is.na(x.star.coef)] <- 0
-        }
-
-        if(dim.red.method == "cor"){
-          x.star.coef <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
-          x.star.coef[is.na(x.star.coef)] <- 0
-        }
-
-        if(dim.red.method == "NNS.caus"){
-          if(is.null(tau)){
-            tau <- "cs"
-          }
-          x.star.coef <- numeric()
-          for(i in 1:ncol(x)){
-            cause <- NNS.caus(x[ , i], y, tau = tau, plot = FALSE)
-            cause[is.na(cause)] <- 0
-            x.star.coef[i] <- cause[1] - cause[2]
-          }
-        }
-
-        if(dim.red.method == "all"){
-          if(is.null(tau)){
-            tau <- "cs"
-          }
-
-          x.star.coef.1 = numeric()
-
-          for(i in 1 : ncol(x)){
-            cause <- NNS.caus(x[ , i], y, tau = tau, plot = FALSE)
-            cause[is.na(cause)] <- 0
-            x.star.coef.1[i] <- cause[1] - cause[2]
-          }
-
-          x.star.coef.3 <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
-          x.star.coef.3[is.na(x.star.coef.3)] <- 0
-          x.star.coef.2 <- x.star.dep$Correlation[- (ncol(x) + 1), (ncol(x) + 1)]
-          x.star.coef.2[is.na(x.star.coef.2)] <- 0
-          x.star.coef[is.na(x.star.coef)] <- 0
-          x.star.coef <- rowMeans(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3))
-        }
-
-        signs <- sign(x.star.coef)
-        x.star.coef[abs(x.star.coef) < threshold] <- 0
-
-        norm.x <- apply(original.variable, 2, function(b) (b - min(b)) / (max(b) - min(b)))
-
-        x.star.matrix <- t( t(norm.x) * x.star.coef)
-
-
-        #In case all IVs have 0 correlation to DV
-        if(all(x.star.matrix == 0)){
-          x.star.matrix <- x
-          x.star.coef[x.star.coef == 0] <- signs
-        }
-
-        DENOMINATOR <- sum( abs( x.star.coef) > 0)
-
-        synthetic.x.equation.coef <- data.table(Variable = colnames.list, Coefficient = x.star.coef)
-
-        synthetic.x.equation <- rbindlist( list( synthetic.x.equation.coef, list("DENOMINATOR", DENOMINATOR)))
-
-
-        if(!is.null(point.est)){
-          new.point.est <- numeric()
-          points.norm <- rbind(point.est, original.variable)
-
-          points.norm <- apply(points.norm, 2, function(b) (b - min(b)) / (max(b) - min(b)))
-
-          if(is.null(np)){
-            new.point.est <- sum(points.norm[1,] * x.star.coef) / sum( abs( x.star.coef) > 0)
+          if(dim.red.method!="cor"){
+            x.star.dep <- NNS.dep(cbind(x, y),print.map = FALSE)
+            x.star.dep[is.na(x.star.dep)] <- 0
+            x.star.cor <- cor(cbind(x, y))
+            x.star.cor[is.na(x.star.cor)] <- 0
           } else {
-            point.est2 <- points.norm[1:np,]
-            new.point.est <- sapply(1 : np, function(i) sum(point.est2[i, ] * x.star.coef) / sum( abs( x.star.coef) > 0))
+            x.star.cor <- cor(cbind(x, y))
+            x.star.cor[is.na(x.star.cor)] <- 0
           }
 
-          point.est <- new.point.est
+          if(dim.red.method == "NNS.dep"){
+            x.star.coef <- x.star.dep$Dependence[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef[is.na(x.star.coef)] <- 0
+          }
+
+          if(dim.red.method == "cor"){
+            x.star.coef <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef[is.na(x.star.coef)] <- 0
+          }
+
+          if(dim.red.method == "NNS.caus"){
+            if(is.null(tau)){
+              tau <- "cs"
+            }
+            x.star.coef <- numeric()
+            for(i in 1:ncol(x)){
+              cause <- NNS.caus(x[ , i], y, tau = tau, plot = FALSE)
+              cause[is.na(cause)] <- 0
+              x.star.coef[i] <- cause[1] - cause[2]
+            }
+          }
+
+          if(dim.red.method == "all"){
+            if(is.null(tau)){
+              tau <- "cs"
+            }
+
+            x.star.coef.1 <- numeric()
+
+            for(i in 1 : ncol(x)){
+              cause <- NNS.caus(x[ , i], y, tau = tau, plot = FALSE)
+              cause[is.na(cause)] <- 0
+              x.star.coef.1[i] <- cause[1] - cause[2]
+            }
+
+            x.star.coef.3 <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef.3[is.na(x.star.coef.3)] <- 0
+            x.star.coef.2 <- x.star.dep$Correlation[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef.2[is.na(x.star.coef.2)] <- 0
+            x.star.coef[is.na(x.star.coef)] <- 0
+            x.star.coef <- rowMeans(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3))
+          }
+
+          signs <- sign(x.star.coef)
+          x.star.coef[abs(x.star.coef) < threshold] <- 0
+
+          norm.x <- apply(original.variable, 2, function(b) (b - min(b)) / (max(b) - min(b)))
+
+          x.star.matrix <- t( t(norm.x) * x.star.coef)
+          x.star.matrix[is.na(x.star.matrix)] <- 0
+
+          #In case all IVs have 0 correlation to DV
+          if(all(x.star.matrix == 0)){
+            x.star.matrix <- x
+            x.star.coef[x.star.coef == 0] <- signs
+          }
+
+          DENOMINATOR <- sum( abs( x.star.coef) > 0)
+
+          synthetic.x.equation.coef <- data.table(Variable = colnames.list, Coefficient = x.star.coef)
+
+          synthetic.x.equation <- rbindlist( list( synthetic.x.equation.coef, list("DENOMINATOR", DENOMINATOR)))
+
+
+          if(!is.null(point.est)){
+            new.point.est <- numeric()
+            points.norm <- rbind(point.est, original.variable)
+
+            points.norm <- apply(points.norm, 2, function(b) (b - min(b)) / (max(b) - min(b)))
+
+            if(is.null(np)|np==1){
+              new.point.est <- sum(points.norm[1,] * x.star.coef) / sum( abs( x.star.coef) > 0)
+
+            } else {
+              point.est2 <- points.norm[1:np,]
+              new.point.est <- sapply(1 : np, function(i) sum(point.est2[i, ] * x.star.coef) / sum( abs( x.star.coef) > 0))
+            }
+
+            point.est <- new.point.est
+          }
+
+          x <- rowSums(x.star.matrix / sum( abs( x.star.coef) > 0))
+
+          x.star <- data.table(x.star = x)
         }
-
-        x <- rowSums(x.star.matrix / sum( abs( x.star.coef) > 0))
-
-        x.star <- data.table(x.star = x)
-
 
       } # Multivariate Not NULL type
+
     } # Univariate
+
   } # Multivariate
 
   dependence <- NNS.dep(x, y, print.map = FALSE)$Dependence ^ (1 / exp(1))
   dependence[is.na(dependence)] <- 0
 
-  if(is.null(original.columns)){
+  if(is.null(original.columns) | is.null(dim.red.method)){
     synthetic.x.equation <- NULL
     x.star <- NULL
   }
 
   if(is.null(order)){
-    dep.reduced.order <- round(ceiling(log(length(y))) * dependence)
+    dep.reduced.order <- floor(floor(log(length(y))) * dependence)
   } else {
     dep.reduced.order <- order
   }
+
 
   if(dependence > stn ){
     if(is.null(type)){
@@ -443,34 +443,65 @@ NNS.reg = function (x, y,
   min.range <- min(regression.points$x)
   max.range <- max(regression.points$x)
 
-  y.min <- na.omit(y[x <= min.range])
+  mid.min.range <- mean(c(min(x),min(regression.points$x)))
+  mid.max.range <- mean(c(max(x),max(regression.points$x)))
+
+  y.mid.min <-  na.omit(y[x > mid.min.range & x <= min.range])
+  l_y.mid.min <- length(y.mid.min)
+
+  y.min <- na.omit(y[x <= mid.min.range])
   l_y.min <- length(y.min)
 
   if(l_y.min<=1){
-    a <- y[1]
+    a <- y.min
     b <- a
+    f <- a
   } else {
     a <- median(y.min)
     b <- mode(y.min)
+    f <- mean(c(max(y.min),min(y.min)))
   }
 
-  y.max <- na.omit(y[x >= max.range])
+  if(l_y.mid.min<=1){
+    a1 <- y.mid.min
+    b1 <- a1
+  } else {
+    a1 <- median(y.mid.min)
+    b1 <- mode(y.mid.min)
+  }
+
+  y.mid.max <- na.omit(y[x > max.range & x <= mid.max.range])
+  l_y.mid.max <- length(y.mid.max)
+
+  y.max <- na.omit(y[x > mid.max.range])
   l_y.max <- length(y.max)
 
   if(l_y.max<=1){
-    d <- tail(y,1)
+    d <- median(y.max)
     e <- d
+    g <- e
   } else {
     d <- median(y.max)
     e <- mode(y.max)
+    g <- mean(c(max(y.max),min(y.max)))
   }
 
+  if(l_y.mid.max<=1){
+    d1 <- median(y.mid.max)
+    e1 <- d1
+  } else {
+    d1 <- median(y.mid.max)
+    e1 <- mode(y.mid.max)
+  }
 
-  Dynamic.average.min <- mean(c(a, b))
-  Dynamic.average.max <- mean(c(d, e))
+  Dynamic.average.min <- mean(c(a, b, f))
+  Dynamic.average.max <- mean(c(d, e, g))
 
-  ###Endpoints
-  if(length(x[x < min.range]) > 1){
+  Dynamic.average.mid.min <- mean(c(a1, b1, Dynamic.average.min))
+  Dynamic.average.mid.max <- mean(c(d1, e1, Dynamic.average.max))
+
+  ### Endpoints
+  if(length(x[x < mid.min.range]) > 1){
     if(dependence < stn){
       x0 <- Dynamic.average.min
     } else {
@@ -480,7 +511,7 @@ NNS.reg = function (x, y,
     x0 <- unique(y[x == min(x)])
   }
 
-  if(length(x[x > max.range]) > 1){
+  if(length(x[x > mid.max.range]) > 1){
     if(dependence < stn){
       x.max <- Dynamic.average.max
     } else {
@@ -490,8 +521,22 @@ NNS.reg = function (x, y,
     x.max <- unique(y[x == max(x)])
   }
 
-  regression.points <- rbindlist(list(regression.points, list(max(x), mean(x.max))))
-  regression.points <- rbindlist(list(regression.points, list(min(x), mean(x0))))
+  ### Mid Endpoints
+  x.mid.min <- Dynamic.average.mid.min
+
+  x.mid.max <- Dynamic.average.mid.max
+
+  mid.max.rps <- data.table(do.call(rbind,list(c(mid.max.range, mean(x.mid.max)),
+                                               c(max(x),mean(x.max)))))
+
+  mid.min.rps <- data.table(do.call(rbind,list(c(min(x), mean(x0)),
+                                               c(mid.min.range, mean(x.mid.min)))))
+
+  regression.points <- rbindlist(list(regression.points, mid.max.rps ))
+
+  regression.points <- rbindlist(list(regression.points, mid.min.rps ))
+
+  regression.points <- regression.points[complete.cases(regression.points),]
 
   setkey(regression.points, x, y)
 
@@ -509,7 +554,7 @@ NNS.reg = function (x, y,
 
 
   Regression.Coefficients <- regression.points[ , .(rise,run)]
-###
+  ###
   Regression.Coefficients <- Regression.Coefficients[complete.cases(Regression.Coefficients), ]
 
   upper.x <- regression.points[(2 : .N), x]
@@ -690,7 +735,6 @@ NNS.reg = function (x, y,
                 "Point" = point.est,
                 "Point.est" = point.est.y,
                 "regression.points" = regression.points[],
-                "Fitted" = fitted[ , .(y.hat)],
                 "Fitted.xy" = fitted))
   } else {
     invisible(list("R2" = R2,
@@ -702,7 +746,6 @@ NNS.reg = function (x, y,
                    "Point" = point.est,
                    "Point.est" = point.est.y,
                    "regression.points" = regression.points[],
-                   "Fitted" = fitted[ , .(y.hat)],
                    "Fitted.xy" = fitted))
   }
 

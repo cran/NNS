@@ -44,7 +44,7 @@ sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 ## Nonlinear Regression
 Now we can try using a nonlinear regression on the relevant component series using `method = "nonlin"`.
 ```{r nonlinear,fig.width=5,fig.height=3,fig.align = "center"}
-nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin", plot = TRUE, seasonal.factor = 12, seasonal.plot = FALSE, ncores = 1)
+nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin", plot = FALSE, seasonal.factor = 12, seasonal.plot = FALSE, ncores = 1)
 
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 ```
@@ -107,12 +107,26 @@ sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 ```
 
 
+## `$bias.shift`
+`NNS.ARMA.optim` will return a `$bias.shift`, which is to be added to the ultimate `NNS.ARMA` forecast when using the optimum parameters from the `NNS.ARMA.optim` call.
+```{r best optim3,fig.width=5,fig.height=3,fig.align = "center"}
+sqrt(mean((nns+nns.optimal$bias.shift - tail(AirPassengers, 44)) ^ 2))
+```
+
+### Negative values and `$bias.shift`
+If the variable cannot logically assume negative values, then simply limit the `NNS` estimates.
+```{r neg}
+nns <- pmax(0, nns+nns.optimal$bias.shift)
+sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
+```
+
 ## Extension of Estimates
 Using our cross-validated parameters (`seasonal.factor` and `method`) we can forecast another 50 periods out-of-range (`h = 50`), by dropping the `training.set` parameter.
 
 ```{r extension,results='hide',fig.width=5,fig.height=3,fig.align = "center"}
-NNS.ARMA(AirPassengers, h = 50, seasonal.factor = nns.optimal$periods, method  = nns.optimal$method, weights = nns.optimal$weights, plot = TRUE, seasonal.plot = FALSE, ncores = 1)
+NNS.ARMA(AirPassengers, h = 50, seasonal.factor = nns.optimal$periods, method  = nns.optimal$method, weights = nns.optimal$weights, plot = TRUE, seasonal.plot = FALSE, ncores = 1) + nns.optimal$bias.shift
 ```
+
 
 ## Brief Notes on Other Parameters
 * `seasonal.factor = c(1, 2, ...)`

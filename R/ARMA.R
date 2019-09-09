@@ -13,7 +13,7 @@
 #'
 #' \code{(seasonal.factor = FALSE)}.
 #' @param negative.values logical; \code{FALSE} (default) If the variable can be negative, set to
-#' \code{(negative.values = TRUE)}.
+#' \code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.
 #' @param method options: ("lin", "nonlin", "both"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlineaer regression, set to
 #' \code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.
 #' @param dynamic logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(dynamic = TRUE)}.  The default is \code{(dynamic = FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.
@@ -81,6 +81,9 @@ NNS.ARMA <- function(variable,
       stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
   }
 
+  oldw <- getOption("warn")
+  options(warn = -1)
+
 
   if (is.null(ncores)) {
       num_cores <- as.integer(detectCores() / 2) - 1
@@ -97,9 +100,10 @@ NNS.ARMA <- function(variable,
       seasonal.factor <- FALSE
   }
 
-
   variable <- as.numeric(variable)
   OV <- variable
+
+  if(min(variable)<0){negative.values=TRUE}
 
   if(!is.null(training.set)){
       variable <- variable[1 : training.set]
@@ -114,7 +118,7 @@ NNS.ARMA <- function(variable,
 
 
   if(is.numeric(seasonal.factor)){
-      M <- matrix(seasonal.factor,ncol=1)
+      M <- matrix(seasonal.factor, ncol=1)
       colnames(M) <- "Period"
       lag <- seasonal.factor
       output <- numeric(length(seasonal.factor))
@@ -141,7 +145,10 @@ NNS.ARMA <- function(variable,
         if(is.null(best.periods)){
             M <- M$all.periods
         } else {
-            if(!seasonal.factor && is.numeric(best.periods) && length(M$all.periods$Period) < best.periods){
+            if(!seasonal.factor && is.numeric(best.periods) && (length(M$all.periods$Period) < best.periods)){
+                best.periods <- length(M$all.periods$Period)
+            }
+            if(!seasonal.factor && is.null(best.periods)){
                 best.periods <- length(M$all.periods$Period)
             }
         M <- M$all.periods[1 : best.periods, ]
@@ -149,8 +156,10 @@ NNS.ARMA <- function(variable,
     }
 
 
-    ASW <- ARMA.seas.weighting(seasonal.factor,M)
+    ASW <- ARMA.seas.weighting(seasonal.factor, M)
     lag <- ASW$lag
+
+
     if(is.null(weights)){
         Weights <- ASW$Weights
     } else {
@@ -164,18 +173,22 @@ NNS.ARMA <- function(variable,
   for (j in 1 : h){
       ## Regenerate seasonal.factor if dynamic
       if(dynamic){
-          seas.matrix = NNS.seas(variable, plot=FALSE)
+          seas.matrix = NNS.seas(variable, plot = FALSE)
           if(!is.list(seas.matrix)){
               M <- t(1)
           } else {
               if(is.null(best.periods)){
                   M <- seas.matrix$all.periods
+                  best.periods <- length(M$all.periods$Period)
               } else {
-              M <- seas.matrix$all.periods[1 : best.periods, ]
+                  if(length(M$all.periods$Period) < best.periods){
+                      best.periods <- length(M$all.periods$Period)
+                  }
+                  M <- seas.matrix$all.periods[1 : best.periods, ]
               }
           }
 
-      ASW <- ARMA.seas.weighting(seasonal.factor,M)
+      ASW <- ARMA.seas.weighting(seasonal.factor, M)
       lag <- ASW$lag
       Weights <- ASW$Weights
     }
@@ -198,10 +211,11 @@ NNS.ARMA <- function(variable,
         last.y <- tail(y, 1)
 
         ## Skeleton NNS regression for NNS.ARMA
-        reg.points <- tail(NNS.reg(x, y, return.values = FALSE , plot = FALSE, noise.reduction = 'off', multivariate.call = TRUE), 2)
+        reg.points <- tail(NNS.reg(x, y, return.values = FALSE , plot = FALSE, noise.reduction = 'off', multivariate.call = TRUE), 3)
+        reg.points <- reg.points[complete.cases(reg.points),]
 
-        run <- diff(reg.points$x)
-        rise <- diff(reg.points$y)
+        run <- mean(diff(reg.points$x))
+        rise <- mean(diff(reg.points$y))
 
         last.y + (rise / run)
       }
@@ -270,9 +284,9 @@ if(!is.null(cl)){
       if(seasonal.plot){
           par(mfrow = c(2, 1))
           if(ncol(M) > 1){
-              plot(M[ , Period], M[ , Coefficient.of.Variance],
+              plot(M[1, Period], M[1, Coefficient.of.Variance],
                     xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test", ylim = c(0, 2 * M[1, Variable.Coefficient.of.Variance]))
-              points(M[1, Period], M[1, Coefficient.of.Variance], pch = 19, col = 'red')
+              points(M[ , Period], M[ , Coefficient.of.Variance], pch = 19, col = 'red')
               abline(h = M[1, Variable.Coefficient.of.Variance], col = "red", lty = 5)
               text((M[ , min(Period)] + M[ , max(Period)]) / 2, M[1, Variable.Coefficient.of.Variance], pos = 3, "Variable Coefficient of Variance", col = 'red')
           } else {
@@ -319,6 +333,7 @@ if(!is.null(cl)){
     par(original.par)
   }
 
+  options(warn = oldw)
   return(Estimates)
 
 }

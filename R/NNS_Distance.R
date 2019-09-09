@@ -11,14 +11,31 @@
 #'
 #' @export
 
-NNS.distance <- function(rpm,dist.estimate,type,k){
+NNS.distance <- function(rpm, dist.estimate, type, k){
   n <- length(dist.estimate)
 
+  y.hat <- rpm$y.hat
+
+  cols <- names(rpm)[names(rpm)!="y.hat"]
+
+  rpm <- rbind(as.list(t(dist.estimate)), rpm[,.SD,.SDcols=cols])
+  rpm[, names(rpm) := lapply(.SD, as.numeric)]
+
+  rpm <- rpm[,lapply(.SD, function(b) (b - min(b)) / (max(b) - min(b)))]
+
+  dist.estimate <- as.numeric(rpm[1,])
+
+  rpm <- rpm[-1,]
+
+  rpm$y.hat <- y.hat
+
+
   if(type=="L2"){
-      row.sums <- rpm[,  `:=`(Sum= Reduce(`+`, lapply(1 : n,function(i) (rpm[[i]]-as.numeric(dist.estimate)[i])^2)))][,Sum]
+    row.sums <- rpm[,  `:=`(Sum= Reduce(`+`, lapply(1 : n,function(i) (rpm[[i]]-as.numeric(dist.estimate)[i])^2)))][,Sum]
   } else {
-      row.sums <- rpm[,  `:=`(Sum= Reduce(`+`, lapply(1 : n,function(i) abs(rpm[[i]]-as.numeric(dist.estimate)[i]))))][,Sum]
+    row.sums <- rpm[,  `:=`(Sum= Reduce(`+`, lapply(1 : n,function(i) abs(rpm[[i]]-as.numeric(dist.estimate)[i]))))][,Sum]
   }
+
 
   row.sums[row.sums == 0] <- 1e-10
 
@@ -32,7 +49,11 @@ NNS.distance <- function(rpm,dist.estimate,type,k){
   highest <- rev(order(weights))[1 : min(k, length(weights))]
 
   weights[-highest] <- 0
+
+  weights[highest] <- 1
+
   weights.sum <- sum(weights)
+
 
   weights <- weights / weights.sum
   single.estimate <- sum(weights * rpm$y.hat)

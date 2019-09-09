@@ -13,7 +13,7 @@ nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "lin", plot =
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"-------------
-nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin", plot = TRUE, seasonal.factor = 12, seasonal.plot = FALSE, ncores = 1)
+nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin", plot = FALSE, seasonal.factor = 12, seasonal.plot = FALSE, ncores = 1)
 
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
@@ -49,6 +49,13 @@ nns = NNS.ARMA(AirPassengers, training.set = 100, h = 44, seasonal.factor = nns.
 
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
+## ----best optim3,fig.width=5,fig.height=3,fig.align = "center"-----------
+sqrt(mean((nns+nns.optimal$bias.shift - tail(AirPassengers, 44)) ^ 2))
+
+## ----neg-----------------------------------------------------------------
+nns <- pmax(0, nns+nns.optimal$bias.shift)
+sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
+
 ## ----extension,results='hide',fig.width=5,fig.height=3,fig.align = "center"----
-NNS.ARMA(AirPassengers, h = 50, seasonal.factor = nns.optimal$periods, method  = nns.optimal$method, weights = nns.optimal$weights, plot = TRUE, seasonal.plot = FALSE, ncores = 1)
+NNS.ARMA(AirPassengers, h = 50, seasonal.factor = nns.optimal$periods, method  = nns.optimal$method, weights = nns.optimal$weights, plot = TRUE, seasonal.plot = FALSE, ncores = 1) + nns.optimal$bias.shift
 

@@ -25,3 +25,8 @@ df <- data.frame(x = runif(10000, -1, 1), y = runif(10000, -1, 1))
 df <- subset(df, (x ^ 2 + y ^ 2 <= 1 & x ^ 2 + y ^ 2 >= 0.95))
 NNS.dep(df$x, df$y, print.map = TRUE)
 
+## ----multi---------------------------------------------------------------
+set.seed(123)
+x=rnorm(1000);y=rnorm(1000);z=rnorm(1000)
+NNS.dep.hd(cbind(x,y,z),plot=TRUE,independence.overlay=TRUE)
+

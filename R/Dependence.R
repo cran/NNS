@@ -9,11 +9,12 @@
 #' @param print.map logical; \code{FALSE} (default) Plots quadrant means.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
-#' @note p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or dependence between \code{x,y}.
+#' @note p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or independence between \code{x,y}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
 #' @examples
+#' \dontrun{
 #' set.seed(123)
 #' x <- rnorm(100) ; y <- rnorm(100)
 #' NNS.dep(x, y)
@@ -23,7 +24,7 @@
 #' B <- cbind(x, y, z)
 #' NNS.dep(B)
 #'
-#' \dontrun{
+#'
 #' ## p-values for [NNS.dep]
 #' x=seq(-5,5,.1);y=x^2+rnorm(length(x))
 #'
@@ -81,66 +82,82 @@ NNS.dep = function(x,
                    print.map = FALSE,
                    ncores = NULL){
 
-    if(!is.null(y)){
-        # No dependence if only a single value
-        if(length(unique(x))==1 | length(unique(y))==1){
-            if(print.map){
-                NNS.part(x, y, order=1, Voronoi = TRUE)
-            }
-
-            return(list("Correlation" = 0,
-                       "Dependence" = 0))
-        }
-
-
- if (is.null(ncores)) {
-        num_cores <- detectCores() - 1
-      } else {
-        num_cores <- ncores
+  if(!is.null(y)){
+    # No dependence if only a single value
+    if(length(unique(x))==1 | length(unique(y))==1){
+      if(print.map){
+        NNS.part(x, y, order=1, Voronoi = TRUE)
       }
 
-        l <- length(x)
+      return(list("Correlation" = 0,
+                  "Dependence" = 0))
+    }
 
-        if(l <= 500){
-            return(NNS.dep.base(x, y, order = order, degree = degree, print.map = print.map))
+
+    if (is.null(ncores)) {
+      num_cores <- detectCores() - 1
+    } else {
+      num_cores <- ncores
+    }
+
+    l <- length(x)
+
+    if(l < 150){
+      return(NNS.dep.base(x, y, order = order, degree = degree, print.map = print.map))
+    }
+
+    seg <- as.integer(.2*l)
+    segs <- list(5L)
+    uniques <- list(5L)
+
+    for(i in 1:5){
+      if(i == 1){
+        segs[[i]] <- 1 : min(l, min(100, l/5))
+        uniques[[i]] <- length(unique(x[segs[[i]]]))
+      }
+      if(i > 1 & i < 5){
+        segs[[i]] <- max(1, (i*seg - min(50, l/5))) : min(l,(i*seg + min(50, l/5)))
+        uniques[[i]] <- length(unique(x[segs[[i]]]))
+      }
+      if(i == 5){
+        segs[[i]] <- max(1, (l - min(100, l/5))) : l
+        uniques[[i]] <- length(unique(x[segs[[i]]]))
+      }
+    }
+
+    nns.dep <- list(5L)
+
+    if(any(unlist(uniques)==1)){
+      DT <- data.table(x,y,key = "x")
+      for(i in 1:3){
+        if(i==1){
+          nns.dep[[i]] <- NNS.dep.base(DT[,.SD[1],by="x"]$x,DT[,.SD[1],by="x"]$y,print.map = FALSE)
         }
-
-        seg <- as.integer(.2*l)
-        segs <- list(5L)
-
-        for(i in 1:5){
-            if(i == 1){
-                segs[[i]] <- 1 : min(l,100)
-            }
-            if(i > 1 & i < 5){
-                segs[[i]] <- max(1, (i*seg - 50)) : min(l,(i*seg+50))
-            }
-            if(i == 5){
-                segs[[i]] <- max(1, (l-100)) : max(l,100)
-            }
+        if(i==2) {
+          nns.dep[[i]] <- NNS.dep.base(DT[,.SD[min(1,round(.N/2))],by="x"]$x,DT[,.SD[min(1,round(.N/2))],by="x"]$y,print.map = FALSE)
         }
-
-        nns.dep <- list(5L)
-
-cl <- makeCluster(num_cores)
-registerDoParallel(cl)
-
-  nns.dep <- foreach(i = 1:5,.packages = "NNS")%dopar%{
-        NNS.dep.base(x[segs[[i]]], y[segs[[i]]], print.map = FALSE)
-  }
-
-stopCluster(cl)
-registerDoSEQ()
-
-        if(l > 500 & print.map){
-            NNS.part(x, y, order = order, Voronoi = TRUE)
+        if(i==3) {
+          nns.dep[[i]] <- NNS.dep.base(DT[,.SD[.N],by="x"]$x,DT[,.SD[.N],by="x"]$y,print.map = FALSE)
         }
-
-        return(list("Correlation" = mean(unlist(lapply(nns.dep, `[[`, 1))),
-                "Dependence" = mean(unlist(lapply(nns.dep, `[[`, 2)))))
+      }
 
     } else {
-        return(NNS.dep.matrix(x, order=order, degree = degree))
+        for(i in 1:5){
+            nns.dep[[i]] <- NNS.dep.base(x[segs[[i]]], y[segs[[i]]], print.map = FALSE)
+        }
+
     }
+
+
+    if(l >= 150 & print.map){
+      NNS.part(x, y, order = order, Voronoi = TRUE)
+    }
+
+    return(list("Correlation" = mean(unlist(lapply(nns.dep, `[[`, 1))),
+                "Dependence" = mean(unlist(lapply(nns.dep, `[[`, 2)))))
+
+  } else {
+    return(NNS.dep.matrix(x, order=order, degree = degree))
+  }
 
 }
