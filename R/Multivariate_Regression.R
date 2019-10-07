@@ -1,4 +1,4 @@
-NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', norm = NULL, dist = "L2", return.values = FALSE, plot.regions = FALSE, ncores=ncores){
+NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'mean', dist = "L2", return.values = FALSE, plot.regions = FALSE, ncores=ncores){
 
 
 
@@ -33,25 +33,6 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
     }
   }
 
-  if(!is.null(norm)){
-    if(!is.null(point.est)){
-      point.B <- rbind(point.est, original.IVs)
-      colnames(point.B) <- colnames(point.est)
-      if(norm == 'std'){
-        point.est <- apply(point.B, 2, function(c) (c - min(c)) / (max(c) - min(c)))[1 : np, ]
-        original.IVs <- apply(original.IVs, 2, function(b) (b - min(b)) / (max(b) - min(b)))
-      } else {
-        point.est <- NNS.norm(point.B)[1 : np, ]
-        original.IVs <- NNS.norm(original.IVs)
-      }
-    } else {
-      if(norm == 'std'){
-        original.IVs <- apply(original.IVs, 2, function(b) (b - min(b)) / (max(b) - min(b)))
-      } else {
-        original.IVs <- NNS.norm(original.IVs)
-      }
-    }
-  } # Normalization
 
   original.matrix <- cbind.data.frame(original.IVs, original.DV)
 
@@ -98,7 +79,9 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
     colnames(reg.points.matrix) <- as.character(colnames.list)
   }
 
-  reg.points.matrix <- unique(reg.points.matrix)
+  if(is.numeric(order) | is.null(order)){
+      reg.points.matrix <- unique(reg.points.matrix)
+  }
 
   ### Find intervals in regression points for each variable, use left.open T and F for endpoints.
   ### PARALLEL
@@ -136,15 +119,18 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
   mean.by.id.matrix <- data.table(original.IVs, original.DV, NNS.ID, obs)
 
   setkey(mean.by.id.matrix, 'NNS.ID', 'obs')
-
-  if(noise.reduction == 'mean' | noise.reduction == 'off'){
-    mean.by.id.matrix = mean.by.id.matrix[ , y.hat := mean(original.DV), by = 'NNS.ID']
-  }
-  if(noise.reduction == 'median'){
-    mean.by.id.matrix = mean.by.id.matrix[ , y.hat := median(original.DV), by = 'NNS.ID']
-  }
-  if(noise.reduction == 'mode'){
-    mean.by.id.matrix = mean.by.id.matrix[ , y.hat := mode(original.DV), by = 'NNS.ID']
+  if(is.numeric(order) | is.null(order)){
+      if(noise.reduction == 'mean' | noise.reduction == 'off'){
+          mean.by.id.matrix = mean.by.id.matrix[ , y.hat := mean(original.DV), by = 'NNS.ID']
+      }
+      if(noise.reduction == 'median'){
+          mean.by.id.matrix = mean.by.id.matrix[ , y.hat := median(original.DV), by = 'NNS.ID']
+      }
+      if(noise.reduction == 'mode'){
+          mean.by.id.matrix = mean.by.id.matrix[ , y.hat := mode(original.DV), by = 'NNS.ID']
+      }
+  } else {
+      mean.by.id.matrix = mean.by.id.matrix[ , y.hat := original.DV, by = 'NNS.ID']
   }
 
   y.identifier <- mean.by.id.matrix[ , NNS.ID]
@@ -160,15 +146,16 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
   setkey(mean.by.id.matrix, 'NNS.ID')
   REGRESSION.POINT.MATRIX = mean.by.id.matrix[ , obs := NULL]
 
-
-  if(noise.reduction == 'mean' | noise.reduction == 'off'){
-    REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[ , lapply(.SD, mean), by = NNS.ID]
-  }
-  if(noise.reduction == 'median'){
-    REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[, lapply(.SD, median), by = NNS.ID]
-  }
-  if(noise.reduction == 'mode'){
-    REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[, lapply(.SD, mode), by = NNS.ID]
+  if(is.numeric(order) | is.null(order)){
+      if(noise.reduction == 'mean' | noise.reduction == 'off'){
+          REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[ , lapply(.SD, mean), by = NNS.ID]
+      }
+      if(noise.reduction == 'median'){
+          REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[, lapply(.SD, median), by = NNS.ID]
+      }
+      if(noise.reduction == 'mode'){
+          REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[, lapply(.SD, mode), by = NNS.ID]
+      }
   }
 
   REGRESSION.POINT.MATRIX <- REGRESSION.POINT.MATRIX[ , NNS.ID := NULL]
@@ -218,7 +205,8 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
 
 
       DISTANCES <- foreach(i = 1:nrow(point.est),.packages = c("NNS","data.table"))%dopar%{
-        NNS.distance(rpm=REGRESSION.POINT.MATRIX, dist.estimate = point.est[i,], type=dist, k=n.best)
+        NNS.distance(rpm=REGRESSION.POINT.MATRIX, dist.estimate = point.est[i,],
+                     type = dist, k = n.best)
       }
 
       DISTANCES <- unlist(DISTANCES)
@@ -227,6 +215,8 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
       highs <- do.call(pmax,as.data.frame(t(point.est))) > maximums
 
       outsiders <- lows + highs
+
+      outsiders[is.na(outsiders)] <- 0
 
       if(sum(outsiders)>0){
         outside.columns <- numeric()
@@ -275,6 +265,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
 
   R2 <- (sum((y.hat - mean(original.DV)) * (original.DV - mean(original.DV))) ^ 2) / (sum((original.DV - mean(original.DV)) ^ 2) * sum((y.hat - mean(original.DV)) ^ 2))
 
+  fitted.matrix$residuals <- fitted.matrix$y.hat - fitted.matrix$y
 
   ### 3d plot
   if(plot && n == 2){

@@ -47,6 +47,11 @@ NNS.part = function(x, y,
                     min.obs.stop = FALSE,
                     noise.reduction = "mean"){
 
+    noise.reduction <- tolower(noise.reduction)
+    if(!any(noise.reduction%in%c("mean","median","mode","off"))){
+        stop("Please ensure noise.reduction is from 'mean', 'median', 'mode' or 'off'")
+    }
+
     if(is.null(obs.req)) obs.req <- 8
 
     if(!is.null(order)){
@@ -57,6 +62,11 @@ NNS.part = function(x, y,
         }
     } else {
         order=Inf
+    }
+
+    if(Voronoi){
+            x.label <- deparse(substitute(x))
+            y.label <- deparse(substitute(y))
     }
 
     x <- as.numeric(x)
@@ -71,7 +81,7 @@ NNS.part = function(x, y,
 
 
     if(Voronoi){
-        plot(x, y, col = 'steelblue', cex.lab = 2, xlab = "X", ylab = "Y")
+        plot(x, y, col = 'steelblue', cex.lab = 1.5, xlab = x.label, ylab = y.label)
     }
 
 
@@ -113,7 +123,7 @@ NNS.part = function(x, y,
             old.obs.req.rows <- PART[old.counts >= obs.req, which = TRUE]
 
             # Stop if diminishing returns
-            if(obs.req > 0 && length(obs.req.rows) < length(old.obs.req.rows)) break
+            if(obs.req > 0 & length(obs.req.rows) < length(old.obs.req.rows)) break
 
             #Segments for Voronoi...
             if(Voronoi){

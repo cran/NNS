@@ -59,7 +59,9 @@ NNS.boost <- function(IVs.train,
                       status = TRUE,
                       ncores = NULL, subcores = NULL){
 
+  if(is.null(obj.fn)){ stop("Please provide an objective function")}
 
+  objective <- tolower(objective)
 
   # Parallel process...
   if (is.null(ncores)) {
@@ -229,10 +231,10 @@ NNS.boost <- function(IVs.train,
       new.iv.test <- x[new.index,]
 
       if(dim(new.iv.train)[2]!=dim(new.iv.test)[2]){
-        Missing <- setdiff(colnames(new.iv.train),colnames(new.iv.test))
+        Missing <- setdiff(names(new.iv.train),names(new.iv.test))
         if(length(Missing)>0){
           new.iv.test[Missing] <- 0
-          new.iv.test <- new.iv.test[colnames(new.iv.train)]
+          new.iv.test <- new.iv.test[names(new.iv.train)]
         }
       }
 
@@ -428,7 +430,7 @@ NNS.boost <- function(IVs.train,
 
       estimates[[i]] <- NNS.reg(x[,eval(parse(text=kf$V1[i]))],y,point.est = z[,eval(parse(text=kf$V1[i]))],
                                 plot=FALSE, residual.plot = FALSE, order=depth, n.best=n.best,
-                                norm="std", factor.2.dummy = FALSE, ncores=subcores)$Point.est * kf$N[i]
+                                factor.2.dummy = FALSE, ncores=subcores)$Point.est * kf$N[i]
 
     }
 

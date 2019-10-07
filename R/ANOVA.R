@@ -36,7 +36,7 @@
 #'
 #' ### Multiple variable analysis with no control variable
 #' set.seed(123)
-#' x <- rnorm(100) ; y<- rnorm(100) ; z<- rnorm(100)
+#' x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
 #' A <- cbind(x, y, z)
 #' NNS.ANOVA(A)
 #' @export
@@ -49,6 +49,11 @@ NNS.ANOVA <- function(control,
                      pairwise = FALSE,
                      plot = TRUE,
                      binary = TRUE){
+
+    tails <- tolower(tails)
+    if(!any(tails%in%c("left","right","both"))){
+        stop("Please select tails from 'left', 'right', or 'both'")
+    }
 
     if(missing(treatment)){
         n <- ncol(control)

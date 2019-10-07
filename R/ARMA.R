@@ -100,6 +100,7 @@ NNS.ARMA <- function(variable,
       seasonal.factor <- FALSE
   }
 
+  label <- deparse(substitute(variable))
   variable <- as.numeric(variable)
   OV <- variable
 
@@ -118,6 +119,7 @@ NNS.ARMA <- function(variable,
 
 
   if(is.numeric(seasonal.factor)){
+      seasonal.plot = FALSE
       M <- matrix(seasonal.factor, ncol=1)
       colnames(M) <- "Period"
       lag <- seasonal.factor
@@ -206,8 +208,7 @@ NNS.ARMA <- function(variable,
       Regression.Estimates <- list()
 
       Regression.Estimates <- foreach(i = 1 : length(lag),.packages = "NNS")%dopar%{
-        x <- Component.index[[i]] ; y = Component.series[[i]]
-        last.x <- tail(x, 1)
+        x <- Component.index[[i]] ; y <- Component.series[[i]]
         last.y <- tail(y, 1)
 
         ## Skeleton NNS regression for NNS.ARMA
@@ -296,7 +297,7 @@ if(!is.null(cl)){
           }
       }
 
-    label <- names(variable)
+
     if(is.null(label)){
         label <- "Variable"
     }

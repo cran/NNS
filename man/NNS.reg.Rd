@@ -9,8 +9,8 @@ NNS.reg(x, y, factor.2.dummy = TRUE, order = NULL, stn = 0.96,
   location = "top", return.values = TRUE, plot = TRUE,
   plot.regions = FALSE, residual.plot = TRUE, std.errors = FALSE,
   confidence.interval = NULL, threshold = 0, n.best = NULL,
-  noise.reduction = "mean", norm = NULL, dist = "L2",
-  ncores = NULL, multivariate.call = FALSE)
+  noise.reduction = "mean", dist = "L2", ncores = NULL,
+  multivariate.call = FALSE)
 }
 \arguments{
 \item{x}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -52,8 +52,6 @@ NNS.reg(x, y, factor.2.dummy = TRUE, order = NULL, stn = 0.96,
 
 \item{noise.reduction}{the method of determing regression points options: ("mean", "median", "mode", "off"); In low signal:noise situations,\code{(noise.reduction = "mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction = "median")}  uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction = "mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction = "off")}  allows for maximum possible fit with a specific \code{order}.}
 
-\item{norm}{\code{NULL} (default) the method of normalization options: ("NNS", "std"); Normalizes \code{x} between 0 and 1 for multivariate regression when set to \code{(norm = "std")}, or normalizes \code{x} according to \link{NNS.norm} when set to \code{(norm = "NNS")}.}
-
 \item{dist}{options:("L1", "L2") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} seclects the Manhattan distance.}
 
 \item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
@@ -71,13 +69,11 @@ UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 
  \item{\code{"derivative"}} for the coefficient of the \code{x} and its applicable range;
 
- \item{\code{"Point"}} returns the \code{x} point(s) being evaluated;
-
  \item{\code{"Point.est"}} for the predicted value generated;
 
  \item{\code{"regression.points"}} provides the points used in the regression equation for the given order of partitions;
 
- \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, and \code{NNS.ID};
+ \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x}, \code{y}, \code{y.hat}, \code{resid}, \code{NNS.ID}, \code{gradient};
 }
 
 
@@ -124,7 +120,7 @@ x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y <- rnorm(100)
 NNS.reg(x, y, point.est = c(.25, .5, .75))
 
 ## For Multiple Regression based on Synthetic X* (Dimension Reduction):
-x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y<-rnorm(100)
+x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y <- rnorm(100)
 NNS.reg(x, y, point.est = c(.25, .5, .75), dim.red.method = "cor")
 
 ## IRIS dataset examples:
