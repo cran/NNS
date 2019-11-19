@@ -21,8 +21,8 @@ Uni.caus <- function(x, y, tau, plot = TRUE){
         y.vectors[[i + 1]] <- y[start : end]
     }
 
-      x.vectors.tau <- do.call(cbind,x.vectors)
-      y.vectors.tau <- do.call(cbind,y.vectors)
+      x.vectors.tau <- do.call(cbind, x.vectors)
+      y.vectors.tau <- do.call(cbind, y.vectors)
 
       ## Normalize x to x.tau
       x.norm.tau <- rowMeans(NNS.norm(x.vectors.tau))
@@ -62,7 +62,7 @@ Uni.caus <- function(x, y, tau, plot = TRUE){
       ymin <- min(c(min(x), min(y)))
       ymax <- max(c(max(x), max(y)))
       par(mar = c(2, 4, 0, 1))
-      plot(y,type = 'l', ylim=c(ymin, ymax),ylab = 'STANDARDIZED',col = 'red',lwd = 3)
+      plot(y,type = 'l', ylim = c(ymin, ymax), ylab = 'STANDARDIZED', col = 'red', lwd = 3)
       lines(x, col = 'steelblue',lwd = 3)
       legend('top', c("X", "Y"), lty = 1,lwd = c(3, 3),
            col = c('steelblue', 'red'), ncol = 2)

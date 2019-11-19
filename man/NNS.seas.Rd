@@ -4,25 +4,32 @@
 \alias{NNS.seas}
 \title{NNS Seasonality Test}
 \usage{
-NNS.seas(variable, plot = TRUE)
+NNS.seas(variable, modulo = NULL, mod.only = TRUE, plot = TRUE)
 }
 \arguments{
 \item{variable}{a numeric vector.}
 
+\item{modulo}{integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.}
+
+\item{mod.only}{logical; code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.}
+
 \item{plot}{logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the variable level reference.}
 }
 \value{
-Returns a matrix of all periods exhibiting less coefficient of variance than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variance versus the variable with \code{"best.period"}.  If no seasonality is detected, \code{NNS.seas} will return ("No Seasonality Detected").
+Returns a matrix of all periods exhibiting less coefficient of variation than the variable with \code{"all.periods"}; and the single period exhibiting the least coefficient of variation versus the variable with \code{"best.period"}; as well as a vector of \code{"periods"} for easy call into \link{NNS.ARMA.optim}.  If no seasonality is detected, \code{NNS.seas} will return ("No Seasonality Detected").
 }
 \description{
-Seasonality test based on the coefficient of variance for the variable and lagged component series.  A result of 1 signifies no seasonality present.
+Seasonality test based on the coefficient of variation for the variable and lagged component series.  A result of 1 signifies no seasonality present.
 }
 \examples{
 set.seed(123)
 x <- rnorm(100)
 
-## To call strongest period based on coefficient of variance:
-NNS.seas(x)$best.period
+## To call strongest period based on coefficient of variation:
+NNS.seas(x, plot = FALSE)$best.period
+
+## Using modulos for logical seasonal inference:
+NNS.seas(x, modulo = c(2,3,5,7), plot = FALSE)
 }
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"

@@ -38,6 +38,10 @@
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{http://amzn.com/1490523995}
+#'
+#' Viole, F. (2019) "Forecasting Using NNS"
+#' \url{https://ssrn.com/abstract=3382300}
+#'
 #' @examples
 #'
 #' ## Nonlinear NNS.ARMA using AirPassengers monthly data and 12 period lag
@@ -161,7 +165,6 @@ NNS.ARMA <- function(variable,
     ASW <- ARMA.seas.weighting(seasonal.factor, M)
     lag <- ASW$lag
 
-
     if(is.null(weights)){
         Weights <- ASW$Weights
     } else {
@@ -279,52 +282,58 @@ if(!is.null(cl)){
     stopCluster(cl)
     registerDoSEQ()
 }
+
+
   #### PLOTTING
   if(plot){
-      original.par = par(no.readonly = TRUE)
-      if(seasonal.plot){
-          par(mfrow = c(2, 1))
-          if(ncol(M) > 1){
-              plot(M[1, Period], M[1, Coefficient.of.Variance],
-                    xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test", ylim = c(0, 2 * M[1, Variable.Coefficient.of.Variance]))
-              points(M[ , Period], M[ , Coefficient.of.Variance], pch = 19, col = 'red')
-              abline(h = M[1, Variable.Coefficient.of.Variance], col = "red", lty = 5)
-              text((M[ , min(Period)] + M[ , max(Period)]) / 2, M[1, Variable.Coefficient.of.Variance], pos = 3, "Variable Coefficient of Variance", col = 'red')
-          } else {
-              plot(1,1, pch = 19, col = 'blue', xlab = "Period", ylab = "Coefficient of Variance", main = "Seasonality Test",
-                    ylim = c(0, 2 * abs(sd(FV) / mean(FV))))
-              text(1, abs(sd(FV) / mean(FV)), pos = 3, "NO SEASONALITY DETECTED", col = 'red')
-          }
+    original.par = par(no.readonly = TRUE)
+    if(seasonal.plot){
+      par(mfrow = c(2, 1))
+      if(ncol(M) > 1){
+        plot(M[, Period], M[, Coefficient.of.Variation],
+             xlab = "Period", ylab = "Coefficient of Variation", main = "Seasonality Test", ylim = c(0, 2 * M[1, Variable.Coefficient.of.Variation]))
+        points(M[ , Period], M[ , Coefficient.of.Variation], pch = 19, col = 'red')
+        abline(h = M[1, Variable.Coefficient.of.Variation], col = "red", lty = 5)
+        text((M[ , min(Period)] + M[ , max(Period)]) / 2, M[1, Variable.Coefficient.of.Variation], pos = 3, "Variable Coefficient of Variation", col = 'red')
+      } else {
+        plot(1,1, pch = 19, col = 'blue', xlab = "Period", ylab = "Coefficient of Variation", main = "Seasonality Test",
+             ylim = c(0, 2 * abs(sd(FV) / mean(FV))))
+        text(1, abs(sd(FV) / mean(FV)), pos = 3, "NO SEASONALITY DETECTED", col = 'red')
       }
+    }
 
 
     if(is.null(label)){
-        label <- "Variable"
+      label <- "Variable"
     }
 
-    plot(OV, type = 'l', lwd = 2, main = "NNS.ARMA Forecast", col = 'steelblue',
-         xlim = c(1, max((training.set + h), length(OV))),
-         ylab = label, ylim = c(min(Estimates, OV), max(OV, Estimates)))
-
     if(intervals){
-        for(i in 1 : h){
-            ys <- unlist(Estimate.band[[i]])
-            points(rep(training.set + i, length(ys)), ys, col = rgb(1, 0, 0, 0.0125), pch = 15)
-        }
+      plot(OV, type = 'l', lwd = 2, main = "NNS.ARMA Forecast", col = 'steelblue',
+           xlim = c(1, max((training.set + h), length(OV))),
+           ylab = label, ylim = c(min(Estimates, OV,  unlist(Estimate.band) ), max(OV, Estimates, unlist(Estimate.band) )) )
 
-        lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
-        segments(training.set, FV[training.set], training.set + 1, Estimates[1],lwd = 2,lty = 1,col = 'red')
-        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
+      for(i in 1 : h){
+        ys <- unlist(Estimate.band[[i]])
+        points(rep(training.set + i, length(ys)), ys, pch = 15, col = rgb(1, 0, 0, 0.125))
+      }
+
+      lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
+      segments(training.set, FV[training.set], training.set + 1, Estimates[1],lwd = 2,lty = 1,col = 'red')
+      legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
     } else {
-        if(training.set[1] < length(OV)){
-            lines((training.set + 1) : (training.set + h), Estimates, type = 'l',lwd = 2, lty = 3, col = 'red')
-            segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 3, col = 'red')
-            legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 2), col = c('steelblue', 'red'), lwd = 2)
-        } else {
-            lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
-            segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 1, col = 'red')
-            legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")),lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
-        }
+      plot(OV, type = 'l', lwd = 2, main = "NNS.ARMA Forecast", col = 'steelblue',
+           xlim = c(1, max((training.set + h), length(OV))),
+           ylab = label, ylim = c(min(Estimates, OV), max(OV, Estimates)))
+
+      if(training.set[1] < length(OV)){
+        lines((training.set + 1) : (training.set + h), Estimates, type = 'l',lwd = 2, lty = 3, col = 'red')
+        segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 3, col = 'red')
+        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")), lty = c(1, 2), col = c('steelblue', 'red'), lwd = 2)
+      } else {
+        lines((training.set + 1) : (training.set + h), Estimates, type = 'l', lwd = 2, lty = 1, col = 'red')
+        segments(training.set, FV[training.set], training.set + 1, Estimates[1], lwd = 2, lty = 1, col = 'red')
+        legend('topleft', bty = 'n', legend = c("Original", paste0("Forecast ", h, " period(s)")),lty = c(1, 1), col = c('steelblue', 'red'), lwd = 2)
+      }
 
 
     }

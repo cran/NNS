@@ -18,7 +18,7 @@
 #' \itemize{
 #' \item{\code{$period}} a vector of optimal seasonal periods
 #' \item{\code{$weights}} the optimal weights of each seasonal period between an equal weight or NULL weighting
-#' \item{\code{$obj.fn}} the minimum objective function value
+#' \item{\code{$obj.fn}} the objective function value
 #' \item{\code{$method}} the method identifying which \link{NNS.ARMA} method was used.
 #' \item{\code{$bias.shift}} a numerical result of the overall bias of the optimum objective function result.  To be added to the final result when using the \link{NNS.ARMA} with the derived parameters.
 #'}
@@ -95,6 +95,8 @@ NNS.ARMA.optim <- function(variable, training.set,
   denominator <- min(5,max(2, as.integer(l/100)))
 
   seasonal.factor <- seasonal.factor[seasonal.factor<=(l/denominator)]
+  seasonal.factor <- c(1, seasonal.factor)
+  seasonal.factor <- unique(seasonal.factor)
 
   if(length(seasonal.factor)==0){stop(paste0('Please ensure "seasonal.factor" contains elements less than ', l/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))}
 

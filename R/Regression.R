@@ -68,6 +68,9 @@
 #'
 #' Vinod, H. and Viole, F. (2017) "Nonparametric Regression Using Clusters"
 #' \url{https://link.springer.com/article/10.1007/s10614-017-9713-5}
+#'
+#' Vinod, H. and Viole, F. (2018) "Clustering and Curve Fitting by Line Segments"
+#' \url{https://www.preprints.org/manuscript/201801.0090/v1}
 #' @examples
 #' \dontrun{
 #' set.seed(123)
@@ -143,6 +146,7 @@ NNS.reg = function (x, y,
 
   if(!is.null(type)){
     type <- tolower(type)
+    noise.reduction <- "mode"
   }
 
   if(class(y) == "factor"){
@@ -150,66 +154,78 @@ NNS.reg = function (x, y,
     noise.reduction <- "mode"
   }
 
+  if(!plot){
+    residual.plot <- FALSE
+  }
+
   # Variable names
   original.names <- colnames(x)
   original.columns <- ncol(x)
 
   y.label <- deparse(substitute(y))
+  if(is.null(y.label)){
+    y.label <- "y"
+  }
 
   if(is.null(original.columns)){
       x.label <- deparse(substitute(x))
+      if(is.null(x.label)){
+          x.label <- "x"
+      }
   }
 
-  if(factor.2.dummy && !multivariate.call){
-    if(is.list(x)){
-      x <- do.call(cbind,x)
+  if(factor.2.dummy){ #&& !multivariate.call){
+    if(is.list(x) & !is.data.frame(x)){
+      x <- do.call(cbind, x)
     }
 
     if(!is.null(dim(x))){
-      x <- apply(x,2,factor_2_dummy)
+      x <- do.call(cbind, lapply(data.frame(x), factor_2_dummy_FR))
       if(is.null(colnames(x))) {colnames(x) <- colnames(x, do.NULL = FALSE)}
       colnames(x) <- make.unique(colnames(x),sep = "_")
 
     } else {
-      x <- factor_2_dummy(x)
+      x <- factor_2_dummy_FR(x)
     }
 
     x <- data.matrix(x)
 
     if(!is.null(point.est)){
         point.est.y <- numeric()
-        if(is.list(point.est)){
-            point.est <- do.call(cbind,point.est)
+        if(is.list(point.est) & !is.data.frame(point.est)){
+            point.est <- do.call(cbind, point.est)
         }
 
         if(!is.null(dim(x))){
             if(!is.null(dim(point.est)) && dim(point.est)[1]>1) {
-                point.est <- apply(point.est,2,factor_2_dummy)
+                point.est <- do.call(cbind, lapply(data.frame(point.est), factor_2_dummy_FR))
             } else {
                 point.est <- t(point.est)
-                point.est <- t(apply(point.est,2,factor_2_dummy))
+                point.est <- do.call(cbind, lapply(data.frame(point.est), factor_2_dummy_FR))
             }
 
             if(is.null(colnames(point.est)) && !is.null(dim(point.est))){
-                names(point.est) <- names(x)
+                colnames(point.est) <- colnames(x)
             }
 
             point.est <- as.matrix(point.est)
             l <- dim(point.est)[2]
-
+            colnames(point.est) <- colnames(x)
         } else { # !is.null(dim(x))...implying univariate regression
 
-            point.est <- factor_2_dummy(point.est)
-            l <- dim(t(t(point.est)))[2]
+            point.est <- factor_2_dummy_FR(data.frame(point.est, row.names = FALSE))
+            l <- dim(t(point.est))[2]
 
-            if(is.null(names(point.est))) {names(point.est) <- names(x)}
+            if(is.null(colnames(point.est))) {
+              colnames(point.est) <- colnames(x)}
         }
 
       ### Add 0's to data for missing regressors
-        if(dim(t(t(x)))[2]!=l && dim(t(t(x)))[2]>1){
-            Missing <- setdiff(names(x),names(point.est))
-            point.est[Missing] <- 0
-            point.est <- point.est[names(x)]
+        if(length(colnames(x)[!(colnames(x)%in%colnames(point.est))]) > 0 ){
+            Missing <- colnames(x)[!(colnames(x)%in%colnames(point.est))]
+            point.est <- data.frame(point.est)
+            point.est[, Missing] <- 0
+            point.est <- point.est[, colnames(x)]
         }
 
         point.est <- data.matrix(point.est)
@@ -225,6 +241,9 @@ NNS.reg = function (x, y,
   original.columns <- ncol(x)
 
   y.label <- deparse(substitute(y))
+  if(is.null(y.label)){
+    y.label <- "y"
+  }
 
   y <- as.numeric(y)
   original.y <- y
@@ -286,9 +305,10 @@ NNS.reg = function (x, y,
         }
 
 
-        stn <- 1 - NNS.dep.hd(cbind(x,y))$Dependence^(1/exp(1))
+        mult_stn <- 1 - NNS.dep.hd(cbind(x,y))$Dependence^(1/exp(1))
+        if(is.na(mult_stn)) mult_stn <- stn
 
-        return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot, residual.plot = residual.plot, order = order, n.best = n.best, type = type, location = location, noise.reduction = noise.reduction, dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions, ncores = ncores))
+        return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot, residual.plot = residual.plot, order = order, n.best = n.best, type = type, location = location, noise.reduction = noise.reduction, dist = dist, stn = mult_stn, return.values = return.values, plot.regions = plot.regions, ncores = ncores))
       } else { # Multivariate dim.red == FALSE
 
         if(is.null(original.names)){
@@ -431,7 +451,7 @@ NNS.reg = function (x, y,
         part.map <- NNS.part(x, y, noise.reduction ='off', order = min( nchar( part.map$dt$quadrant)), obs.req = 0)
       }
     } else {
-      part.map <- NNS.part(x, y, type = "XONLY", noise.reduction='off', order = dep.reduced.order, obs.req = 0)
+      part.map <- NNS.part(x, y, type = "XONLY", noise.reduction = 'off', order = dep.reduced.order, obs.req = 0)
       if(length(part.map$regression.points$x) == 0){
         part.map <- NNS.part(x,y,noise.reduction = 'off',type = "XONLY", order = min(nchar(part.map$dt$quadrant)), obs.req = 0)
       }
@@ -463,7 +483,7 @@ NNS.reg = function (x, y,
   y.min <- na.omit(y[x <= mid.min.range])
   l_y.min <- length(y.min)
 
-  if(l_y.min<=1){
+  if(l_y.min <= 1){
     a <- y.min
     b <- a
     f <- a
@@ -473,7 +493,7 @@ NNS.reg = function (x, y,
     f <- mean(c(max(y.min),min(y.min)))
   }
 
-  if(l_y.mid.min<=1){
+  if(l_y.mid.min <= 1){
     a1 <- y.mid.min
     b1 <- a1
   } else {
@@ -487,7 +507,7 @@ NNS.reg = function (x, y,
   y.max <- na.omit(y[x > mid.max.range])
   l_y.max <- length(y.max)
 
-  if(l_y.max<=1){
+  if(l_y.max <= 1){
     d <- median(y.max)
     e <- d
     g <- e
@@ -497,7 +517,7 @@ NNS.reg = function (x, y,
     g <- mean(c(max(y.max),min(y.max)))
   }
 
-  if(l_y.mid.max<=1){
+  if(l_y.mid.max <= 1){
     d1 <- median(y.mid.max)
     e1 <- d1
   } else {
@@ -548,11 +568,20 @@ NNS.reg = function (x, y,
   regression.points <- rbindlist(list(regression.points, mid.min.rps ), use.names = FALSE)
 
   regression.points <- regression.points[complete.cases(regression.points),]
-
   setkey(regression.points, x, y)
 
   ### Consolidate possible duplicated points
-  regression.points <- unique(regression.points)
+  if(noise.reduction == "mean" | noise.reduction == "off"){
+      regression.points <- regression.points[, lapply(.SD, mean), .SDcols = 2, by = .(x)]
+  }
+
+  if(noise.reduction == "median"){
+    regression.points <- regression.points[, lapply(.SD, median), .SDcols = 2, by = .(x)]
+  }
+
+  if(noise.reduction == "mode"){
+    regression.points <- regression.points[, lapply(.SD, mode), .SDcols = 2, by = .(x)]
+  }
 
   ### Regression Equation
 
@@ -602,9 +631,15 @@ NNS.reg = function (x, y,
     coef.point.interval[coef.point.interval == 0] <- 1
     reg.point.interval[reg.point.interval == 0] <- 1
     point.est.y <- as.vector(((point.est - regression.points[reg.point.interval, x]) * Regression.Coefficients[coef.point.interval, Coefficient]) + regression.points[reg.point.interval, y])
+    if(!is.null(type)){
+        point.est.y <- round(point.est.y)
+    }
   }
 
   colnames(estimate) <- NULL
+  if(!is.null(type)){
+    estimate <- round(estimate)
+  }
 
   fitted <- data.table(x = part.map$dt$x,
                        y = part.map$dt$y,
@@ -612,7 +647,6 @@ NNS.reg = function (x, y,
                        NNS.ID = part.map$dt$quadrant)
 
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
-
 
   Values <- cbind(x, Fitted = fitted[ , y.hat], Actual = fitted[ , y], Difference = fitted[ , y.hat] - fitted[ , y],  Accuracy = abs(round(fitted[ , y.hat]) - fitted[ , y]))
 

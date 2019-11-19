@@ -27,14 +27,12 @@ seas
 a = seas[which.min(seas[ , 2]), 1]
 
 ## ----best nonlinear,fig.width=5,fig.height=3,fig.align = "center"--------
-nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin",seasonal.factor = a, plot = TRUE, seasonal.plot = FALSE, ncores = 1)
+nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "nonlin", seasonal.factor = a, plot = TRUE, seasonal.plot = FALSE, ncores = 1)
 
 sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
-## ----best both,fig.width=5,fig.height=3,fig.align = "center"-------------
-nns = NNS.ARMA(AirPassengers, h = 44, training.set = 100, method = "both", seasonal.factor = a, plot = TRUE, seasonal.plot = FALSE, ncores = 1)
-
-sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
+## ----modulo--------------------------------------------------------------
+NNS.seas(AirPassengers, modulo = 12, plot = FALSE)
 
 ## ----best optim,fig.width=5,fig.height=3,fig.align = "center"------------
 nns.optimal = NNS.ARMA.optim(AirPassengers[1:100], 
