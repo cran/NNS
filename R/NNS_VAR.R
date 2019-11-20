@@ -24,7 +24,7 @@
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{http://amzn.com/1490523995}
+#' \url{https://www.amazon.com/dp/1490523995}
 #'
 #' Viole, F. (2019) "Multi-variate Time-Series Forecasting: Nonparametric Vector Autoregression Using NNS"
 #' \url{https://ssrn.com/abstract=3489550}
@@ -71,10 +71,6 @@ NNS.VAR <- function(variables,
     num_cores <- ncores
   }
 
-  if (is.null(subcores)) {
-    subcores <- as.integer(cores / 2) - 1
-  }
-
   cl <- makeCluster(detectCores()-1)
   registerDoParallel(cl)
 
@@ -96,7 +92,7 @@ NNS.VAR <- function(variables,
                         ncores = 1)
 
     nns_IVs$results <- NNS.ARMA(variable, h = h, seasonal.factor = b$periods, weights = b$weights,
-             method = b$method, ncores = subcores, plot = FALSE) + b$bias.shift
+             method = b$method, ncores = 1, plot = FALSE) + b$bias.shift
 
     nns_IVs$obj_fn <- b$obj.fn
 
