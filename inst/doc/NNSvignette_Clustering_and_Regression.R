@@ -1,47 +1,53 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
-## ----setup2, message=FALSE-----------------------------------------------
+## ----setup2, message=FALSE----------------------------------------------------
 require(NNS)
 require(knitr)
 require(rgl)
 require(data.table)
+require(dtw)
 
-## ----linear--------------------------------------------------------------
+## ----linear-------------------------------------------------------------------
 x = seq(-5, 5, .05); y = x ^ 3
 
-for(i in 1 : 4){NNS.part(x, y, order = i, noise.reduction = "off", Voronoi = TRUE)}
+for(i in 1 : 4){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE)}
 
-## ----res, echo=FALSE-----------------------------------------------------
-NNS.part(x,y,order = 4, noise.reduction = "off")
-
-## ----x part,results='hide'-----------------------------------------------
+## ----x part,results='hide'----------------------------------------------------
 for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
 
-## ----res2, echo=FALSE----------------------------------------------------
+## ----res2, echo=FALSE---------------------------------------------------------
 NNS.part(x,y,order = 4, type = "XONLY")
 
-## ----depreg,results='hide'-----------------------------------------------
-for(i in 1 : 3){NNS.part(x, y, order = i, noise.reduction = "off", Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
+## ----depreg},results='hide'---------------------------------------------------
+for(i in 1 : 3){NNS.part(x, y, noise.reduction = 'median',  order = i, Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
 
-## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"-------------
-NNS.reg(x, y, order = 4, noise.reduction = "off", ncores = 1)
+## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"------------------
+NNS.reg(x, y, ncores = 1)
 
-## ----nonlinear multi,fig.width=5,fig.height=3,fig.align = "center"-------
+## ----nonlinear multi,fig.width=5,fig.height=3,fig.align = "center"------------
 f= function(x, y) x ^ 3 + 3 * y - y ^ 3 - 3 * x
 y = x ; z = expand.grid(x, y)
 g = f(z[ , 1], z[ , 2])
 NNS.reg(z, g, order = "max", ncores = 1)
 
-## ----iris point.est,fig.width=5,fig.height=3,fig.align = "center"--------
-NNS.reg(iris[ , 1 : 4], iris[ , 5], type = "CLASS", point.est = iris[1:10, 1 : 4], location = "topleft", ncores = 1)$Point.est
-
-## ----nonlinear class,fig.width=5,fig.height=3,fig.align = "center"-------
+## ----nonlinear_class,fig.width=5,fig.height=3,fig.align = "center", message = FALSE----
 NNS.reg(iris[ , 1 : 4], iris[ , 5], dim.red.method = "cor", location = "topleft", ncores = 1)$equation
 
 ## ----nonlinear class threshold,fig.width=5,fig.height=3,fig.align = "center"----
 NNS.reg(iris[ , 1 : 4], iris[ , 5], dim.red.method = "cor", threshold = .75, location = "topleft", ncores = 1)$equation
 
-## ----final,fig.width=5,fig.height=3,fig.align = "center"-----------------
+## ----final,fig.width=5,fig.height=3,fig.align = "center"----------------------
 NNS.reg(iris[ , 1 : 4], iris[ , 5], dim.red.method = "cor", threshold = .75, point.est = iris[1 : 10, 1 : 4], location = "topleft", ncores = 1)$Point.est
+
+## ----class,fig.width=5,fig.height=3,fig.align = "center", message=FALSE-------
+NNS.reg(iris[ , 1 : 4], iris[ , 5], type = "CLASS", point.est = iris[1:10, 1 : 4], location = "topleft", ncores = 1)$Point.est
+
+## ----stack,fig.width=5,fig.height=3,fig.align = "center", message=FALSE-------
+NNS.stack(IVs.train = iris[ , 1 : 4], 
+          DV.train = iris[ , 5], 
+          IVs.test = iris[1:10, 1 : 4],
+          obj.fn = expression( mean(predicted == actual) ),
+          objective = "max",
+          type = "CLASS", folds = 1, ncores = 1)
 

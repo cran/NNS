@@ -1,36 +1,37 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
-## ----setup2,message=FALSE------------------------------------------------
+## ----setup2,message=FALSE-----------------------------------------------------
 require(NNS)
 require(knitr)
 require(rgl)
 require(data.table)
+require(dtw)
 
-## ----linear,fig.width=5,fig.height=3,fig.align = "center"----------------
+## ----linear,fig.width=5,fig.height=3,fig.align = "center"---------------------
 x = seq(0, 3, .01) ; y = 2 * x
 
 cor(x, y)
 NNS.dep(x, y, print.map = TRUE, order = 3)
 
-## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"-------------
+## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"------------------
 x=seq(0, 3, .01) ; y = x ^ 10
 
 cor(x, y)
 NNS.dep(x, y, print.map = TRUE)
 
-## ----dependence,fig.width=5,fig.height=3,fig.align = "center"------------
+## ----dependence,fig.width=5,fig.height=3,fig.align = "center"-----------------
 set.seed(123)
 df <- data.frame(x = runif(10000, -1, 1), y = runif(10000, -1, 1))
 df <- subset(df, (x ^ 2 + y ^ 2 <= 1 & x ^ 2 + y ^ 2 >= 0.95))
 NNS.dep(df$x, df$y, print.map = TRUE)
 
-## ----multi---------------------------------------------------------------
+## ----multi--------------------------------------------------------------------
 set.seed(123)
 x <- rnorm(1000); y <- rnorm(1000); z <- rnorm(1000)
 NNS.dep.hd(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
 
-## ----permutations--------------------------------------------------------
+## ----permutations-------------------------------------------------------------
 ## p-values for [NNS.dep]
 x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 
@@ -52,9 +53,6 @@ hist(cors)
 abline(v = LPM.VaR(.975,0, cors), col = 'red')
 abline(v = UPM.VaR(.975,0, cors), col = 'red')
 
-hist(deps)
-abline(v = LPM.VaR(.975,0, deps), col = 'red')
-abline(v = UPM.VaR(.975,0, deps), col = 'red')
 
 ## Left tailed correlation p-value
 cor_p_value <- LPM(0, nns_cor_dep$Correlation, cors)
@@ -70,6 +68,12 @@ cor_p_value
 LPM.VaR(.975, 0, cors)
 ## Upper CI
 UPM.VaR(.975, 0, cors)
+
+
+hist(deps)
+abline(v = LPM.VaR(.975,0, deps), col = 'red')
+abline(v = UPM.VaR(.975,0, deps), col = 'red')
+
 
 ## Left tailed dependence p-value
 dep_p_value <- LPM(0, nns_cor_dep$Dependence, deps)

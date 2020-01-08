@@ -4,13 +4,13 @@
 \alias{NNS.boost}
 \title{NNS Boost}
 \usage{
-NNS.boost(IVs.train, DV.train, IVs.test, type = "CLASS",
+NNS.boost(IVs.train, DV.train, IVs.test, type = NULL,
   representative.sample = FALSE, depth = "max", n.best = NULL,
   learner.trials = NULL, epochs = NULL, CV.size = 0.25,
   ts.test = NULL, folds = 5, threshold = NULL,
-  obj.fn = expression(mean(round(predicted) == as.numeric(actual))),
-  objective = "max", extreme = FALSE, feature.importance = TRUE,
-  status = TRUE, ncores = NULL, subcores = NULL)
+  obj.fn = expression(sum((predicted - actual)^2)), objective = "min",
+  extreme = FALSE, feature.importance = TRUE, status = TRUE,
+  ncores = NULL)
 }
 \arguments{
 \item{IVs.train}{a matrix or data frame of variables of numeric or factor data types.}
@@ -19,7 +19,7 @@ NNS.boost(IVs.train, DV.train, IVs.test, type = "CLASS",
 
 \item{IVs.test}{a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.}
 
-\item{type}{\code{"CLASS"} (default).  To perform a classification, set to \code{(type = "CLASS")}, else for continuous DV set to \code{(type = NULL)}.}
+\item{type}{\code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.}
 
 \item{representative.sample}{logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.}
 
@@ -40,7 +40,7 @@ NNS.boost(IVs.train, DV.train, IVs.test, type = "CLASS",
 \item{threshold}{numeric; \code{NULL} (default) Sets the \code{obj.fn} threshold to keep feature combinations.}
 
 \item{obj.fn}{expression;
-\code{expression(mean(round(predicted)==as.numeric(actual)))} (default) Mean accuracy is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.}
+\code{expression( sum((predicted - actual)^2) )} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.  Automatically selects an accuracy measure when \code{(type = "CLASS")}.}
 
 \item{objective}{options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
 
@@ -50,9 +50,7 @@ NNS.boost(IVs.train, DV.train, IVs.test, type = "CLASS",
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.}
-
-\item{subcores}{integer; value specifying the number of cores to be used in the parallelized procedure in the subroutine \link{NNS.reg}.  If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set \code{$results}, and the final feature loadings \code{$feature.weights}.
@@ -60,15 +58,19 @@ Returns a vector of fitted values for the dependent variable test set \code{$res
 \description{
 Ensemble method for classification using the predictions of the NNS multivariate regression \link{NNS.reg} collected from uncorrelated feature combinations.
 }
+\note{
+Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].
+}
 \examples{
  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
  \dontrun{
  a <- NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
  IVs.test = iris[141:150, 1:4],
- epochs = 100, learner.trials = 100)
+ epochs = 100, learner.trials = 100,
+ type = "CLASS")
 
  ## Test accuracy
- mean(round(a$results) == as.numeric(iris[141:150, 5]))
+ mean( a$results == as.numeric(iris[141:150, 5]))
  }
 
 }

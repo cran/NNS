@@ -6,9 +6,9 @@
 \usage{
 NNS.stack(IVs.train, DV.train, IVs.test = NULL, type = NULL,
   obj.fn = expression(sum((predicted - actual)^2)), objective = "min",
-  CV.size = NULL, ts.test = NULL, folds = 5, order = NULL,
-  norm = NULL, method = c(1, 2), dim.red.method = "cor",
-  status = TRUE, ncores = NULL)
+  dist = "L2", CV.size = NULL, ts.test = NULL, folds = 5,
+  order = NULL, norm = NULL, method = c(1, 2),
+  dim.red.method = "cor", status = TRUE, ncores = NULL)
 }
 \arguments{
 \item{IVs.train}{a vector, matrix or data frame of variables of numeric or factor data types.}
@@ -17,11 +17,13 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, type = NULL,
 
 \item{IVs.test}{a vector, matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.}
 
-\item{type}{\code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.}
+\item{type}{\code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.   Like a logistic regression, this setting is not necessary for target variable of two classes e.g. [0, 1].}
 
 \item{obj.fn}{expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.}
 
 \item{objective}{options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
+
+\item{dist}{options:("L1", "L2", "DTW", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} seclects the Manhattan distance; \code{(dist = "DTW")} selects the dynamic time warping distance; \code{(dist = "FACTOR")} uses a frequency.}
 
 \item{CV.size}{numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size if \code{(IVs.test = NULL)}.  Defaults to 0.25 for a 25 percent random sampling of the training set under \code{(CV.size = NULL)}.}
 
@@ -39,7 +41,7 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, type = NULL,
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set for all models.
@@ -57,7 +59,11 @@ Returns a vector of fitted values for the dependent variable test set for all mo
 Prediction model using the predictions of the NNS base models \link{NNS.reg} as features (i.e. meta-features) for the stacked model.
 }
 \note{
-Missing data should be handled prior as well using \link{na.omit} or \link{complete.cases} on the full dataset.
+\itemize{
+\item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].
+
+\item Missing data should be handled prior as well using \link{na.omit} or \link{complete.cases} on the full dataset.
+}
 
 If error received:
 
@@ -71,10 +77,10 @@ reduce the \code{CV.size}.
  NNS.stack(iris[1:140, 1:4], iris[1:140, 5], IVs.test = iris[141:150, 1:4], type = "CLASS")
 
  ## Using 'iris' dataset to determine [n.best] and [threshold] with no test set.
- NNS.stack(iris[ , 1:4], iris[ , 5])
+ NNS.stack(iris[ , 1:4], iris[ , 5], type = "CLASS")
 
  ## Selecting NNS.reg and dimension reduction techniques.
- NNS.stack(iris[1:140, 1:4], iris[1:140, 5], iris[141:150, 1:4], method = c(1, 2))}
+ NNS.stack(iris[1:140, 1:4], iris[1:140, 5], iris[141:150, 1:4], method = c(1, 2), type = "CLASS")}
 
 }
 \references{

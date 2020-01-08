@@ -1,11 +1,18 @@
-### Mode of a distribution
-mode <- function(x){
-  if(length(na.omit(x)) > 1){
-    d <- density(na.omit(x))
-    d$x[which.max(d$y)]
+### Continuous Mode of a distribution
+mode <- function(x) {
+  if(length(x) > 1){
+      d <- density(x)
+      d$x[which.max(d$y)]
   } else {
     x
   }
+}
+
+### Classification Mode of a distribution
+mode_class <- function(x){
+  x <- na.omit(x)
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
 }
 
 ### Factor to dummy variable
@@ -117,7 +124,7 @@ lag.mtx <- function(x, tau){
 
 
 
-
+### Row products for NNS.dep.hd
 RP <- function(x, rows = NULL, cols = NULL, na.rm = FALSE) {
 
   if (!is.null(rows) && !is.null(cols)) x <- x[rows, cols, drop = FALSE]

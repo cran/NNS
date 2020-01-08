@@ -10,7 +10,7 @@
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param epochs integer; \code{100} (default) Total number of feature combinations to run.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
-#' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.
+#' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #'
 #' @return Returns the following matrices of forecasted variables:
 #' \itemize{
@@ -65,7 +65,7 @@ NNS.VAR <- function(variables,
   # Parallel process...
   if (is.null(ncores)) {
     cores <- detectCores()
-    num_cores <- as.integer(cores / 2)
+    num_cores <- cores - 1
   } else {
     cores <- detectCores()
     num_cores <- ncores
@@ -137,17 +137,20 @@ NNS.VAR <- function(variables,
                                obj.fn = obj.fn,
                                objective = objective,
                                ts.test = 2*h, folds = 1,
+                               depth = "max",
                                learner.trials = epochs,
                                ncores = num_cores, type = NULL,
                                feature.importance = FALSE)
 
 # NNS.stack() cross-validates the parameters of the multivariate NNS.reg() and dimension reduction NNS.reg()
-    DV_values <- NNS.stack(lagged_new_values_train[, names(nns_boost_est$feature.weights)%in%colnames(lagged_new_values)],
+    relevant_vars <- colnames(lagged_new_values)%in%names(nns_boost_est$feature.weights)
+
+    DV_values <- NNS.stack(lagged_new_values_train[, relevant_vars],
                                   lagged_new_values_train[, i],
-                                  IVs.test =  tail(lagged_new_values[, names(nns_boost_est$feature.weights)%in%colnames(lagged_new_values)], h),
+                                  IVs.test =  tail(lagged_new_values[, relevant_vars], h),
                                   obj.fn = obj.fn,
                                   objective = objective,
-                                  order = 'max',
+                                  order = "max",
                                   ts.test = 2*h, folds = 1,
                                   status = status, ncores = num_cores)
 
@@ -163,23 +166,18 @@ NNS.VAR <- function(variables,
   if(objective=="min"){
       IV_weights <- 1/unlist(lapply(nns_IVs, `[[`, 2))
       DV_weights <- 1/unlist(DV_obj_fn)
-      denom <- (IV_weights + DV_weights)
-      IV_weights <- IV_weights / denom
-      DV_weights <- DV_weights / denom
 
-      IV_weights <- rep(IV_weights, each = dim(nns_IVs_results)[1])
-      DV_weights <- rep(DV_weights, each = dim(nns_DVs)[1])
   } else {
       IV_weights <- unlist(lapply(nns_IVs, `[[`, 2))
       DV_weights <- unlist(DV_obj_fn)
-      denom <- (IV_weights + DV_weights)
-      IV_weights <- IV_weights / denom
-      DV_weights <- DV_weights / denom
-
-      IV_weights <- rep(IV_weights, each = dim(nns_IVs_results)[1])
-      DV_weights <- rep(DV_weights, each = dim(nns_DVs)[1])
   }
 
+  denom <- (IV_weights + DV_weights)
+  IV_weights <- IV_weights / denom
+  DV_weights <- DV_weights / denom
+
+  IV_weights <- rep(IV_weights, each = dim(nns_IVs_results)[1])
+  DV_weights <- rep(DV_weights, each = dim(nns_DVs)[1])
 
   forecasts <- (IV_weights * nns_IVs_results + DV_weights * nns_DVs)
   colnames(forecasts) <- colnames(variables)
