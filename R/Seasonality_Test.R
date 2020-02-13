@@ -102,7 +102,7 @@ NNS.seas <- function(variable,
 
     M <- data.table("Period" = instances[index], "Coefficient.of.Variation" = output[index], "Variable.Coefficient.of.Variation" = n, key = "Coefficient.of.Variation")
   } else {
-    M <- data.table("Period" = 1, "Coefficient.of.Variation" = NA, "Variable.Coefficient.of.Variation" = var.cov, key = "Coefficient.of.Variation")
+    M <- data.table("Period" = 1, "Coefficient.of.Variation" = var.cov, "Variable.Coefficient.of.Variation" = var.cov, key = "Coefficient.of.Variation")
   }
 
 
@@ -123,15 +123,15 @@ NNS.seas <- function(variable,
 
         periods <- unique(c(rbind(minus,plus)))
 
-        if(!1%in%unlist(M[,1])){
-            periods <- c(periods[!is.na(periods) & periods>0], modulo, 1)
-        } else {
-            periods <- c(periods[!is.na(periods) & periods>0], modulo)
-        }
-
         if(mod.only){
+            periods <- c(periods[!is.na(periods) & periods>0])
             mod_index <- which(unlist(M[, 1])%in%periods)
         } else {
+            if(!1%in%unlist(M[,1])){
+                periods <- c(periods[!is.na(periods) & periods>0], 1)
+            } else {
+                periods <- c(periods[!is.na(periods) & periods>0])
+            }
             mod_index <- seq_along(unlist(M[,1]))
         }
 

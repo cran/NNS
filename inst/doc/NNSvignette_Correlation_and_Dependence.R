@@ -1,7 +1,7 @@
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
-## ----setup2,message=FALSE-----------------------------------------------------
+## ----setup2,message=FALSE,warning = FALSE-------------------------------------
 require(NNS)
 require(knitr)
 require(rgl)
@@ -12,7 +12,7 @@ require(dtw)
 x = seq(0, 3, .01) ; y = 2 * x
 
 cor(x, y)
-NNS.dep(x, y, print.map = TRUE, order = 3)
+NNS.dep(x, y, print.map = TRUE)
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"------------------
 x=seq(0, 3, .01) ; y = x ^ 10
@@ -35,7 +35,7 @@ NNS.dep.hd(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
 ## p-values for [NNS.dep]
 x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 
-nns_cor_dep <- NNS.dep(x, y, print.map = TRUE)
+nns_cor_dep <- NNS.dep(x,abs (y), print.map = TRUE)
 nns_cor_dep
 
 ## Create permutations of y

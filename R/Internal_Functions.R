@@ -1,12 +1,8 @@
 ### Continuous Mode of a distribution
 mode <- function(x) {
-  if(length(x) > 1){
-      d <- density(x)
-      d$x[which.max(d$y)]
-  } else {
-    x
+      d <-tryCatch(density(na.omit(as.numeric(x))), error = function(e) { median(x)})
+      tryCatch(d$x[which.max(d$y)], error = function(e) {d})
   }
-}
 
 ### Classification Mode of a distribution
 mode_class <- function(x){
@@ -15,25 +11,48 @@ mode_class <- function(x){
   ux[which.max(tabulate(match(x, ux)))]
 }
 
+### Central Tendency
+gravity <- function(x){
+  (mean(x) + median(x) + mode(x) + mean(range(x)) ) / 4
+}
+
+
+### cbind different length vectors
+alt_cbind <- function(x,y,first = FALSE) {
+  if(length(x)<length(y)) {
+    if(first) x = c(rep(NA, length(y)-length(x)),x);y=y
+    if(!first) x = c(x,rep(NA, length(y)-length(x)));y=y
+  }
+  if(length(y)<length(x)) {
+    if(first) y = c(rep(NA, length(x)-length(y)),y);x=x
+    if(!first) y = c(y,rep(NA, length(x)-length(y)));x=x
+  }
+
+  return(cbind(x,y))
+
+}
+
+
 ### Factor to dummy variable
 factor_2_dummy <- function(x){
-  if(class(x) == "factor"){
+  if(class(x) == "factor" & length(unique(x)) > 1){
     output <- model.matrix(~(x) -1, x)[,-1]
   } else {
-    output <- x
+    output <- as.numeric(x)
   }
   output
 }
 
 ### Factor to dummy variable FULL RANK
 factor_2_dummy_FR <- function(x){
-  if(class(x) == "factor"){
+  if(class(x) == "factor" & length(unique(x)) > 1){
     output <- model.matrix(~(x) -1, x)
   } else {
-    output <- x
+    output <- as.numeric(x)
   }
   output
 }
+
 
 
 ### Generator for 1:length(lag) vectors in NNS.ARMA
@@ -74,10 +93,10 @@ ARMA.seas.weighting <- function(sf,mat){
     if(!sf){
       lag <- na.omit(M$Period)
       Observation.weighting <- (1 / sqrt(lag))
-      if(is.na(M$Coefficient.of.Variance)  && length(M$Coefficient.of.Variance)==1){
+      if(is.na(M$Coefficient.of.Variation)  && length(M$Coefficient.of.Variation)==1){
         Lag.weighting <- 1
       } else {
-        Lag.weighting <- (M$Variable.Coefficient.of.Variance - M$Coefficient.of.Variance)
+        Lag.weighting <- (M$Variable.Coefficient.of.Variation - M$Coefficient.of.Variation)
       }
       Weights <- (Lag.weighting * Observation.weighting) / sum(Lag.weighting * Observation.weighting)
       return(list(lag = lag, Weights = Weights))
@@ -87,8 +106,12 @@ ARMA.seas.weighting <- function(sf,mat){
 
 
 ### Lag matrix generator for NNS.VAR
+### Vector of tau for single different tau per variables tau = c(1, 4)
+### List of tau vectors for multiple different tau per variables tau = list(c(1,2,3), c(4,5,6))
 lag.mtx <- function(x, tau){
   colheads <- NULL
+
+  max_tau <- max(unlist(tau))
 
   if(is.null(dim(x)[2])) {
     colheads <- noquote(as.character(deparse(substitute(x))))
@@ -105,12 +128,12 @@ lag.mtx <- function(x, tau){
     }
 
     x.vectors <- list()
-    heads <- paste0(colheads, ".tau.")
+    heads <- paste0(colheads, "_tau_")
     heads <- gsub('"', '' ,heads)
 
-    for (i in 0:tau){
+    for (i in 0:max_tau){
       x.vectors[[paste(heads, i, sep = "")]] <- numeric(0L)
-      start <- tau - i + 1
+      start <- max_tau - i + 1
       end <- length(x[,j]) - i
       x.vectors[[i + 1]] <- x[start : end, j]
     }
@@ -118,8 +141,19 @@ lag.mtx <- function(x, tau){
     j.vectors[[j]] <- do.call(cbind, x.vectors)
     colheads <- NULL
   }
+  mtx <- as.data.frame(do.call(cbind, j.vectors))
 
-  return(as.data.frame(do.call(cbind, j.vectors)))
+  relevant_lags <- list()
+  if(length(unlist(tau)) > 1){
+    for(i in 1:(length(tau))){
+        relevant_lags[[i]] <- c((i-1)*max_tau + i, (i-1)*max_tau + unlist(tau[[i]]) + i)
+    }
+
+    relevant_lags <- sort(unlist(relevant_lags))
+    mtx <- mtx[ , relevant_lags]
+  }
+
+  return(mtx)
 }
 
 

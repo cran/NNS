@@ -4,7 +4,7 @@
 \alias{NNS.dep}
 \title{NNS Dependence}
 \usage{
-NNS.dep(x, y = NULL, order = NULL, degree = NULL,
+NNS.dep(x, y = NULL, order = 3, degree = NULL, asym = FALSE,
   print.map = FALSE, ncores = NULL)
 }
 \arguments{
@@ -12,9 +12,11 @@ NNS.dep(x, y = NULL, order = NULL, degree = NULL,
 
 \item{y}{\code{NULL} (default) or a numeric vector with compatible dimsensions to \code{x}.}
 
-\item{order}{integer; Controls the level of quadrant partitioning.  Defaults to \code{(order = NULL)}.  Errors can generally be rectified by setting \code{(order = 1)}.  Will not partition further if less than 4 observations exist in a quadrant.}
+\item{order}{integer; Controls the level of quadrant partitioning.  Defaults to \code{(order = 3)}.  Errors can generally be rectified by setting \code{(order = 1)}.}
 
 \item{degree}{integer; Defaults to NULL to allow number of observations to be \code{"degree"} determinant.}
+
+\item{asym}{logical; \code{FALSE} (default) Allows for asymmetrical dependencies.}
 
 \item{print.map}{logical; \code{FALSE} (default) Plots quadrant means.}
 

@@ -7,7 +7,7 @@
 #' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.
 #' @param type \code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
 #' @param representative.sample logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.
-#' @param depth options: (integer, NULL, "max"); \code{"max"} (default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")} will be signifcantly faster, but increase the variance of results.
+#' @param depth options: (integer, NULL, "max"); \code{NULL} (default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")} will be signifcantly faster, but increase the variance of results.
 #' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.
 #' @param learner.trials integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  Number of observations in the training set is the default setting.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
@@ -50,7 +50,7 @@ NNS.boost <- function(IVs.train,
                       IVs.test,
                       type = NULL,
                       representative.sample = FALSE,
-                      depth = "max",
+                      depth = NULL,
                       n.best = NULL,
                       learner.trials = NULL,
                       epochs = NULL,
@@ -203,9 +203,10 @@ NNS.boost <- function(IVs.train,
                            ncores = 1, type = type)$Point.est
 
       # Do not predict a new unseen class
-      predicted <- pmin(predicted,max(as.numeric(y)))
-      predicted <- pmax(predicted,min(as.numeric(y)))
-
+      if(!is.null(type)){
+          predicted <- pmin(predicted, max(as.numeric(y)))
+          predicted <- pmax(predicted, min(as.numeric(y)))
+      }
 
       new.index.1 <- rev(order(abs(predicted - actual)))
 
@@ -328,8 +329,10 @@ NNS.boost <- function(IVs.train,
                            factor.2.dummy = FALSE, ncores = 1, type = type)$Point.est
 
       # Do not predict a new unseen class
-      predicted <- pmin(predicted,max(as.numeric(y)))
-      predicted <- pmax(predicted,min(as.numeric(y)))
+      if(!is.null(type)){
+          predicted <- pmin(predicted,max(as.numeric(y)))
+          predicted <- pmax(predicted,min(as.numeric(y)))
+      }
 
       new.index.1 <- rev(order(abs(predicted - actual)))
 
@@ -360,7 +363,11 @@ NNS.boost <- function(IVs.train,
   keeper.features <- keeper.features[!sapply(keeper.features, is.null)]
   if(length(keeper.features)==0){
     if(old.threshold==0){
-      stop("Please reduce [threshold].")
+      if(objective=="min"){
+          stop("Please increase [threshold].")
+      } else {
+          stop("Please reduce [threshold].")
+      }
     } else {
       keeper.features <- test.features[which.max(results)]
     }
@@ -423,9 +430,10 @@ NNS.boost <- function(IVs.train,
 
   estimates <- Reduce("+", estimates)
 
-  estimates <- pmin(estimates, max(as.numeric(y)))
-  estimates <- pmax(estimates, min(as.numeric(y)))
-
+  if(!is.null(type)){
+      estimates <- pmin(estimates, max(as.numeric(y)))
+      estimates <- pmax(estimates, min(as.numeric(y)))
+  }
 
   plot.table <- table(unlist(keeper.features))
   names(plot.table) <- colnames(x[as.numeric(names(plot.table))])

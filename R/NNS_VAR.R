@@ -4,22 +4,26 @@
 #'
 #' @param variables a numeric matrix or data.frame of contemporaneous time-series to forecast.
 #' @param h integer; 1 (default) Number of periods to forecast.
-#' @param tau integer; 0 (default) Number of lagged observations to consider for the time-series data.
+#' @param tau positive integer [ > 0]; 1 (default) Number of lagged observations to consider for the time-series data.  Vector for single lag for each respective variable or list for multiple lags per each variable.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for reducing regressors via \link{NNS.stack}.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param obj.fn expression;
 #' \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
-#' @param epochs integer; \code{100} (default) Total number of feature combinations to run.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #'
 #' @return Returns the following matrices of forecasted variables:
 #' \itemize{
+#'  \item{\code{"relevant_variables"}} Returns the relevant variables from the dimension reduction step.
+#'
 #'  \item{\code{"univariate"}} Returns the univariate \link{NNS.ARMA} forecasts.
 #'
 #'  \item{\code{"multivariate"}} Returns the multi-variate \link{NNS.reg} forecasts.
 #'
 #'  \item{\code{"ensemble"}} Returns the ensemble of both \code{"univariate"} and \code{"multivariate"} forecasts.
 #'  }
+#'
+#' @note \code{dim.red.method = "cor"} is significantly faster than the other methods, but comes at the expense of ignoring possible nonlinear relationships between lagged variables.
 #'
 #'
 #' @author Fred Viole, OVVO Financial Systems
@@ -44,7 +48,15 @@
 #'  set.seed(123)
 #'  x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
 #'  A <- cbind(x = x, y = y, z = z)
+#'
+#'  ### Using lags 1:4 for each variable
 #'  NNS.VAR(A, h = 12, tau = 4, status = TRUE)
+#'
+#'  ### Using lag 1 for variable 1, lag 3 for variable 2 and lag 3 for variable 3
+#'  NNS.VAR(A, h = 12, tau = c(1,3,3), status = TRUE)
+#'
+#'  ### Using lags c(1,2,3) for variables 1 and 3, while using lags c(4,5,6) for variable 2
+#'  NNS.VAR(A, h = 12, tau = list(c(1,2,3), c(4,5,6), c(1,2,3)), status = TRUE)
 #'  }
 #'
 #' @export
@@ -53,13 +65,15 @@
 
 NNS.VAR <- function(variables,
                     h,
-                    tau = 0,
+                    tau = 1,
+                    dim.red.method = "cor",
                     obj.fn = expression( sum((predicted - actual)^2) ),
                     objective = "min",
-                    epochs = 100,
                     status = TRUE,
                     ncores = NULL){
 
+  dim.red.method <- tolower(dim.red.method)
+  if(sum(dim.red.method%in%c("cor","nns.dep","nns.caus","all"))==0){ stop('Please ensure the dimension reduction method is set to one of "cor", "nns.dep", "nns.caus" or "all".')}
   nns_IVs <- list()
 
   # Parallel process...
@@ -81,7 +95,7 @@ NNS.VAR <- function(variables,
   nns_IVs <- foreach(i = 1:ncol(variables), .packages = 'NNS')%dopar%{
     variable <- variables[, i]
 
-    periods <- NNS.seas(variable, modulo = tau,
+    periods <- NNS.seas(variable, modulo = min(tau[[min(i, length(tau))]]),
                         mod.only = FALSE, plot = FALSE)$periods
 
     b <- NNS.ARMA.optim(variable, seasonal.factor = periods,
@@ -120,6 +134,7 @@ NNS.VAR <- function(variables,
 
   nns_DVs <- list()
   DV_obj_fn <- list()
+  relevant_vars <- list()
 
   if(status){
     message("Currently generating multi-variate estimates...", "\r", appendLF = TRUE)
@@ -131,57 +146,107 @@ NNS.VAR <- function(variables,
       message("Variable ", index, " of ", length(DVs), appendLF = TRUE)
     }
 
-# NNS.boost() is an ensemble method comparable to xgboost, and aids in dimension reduction
-    nns_boost_est <- NNS.boost(lagged_new_values_train[, -i], lagged_new_values_train[, i],
-                               IVs.test = tail(lagged_new_values_train[, -i], h),
+# Dimension reduction NNS.reg to reduce variables
+    cor_threshold <- NNS.stack(IVs.train = lagged_new_values_train[, -i],
+                               DV.train = lagged_new_values_train[, i],
+                               ts.test = 2*h, folds = 1,
+                               obj.fn = obj.fn,
+                               objective = objective,
+                               order = NULL, method = 2,
+                               dim.red.method = dim.red.method)
+
+
+    if(any(dim.red.method == "cor" | dim.red.method == "all")){
+        rel.1 <- cor(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]), method = "spearman")
+    }
+
+    if(any(dim.red.method == "nns.dep" | dim.red.method == "all")){
+        rel.2 <- NNS.dep(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]))$Dependence
+    }
+
+    if(any(dim.red.method == "nns.caus" | dim.red.method == "all")){
+        rel.3 <- NNS.caus(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]))
+    }
+
+    if(dim.red.method == "cor"){
+        rel_vars <- rel.1[-1,1]
+    }
+
+    if(dim.red.method == "nns.dep"){
+        rel_vars <- rel.2[-1,1]
+    }
+
+    if(dim.red.method == "nns.caus"){
+        rel_vars <- rel.3[1,-1]
+    }
+
+    if(dim.red.method == "all"){
+        rel_vars <- ((rel.1+rel.2+rel.3)/3)[1, -1]
+    }
+
+    rel_vars <- rel_vars[rel_vars>cor_threshold$NNS.dim.red.threshold]
+
+    rel_vars <- names(lagged_new_values)[names(lagged_new_values)%in%names(rel_vars)]
+
+
+
+    relevant_vars[[index]] <- rel_vars
+
+    if(length(rel_vars)==0){
+        rel_vars <- names(lagged_new_values_train)
+    }
+
+# NNS.stack() cross-validates the parameters of the multivariate NNS.reg() and dimension reduction NNS.reg()
+    if(length(rel_vars)>1){
+        DV_values <- NNS.stack(lagged_new_values_train[, rel_vars],
+                               lagged_new_values_train[, i],
+                               IVs.test =  tail(lagged_new_values[, rel_vars], h),
                                obj.fn = obj.fn,
                                objective = objective,
                                ts.test = 2*h, folds = 1,
-                               depth = "max",
-                               learner.trials = epochs,
-                               ncores = num_cores, type = NULL,
-                               feature.importance = FALSE)
+                               status = status, ncores = num_cores,
+                               dim.red.method = dim.red.method)
 
-# NNS.stack() cross-validates the parameters of the multivariate NNS.reg() and dimension reduction NNS.reg()
-    relevant_vars <- colnames(lagged_new_values)%in%names(nns_boost_est$feature.weights)
+        nns_DVs[[index]] <- DV_values$stack
 
-    DV_values <- NNS.stack(lagged_new_values_train[, relevant_vars],
-                                  lagged_new_values_train[, i],
-                                  IVs.test =  tail(lagged_new_values[, relevant_vars], h),
-                                  obj.fn = obj.fn,
-                                  objective = objective,
-                                  order = "max",
-                                  ts.test = 2*h, folds = 1,
-                                  status = status, ncores = num_cores)
+        DV_obj_fn[[index]] <- sum( (c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red) / (DV_values$OBJfn.reg + DV_values$OBJfn.dim.red)) * c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red))
 
-    nns_DVs[[index]] <- DV_values$stack
+        } else {
+            DV_values <- NNS.reg(lagged_new_values_train[, rel_vars],
+                                 lagged_new_values_train[, i],
+                                 point.est =  tail(lagged_new_values[, rel_vars], h), plot = FALSE)
 
-    DV_obj_fn[[index]] <- sum( (c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red) / (DV_values$OBJfn.reg + DV_values$OBJfn.dim.red)) * c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red))
+            nns_DVs[[index]] <- DV_values$Point.est
+
+            DV_obj_fn[[index]] <- cor_threshold$OBJfn.dim.red
+        }
+
+
 
   }
 
   nns_DVs <- do.call(cbind, nns_DVs)
   colnames(nns_DVs) <- colnames(variables)
 
-  if(objective=="min"){
-      IV_weights <- 1/unlist(lapply(nns_IVs, `[[`, 2))
-      DV_weights <- 1/unlist(DV_obj_fn)
+  RV <- lapply(relevant_vars,function(x) if(is.null(x)){NA} else {x})
 
-  } else {
-      IV_weights <- unlist(lapply(nns_IVs, `[[`, 2))
-      DV_weights <- unlist(DV_obj_fn)
+  RV <- do.call(cbind, lapply(RV, `length<-`, max(lengths(RV))))
+  colnames(RV) <- colnames(variables)
+
+  uni <- numeric()
+  multi <- numeric()
+
+  for(i in 1:length(colnames(RV))){
+      uni[i] <-  .5 + .5*(sum(unlist(strsplit(colnames(RV)[i], split = "_tau"))[1]==do.call(rbind,(strsplit(na.omit(RV[,i]), split = "_tau")))[,1])  / max(length(tau[[min(i, length(tau))]]), length(na.omit(RV[,i]))))
+      multi[i] <- 1 - uni[i]
   }
 
-  denom <- (IV_weights + DV_weights)
-  IV_weights <- IV_weights / denom
-  DV_weights <- DV_weights / denom
 
-  IV_weights <- rep(IV_weights, each = dim(nns_IVs_results)[1])
-  DV_weights <- rep(DV_weights, each = dim(nns_DVs)[1])
+  forecasts <- Reduce(`+`,list(t(t(nns_IVs_results)*uni) , t(t(nns_DVs)*multi)))
 
-  forecasts <- (IV_weights * nns_IVs_results + DV_weights * nns_DVs)
-  colnames(forecasts) <- colnames(variables)
 
-  return( list(univariate = nns_IVs_results, multivariate = nns_DVs, ensemble = forecasts) )
-
+  return( list("relevant_variables" = RV,
+               univariate = nns_IVs_results,
+               multivariate = nns_DVs,
+               ensemble = forecasts) )
 }

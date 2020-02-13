@@ -1,7 +1,7 @@
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
-## ----setup2, message=FALSE----------------------------------------------------
+## ----setup2, message=FALSE, warning = FALSE-----------------------------------
 require(NNS)
 require(knitr)
 require(rgl)
