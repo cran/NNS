@@ -4,18 +4,32 @@
 \alias{NNS.stack}
 \title{NNS Stack}
 \usage{
-NNS.stack(IVs.train, DV.train, IVs.test = NULL, type = NULL,
-  obj.fn = expression(sum((predicted - actual)^2)), objective = "min",
-  dist = "L2", CV.size = NULL, ts.test = NULL, folds = 5,
-  order = NULL, norm = NULL, method = c(1, 2),
-  dim.red.method = "cor", status = TRUE, ncores = NULL)
+NNS.stack(
+  IVs.train,
+  DV.train,
+  IVs.test = NULL,
+  type = NULL,
+  obj.fn = expression(sum((predicted - actual)^2)),
+  objective = "min",
+  dist = "L2",
+  CV.size = NULL,
+  ts.test = NULL,
+  folds = 5,
+  order = NULL,
+  norm = NULL,
+  method = c(1, 2),
+  stack = TRUE,
+  dim.red.method = "cor",
+  status = TRUE,
+  ncores = NULL
+)
 }
 \arguments{
 \item{IVs.train}{a vector, matrix or data frame of variables of numeric or factor data types.}
 
 \item{DV.train}{a numeric or factor vector with compatible dimsensions to \code{(IVs.train)}.}
 
-\item{IVs.test}{a vector, matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.}
+\item{IVs.test}{a vector, matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.}
 
 \item{type}{\code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.   Like a logistic regression, this setting is not necessary for target variable of two classes e.g. [0, 1].}
 
@@ -31,11 +45,13 @@ NNS.stack(IVs.train, DV.train, IVs.test = NULL, type = NULL,
 
 \item{folds}{integer; \code{folds = 5} (default) Select the number of cross-validation folds.}
 
-\item{order}{integer; \code{NULL} (default) Sets the order for \link{NNS.reg}, where \code{(order = "max")} is the k-nearest neighbors equivalent.}
+\item{order}{options: (integer, "max", NULL); \code{NULL} (default) Sets the order for \link{NNS.reg}, where \code{(order = "max")} is the k-nearest neighbors equivalent, which is suggested for mixed continuous and discrete (unordered, ordered) data.}
 
 \item{norm}{options: ("std", "NNS", NULL); \code{NULL} (default) 3 settings offered: \code{NULL}, \code{"std"}, and \code{"NNS"}.  Selects the \code{norm} parameter in \link{NNS.reg}.}
 
-\item{method}{numeric options: (1, 2); Select the NNS method to include in stack.  \code{(method = 1)} selects \link{NNS.reg}; \code{(method = 2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method = c(1, 2)}, including both NNS regression methods in the stack.}
+\item{method}{numeric options: (1, 2); Select the NNS method to include in stack.  \code{(method = 1)} selects \link{NNS.reg}; \code{(method = 2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method = c(1, 2)}, which will reduce the dimension first, then find the optimal \code{n.best}.}
+
+\item{stack}{logical; \code{TRUE} (default) Uses dimension reduction output in \code{n.best} optimization, otherwise performs both analyses independently.}
 
 \item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for weights.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.}
 

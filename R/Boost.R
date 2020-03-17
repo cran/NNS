@@ -4,12 +4,12 @@
 #'
 #' @param IVs.train a matrix or data frame of variables of numeric or factor data types.
 #' @param DV.train a numeric or factor vector with compatible dimsensions to \code{(IVs.train)}.
-#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.
+#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
 #' @param type \code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
 #' @param representative.sample logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.
-#' @param depth options: (integer, NULL, "max"); \code{NULL} (default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")} will be signifcantly faster, but increase the variance of results.
+#' @param depth options: (integer, NULL, "max"); Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")}(default) will be signifcantly faster, but increase the variance of results, which is suggested for mixed continuous and discrete (unordered, ordered) data.
 #' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.
-#' @param learner.trials integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  Number of observations in the training set is the default setting.
+#' @param learner.trials integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  \code{(learner.trials = 100)} is the default setting.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
 #' @param CV.size numeric [0, 1]; \code{(CV.size = .25)} (default) Sets the cross-validation size.  Defaults to 0.25 for a 25 percent random sampling of the training set.
 #' @param ts.test integer; NULL (default) Sets the length of the test set for time-series data; typically \code{2*h} parameter value from \link{NNS.ARMA} or double known periods to forecast.
@@ -47,12 +47,12 @@
 
 NNS.boost <- function(IVs.train,
                       DV.train,
-                      IVs.test,
+                      IVs.test = NULL,
                       type = NULL,
                       representative.sample = FALSE,
-                      depth = NULL,
+                      depth = "max",
                       n.best = NULL,
-                      learner.trials = NULL,
+                      learner.trials = 100,
                       epochs = NULL,
                       CV.size = .25,
                       ts.test = NULL,
@@ -76,6 +76,8 @@ NNS.boost <- function(IVs.train,
   }
 
   objective <- tolower(objective)
+
+  if(is.null(IVs.test)) {IVs.test <- IVs.train}
 
   # Parallel process...
   if (is.null(ncores)) {
@@ -151,6 +153,8 @@ NNS.boost <- function(IVs.train,
 
     if(is.null(learner.trials)){learner.trials <- length(y)}
 
+    learner.trials <- min(sum(choose(n, 1:n)), learner.trials)
+
     for(i in 1:learner.trials){
       set.seed(123 + i)
       new.index <- sample(length(y), as.integer(CV.size*length(y)), replace = FALSE)
@@ -192,7 +196,7 @@ NNS.boost <- function(IVs.train,
         message("Current Threshold Iterations Remaining = " ,learner.trials+1-i," ","\r",appendLF=FALSE)
       }
 
-      test.features[[i]] <- sort(sample(n,sample(2:n,1),replace = FALSE))
+      test.features[[i]] <- sort(sample(n, sample(2:n,1), replace = FALSE))
 
       #If estimate is > threshold, store 'features'
       predicted <- NNS.reg(new.iv.train[,test.features[[i]]],
@@ -261,7 +265,7 @@ NNS.boost <- function(IVs.train,
     message(paste0("Learner Accuracy Threshold = ", format(threshold, digits = 3, nsmall = 2),"           "), appendLF = TRUE)
 
     # Clear message line
-    message("                                       ", "\r", appendLF=FALSE)
+    message("                                       ", "\r", appendLF = FALSE)
   }
 
 
@@ -315,7 +319,7 @@ NNS.boost <- function(IVs.train,
         message("% of epochs = ", format(j/epochs,digits =  3,nsmall = 2),"     ","\r",appendLF=FALSE)
 
         if(j == epochs){
-          message("% of epochs ",j," = 1.000     ","\r",appendLF=FALSE)
+          message("% of epochs ",j," = 1.000     ","\r",appendLF = FALSE)
           flush.console()
         }
       }
@@ -378,8 +382,6 @@ NNS.boost <- function(IVs.train,
 
   kf <- data.table(table(as.character(keeper.features)))
   kf$N <- kf$N / sum(kf$N)
-
-
 
 
   if(num_cores>1){

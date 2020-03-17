@@ -206,7 +206,6 @@ NNS.ARMA <- function(variable,
     ## Regression on Component Series
     Regression.Estimates <- numeric()
 
-
     if(method == 'nonlin' | method == 'both'){
       Regression.Estimates <- list()
 

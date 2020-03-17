@@ -6,7 +6,7 @@
 #' @param Voronoi logical; \code{FALSE} (default) Displays a Voronoi type diagram using partial moment quadrants.
 #' @param type \code{NULL} (default) Controls the partitioning basis.  Set to \code{(type = "XONLY")} for X-axis based partitioning.  Defaults to \code{NULL} for both X and Y-axis partitioning.
 #' @param order integer; Number of partial moment quadrants to be generated.  \code{(order = "max")} will institute a perfect fit.
-#' @param obs.req integer; (8 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.
+#' @param obs.req integer; (10 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.
 #' @param min.obs.stop logical; \code{TRUE} (default) Stopping condition where quadrants will not be further partitioned if a single cluster contains less than the entered value of \code{obs.req}.
 #' @param noise.reduction the method of determing regression points options: ("mean", "median", "mode", "off"); \code{(noise.reduction = "mean")} uses means for partitions.  \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction = "off")} where an overall central tendency measure is used.
 #' @return Returns:
@@ -43,7 +43,7 @@ NNS.part = function(x, y,
                     Voronoi = FALSE,
                     type = NULL,
                     order = NULL,
-                    obs.req = 8,
+                    obs.req = 10,
                     min.obs.stop = TRUE,
                     noise.reduction = "off"){
 
@@ -93,6 +93,7 @@ NNS.part = function(x, y,
         hard.stop <- max(floor(log(length(x), 2)), 1)
     }
 
+    dims <- numeric()
 
     if(is.null(type)) {
         i <- 0L
@@ -103,14 +104,10 @@ NNS.part = function(x, y,
             PART[old.counts >= obs.req, `:=`(old.counts, .N), by = prior.quadrant]
             l.PART <- max(PART$counts)
 
-            if(min.obs.stop && (min(PART$counts) <= obs.req) && i >= 1) break
-
-            if(l.PART <= obs.req && i >= 1) break
-
             obs.req.rows <- PART[counts >= obs.req, which = TRUE]
             old.obs.req.rows <- PART[old.counts >= obs.req, which = TRUE]
 
-            if(min.obs.stop & obs.req > 0 & length(obs.req.rows) < length(old.obs.req.rows)) {print("here")
+            if(min.obs.stop & obs.req > 0 & length(obs.req.rows) < length(old.obs.req.rows)) {
                 break
             }
 
@@ -208,7 +205,7 @@ NNS.part = function(x, y,
                 new.parts <- length(unique(PART$quadrant))
             }
 
-            if (noise.reduction == "mode") {
+            if(noise.reduction == "mode") {
                 if(Voronoi) {
                     if(l.PART > obs.req) {
                         PART[obs.req.rows, {
@@ -238,8 +235,8 @@ NNS.part = function(x, y,
 
                 new.parts <- length(unique(PART$quadrant))
             }
-
-            if(obs.req == 0 & old.parts == new.parts) break
+            if((min(PART$counts) <= obs.req) && i >= 1) break
+            if(obs.req == 0 & old.parts >= new.parts) break
             i = i + 1L
         }
         if (!is.numeric(order)) {
@@ -251,6 +248,7 @@ NNS.part = function(x, y,
         PART[, `:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
 
         RP <- setorder(RP[], quadrant)[]
+
         if (Voronoi) {
             title(main = paste0("NNS Order = ", i), cex.main = 2)
             points(RP$x, RP$y, pch = 15, lwd = 2, col = "red")
@@ -264,10 +262,6 @@ NNS.part = function(x, y,
             if(i == order | i == hard.stop) break
             PART[counts >= 1 * obs.req, `:=`(counts, .N), by = quadrant]
             PART[old.counts >= 1 * obs.req, `:=`(old.counts, .N), by = prior.quadrant]
-
-            if(max(PART$counts) <= 1 * obs.req && i >= 1) break
-
-            if(min.obs.stop && (min(PART$counts) <= 1 * obs.req) && i >= 1) break
 
             obs.req.rows <- PART[counts >= 1 * obs.req, which = TRUE]
 
@@ -350,7 +344,8 @@ NNS.part = function(x, y,
                 new.parts <- length(unique(PART$quadrant))
             }
 
-            if(obs.req == 0 & old.parts == new.parts) break
+            if((min(PART$counts) <= obs.req) && i >= 1) break
+            if(obs.req == 0 & old.parts >= new.parts) break
             i <- i + 1L
         }
 

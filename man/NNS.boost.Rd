@@ -4,30 +4,44 @@
 \alias{NNS.boost}
 \title{NNS Boost}
 \usage{
-NNS.boost(IVs.train, DV.train, IVs.test, type = NULL,
-  representative.sample = FALSE, depth = NULL, n.best = NULL,
-  learner.trials = NULL, epochs = NULL, CV.size = 0.25,
-  ts.test = NULL, folds = 5, threshold = NULL,
-  obj.fn = expression(sum((predicted - actual)^2)), objective = "min",
-  extreme = FALSE, feature.importance = TRUE, status = TRUE,
-  ncores = NULL)
+NNS.boost(
+  IVs.train,
+  DV.train,
+  IVs.test = NULL,
+  type = NULL,
+  representative.sample = FALSE,
+  depth = "max",
+  n.best = NULL,
+  learner.trials = 100,
+  epochs = NULL,
+  CV.size = 0.25,
+  ts.test = NULL,
+  folds = 5,
+  threshold = NULL,
+  obj.fn = expression(sum((predicted - actual)^2)),
+  objective = "min",
+  extreme = FALSE,
+  feature.importance = TRUE,
+  status = TRUE,
+  ncores = NULL
+)
 }
 \arguments{
 \item{IVs.train}{a matrix or data frame of variables of numeric or factor data types.}
 
 \item{DV.train}{a numeric or factor vector with compatible dimsensions to \code{(IVs.train)}.}
 
-\item{IVs.test}{a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.}
+\item{IVs.test}{a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.}
 
 \item{type}{\code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.}
 
 \item{representative.sample}{logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.}
 
-\item{depth}{options: (integer, NULL, "max"); \code{NULL} (default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")} will be signifcantly faster, but increase the variance of results.}
+\item{depth}{options: (integer, NULL, "max"); Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")}(default) will be signifcantly faster, but increase the variance of results, which is suggested for mixed continuous and discrete (unordered, ordered) data.}
 
 \item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.}
 
-\item{learner.trials}{integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  Number of observations in the training set is the default setting.}
+\item{learner.trials}{integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  \code{(learner.trials = 100)} is the default setting.}
 
 \item{epochs}{integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.}
 

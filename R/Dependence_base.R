@@ -54,20 +54,21 @@ NNS.dep.base <- function(x,
   }
 
   if(!missing(y)) {
-      n = length(x)
-      if(asym){type <- "XONLY"} else {type <- NULL}
-      if (print.map == TRUE) {
-          part.map <- NNS.part(x, y, order = order, obs.req = 1, type = type,
-                               Voronoi = TRUE, min.obs.stop = TRUE)
-      } else {
-          part.map <- NNS.part(x, y, order = order, obs.req = 1, type = type,
-                               Voronoi = FALSE, min.obs.stop = TRUE)
-      }
+          n <- length(x)
+          if(asym){type <- "XONLY"} else {type <- NULL}
 
-      part.df <- part.map$dt
+          if (print.map == TRUE) {
+            part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = 10,
+                                 Voronoi = TRUE, min.obs.stop = TRUE)
+          } else {
+            part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = 10,
+                                 Voronoi = FALSE, min.obs.stop = TRUE)
+          }
+
+          part.df <- part.map$dt
 
       if(any(length(unique(x)) < sqrt(length(x)) | length(unique(y)) < sqrt(length(y))  | is.na(sd(x)) | is.na(sd(y)) | sd(x)==0 | sd(y)==0)){
-            part.df[, `:=`(mean.x = gravity(x), mean.y = gravity(y)), by = prior.quadrant]
+            part.df[, `:=`(mean.x = mean(x), mean.y = mean(y)), by = prior.quadrant]
         if (degree == 0) {
             part.df <- part.df[x != mean.x & y != mean.y, ]
         }
@@ -105,23 +106,28 @@ NNS.dep.base <- function(x,
         return(list(Correlation = nns.cor, Dependence = nns.dep))
 
       } else {
-          part.df[, `:=` (weight = .N/n), by = prior.quadrant]
+          part.df[, counts := .N , by = quadrant]
+          part.df <- part.df[counts >= 5, ]
+
+          n <- dim(part.df)[1]
+
+          part.df[, `:=` (weight = .N/n), by = quadrant]
 
           if(asym){
-              disp <- part.df[,.(cor(x, abs(y), method = "pearson")), by = prior.quadrant]$V1
+              disp <- part.df[,.(cor(x, abs(y), method = "pearson")), by = quadrant]$V1
           } else {
-              disp <- part.df[,.(cor(x, y, method = "pearson")), by = prior.quadrant]$V1
+              disp <- part.df[,.(cor(x, y, method = "pearson")), by = quadrant]$V1
           }
 
           disp[is.na(disp)] <- 0
 
-
-          nns.cor <- sum(disp * part.df[, mean(weight), by = prior.quadrant]$V1)
-          nns.dep <- sum(abs(disp) * part.df[, mean(weight), by = prior.quadrant]$V1)
+          nns.cor <- sum(disp * part.df[, mean(weight), by = quadrant]$V1)
+          nns.dep <- sum(abs(disp) * part.df[, mean(weight), by = quadrant]$V1)
 
           options(warn = oldw)
           return(list(Correlation = nns.cor, Dependence = nns.dep))
       }
+
   } else {
         NNS.dep.matrix(x, order = order, degree = degree, asym = asym)
   }

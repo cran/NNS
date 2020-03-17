@@ -48,7 +48,7 @@ dy.d_<- function(x, y, wrt,
                  plot = FALSE,
                  messages = TRUE){
 
-  order <- NULL
+  order <- "max"
 
   h <- NNS.dep.hd(cbind(x,y))$Dependence * length(y)
 
@@ -100,11 +100,15 @@ dy.d_<- function(x, y, wrt,
                                  rep(eval.points, 30),
                                  rep(original.eval.points.max, 30))
 
+        distance_wrt <-  original.eval.points.max - original.eval.points.min
+
     } else {
         deriv.points <- matrix(c(original.eval.points.min, original.eval.points, original.eval.points.max), ncol = dim(x)[2], byrow = TRUE)
+
+        distance_wrt <-  original.eval.points.max[wrt] - original.eval.points.min[wrt]
     }
 
-    estimates <- NNS.stack(x, y, IVs.test = deriv.points, order = order)$stack
+    estimates <- NNS.stack(x, y, IVs.test = deriv.points, order = order, method = 1)$reg
 
 
     if(length(eval.points) == 1){
@@ -119,7 +123,6 @@ dy.d_<- function(x, y, wrt,
 
     rise <- upper - lower
 
-    distance_wrt <-  original.eval.points.max[wrt] - original.eval.points.min[wrt]
   } else {
     n <- dim(eval.points)[1]
     original.eval.points <- eval.points
@@ -132,7 +135,7 @@ dy.d_<- function(x, y, wrt,
                                   original.eval.points.max)
 
 
-    estimates <- NNS.stack(x, y, IVs.test = original.eval.points, order = order)$stack
+    estimates <- NNS.stack(x, y, IVs.test = original.eval.points, order = order, method = 1)$reg
 
     lower <- head(estimates,n)
     two.f.x <- 2 * estimates[(n+1):(2*n)]
@@ -178,7 +181,7 @@ dy.d_<- function(x, y, wrt,
     }
 
 
-    mixed.estimates <- NNS.stack(x, y, IVs.test = mixed.deriv.points, order = order)$stack
+    mixed.estimates <- NNS.stack(x, y, IVs.test = mixed.deriv.points, order = order, method = 1)$reg
 
     if(messages){
       message("Done :-)","\r",appendLF=TRUE)
@@ -194,7 +197,7 @@ dy.d_<- function(x, y, wrt,
                 "Mixed Derivative" = mixed))
   } else {
     return(list("First Derivative" = rise / distance_wrt,
-                "Second Derivative" = (upper - two.f.x + lower) / ((distance_wrt) ^ 2)))
+                "Second Derivative" = (upper - two.f.x + lower) / ((distance_wrt) ^ 2) ) )
   }
 
 

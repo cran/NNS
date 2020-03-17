@@ -11,7 +11,7 @@ require(dtw)
 ## ----linear-------------------------------------------------------------------
 x = seq(-5, 5, .05); y = x ^ 3
 
-for(i in 1 : 4){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE)}
+for(i in 1 : 4){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE, obs.req = 0)}
 
 ## ----x part,results='hide'----------------------------------------------------
 for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
@@ -20,7 +20,7 @@ for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
 NNS.part(x,y,order = 4, type = "XONLY")
 
 ## ----depreg},results='hide'---------------------------------------------------
-for(i in 1 : 3){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE) ; NNS.reg(x, y, order = i, ncores = 1)}
+for(i in 1 : 3){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE, type = "XONLY") ; NNS.reg(x, y, order = i, ncores = 1)}
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"------------------
 NNS.reg(x, y, ncores = 1)

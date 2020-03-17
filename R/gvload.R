@@ -2,7 +2,7 @@
 
 #' @importFrom grDevices adjustcolor rainbow rgb
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext barplot hist strwidth
-#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm model.matrix fivenum acf
+#' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm model.matrix fivenum acf qt
 #' @importFrom utils globalVariables head tail combn flush.console
 #' @importFrom data.table data.table %chin% .I .N .SD := as.data.table fwrite is.data.table rbindlist set setcolorder setnames setorderv as.IDate as.ITime
 #' @importFrom dtw dtw
@@ -25,7 +25,7 @@
       "i.x","i.y","q_new","x.x","x.y","standard.errors",
       "detectCores","makeCluster","registerDoSEQ","clusterExport",
       "%dopar%","foreach","stopCluster",
-      "%do%", "k"
+      "%do%", "k", "V1", "residuals"
     ))
 
   requireNamespace("data.table")

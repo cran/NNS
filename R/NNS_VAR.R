@@ -74,6 +74,7 @@ NNS.VAR <- function(variables,
 
   dim.red.method <- tolower(dim.red.method)
   if(sum(dim.red.method%in%c("cor","nns.dep","nns.caus","all"))==0){ stop('Please ensure the dimension reduction method is set to one of "cor", "nns.dep", "nns.caus" or "all".')}
+
   nns_IVs <- list()
 
   # Parallel process...
@@ -94,18 +95,19 @@ NNS.VAR <- function(variables,
 
   nns_IVs <- foreach(i = 1:ncol(variables), .packages = 'NNS')%dopar%{
     variable <- variables[, i]
-
+    na_s <- sum(is.na(variable))
+    variable <- na.omit(variable)
     periods <- NNS.seas(variable, modulo = min(tau[[min(i, length(tau))]]),
                         mod.only = FALSE, plot = FALSE)$periods
 
     b <- NNS.ARMA.optim(variable, seasonal.factor = periods,
-                        training.set = length(variable) - 2*h,
+                        training.set = length(variable) - 2*(h + na_s),
                         obj.fn = obj.fn,
                         objective = objective,
                         print.trace = status,
                         ncores = 1)
 
-    nns_IVs$results <- NNS.ARMA(variable, h = h, seasonal.factor = b$periods, weights = b$weights,
+    nns_IVs$results <- NNS.ARMA(variable, h = (h + na_s), seasonal.factor = b$periods, weights = b$weights,
              method = b$method, ncores = 1, plot = FALSE) + b$bias.shift
 
     nns_IVs$obj_fn <- b$obj.fn
@@ -117,11 +119,21 @@ NNS.VAR <- function(variables,
   stopCluster(cl)
   registerDoSEQ()
 
-  nns_IVs_results <- do.call(cbind, lapply(nns_IVs, `[[`, 1))
+  nns_IVs_results <- data.frame(tail(do.call(cbind, lapply(nns_IVs, `[[`, 1)), h))
   colnames(nns_IVs_results) <- colnames(variables)
+  row.names(nns_IVs_results) <- seq_len(h)
+
+  new_values <- list()
 
   # Combine forecasted IVs onto training data.frame
-  new_values <- rbind(variables, nns_IVs_results)
+  for(i in 1:ncol(variables)){
+      new_values[[i]] <- c(na.omit(variables[,i]), nns_IVs[[i]]$results  )
+
+  }
+
+
+  new_values <- data.frame(do.call(cbind, new_values))
+  colnames(new_values) <- colnames(variables)
 
   # Now lag new forecasted data.frame
   lagged_new_values <- lag.mtx(new_values, tau = tau)
@@ -142,6 +154,7 @@ NNS.VAR <- function(variables,
 
   for(i in DVs){
     index <- which(DVs%in%i)
+
     if(status){
       message("Variable ", index, " of ", length(DVs), appendLF = TRUE)
     }
@@ -152,8 +165,9 @@ NNS.VAR <- function(variables,
                                ts.test = 2*h, folds = 1,
                                obj.fn = obj.fn,
                                objective = objective,
-                               order = NULL, method = 2,
-                               dim.red.method = dim.red.method)
+                               method = 2,
+                               dim.red.method = dim.red.method,
+                               order = NULL)
 
 
     if(any(dim.red.method == "cor" | dim.red.method == "all")){
@@ -198,6 +212,7 @@ NNS.VAR <- function(variables,
 
 # NNS.stack() cross-validates the parameters of the multivariate NNS.reg() and dimension reduction NNS.reg()
     if(length(rel_vars)>1){
+
         DV_values <- NNS.stack(lagged_new_values_train[, rel_vars],
                                lagged_new_values_train[, i],
                                IVs.test =  tail(lagged_new_values[, rel_vars], h),
@@ -205,18 +220,15 @@ NNS.VAR <- function(variables,
                                objective = objective,
                                ts.test = 2*h, folds = 1,
                                status = status, ncores = num_cores,
-                               dim.red.method = dim.red.method)
+                               dim.red.method = dim.red.method,
+                               order = NULL, stack = FALSE)
 
         nns_DVs[[index]] <- DV_values$stack
 
         DV_obj_fn[[index]] <- sum( (c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red) / (DV_values$OBJfn.reg + DV_values$OBJfn.dim.red)) * c(DV_values$OBJfn.reg, DV_values$OBJfn.dim.red))
 
         } else {
-            DV_values <- NNS.reg(lagged_new_values_train[, rel_vars],
-                                 lagged_new_values_train[, i],
-                                 point.est =  tail(lagged_new_values[, rel_vars], h), plot = FALSE)
-
-            nns_DVs[[index]] <- DV_values$Point.est
+            nns_DVs[[index]] <- nns_IVs_results[,index]
 
             DV_obj_fn[[index]] <- cor_threshold$OBJfn.dim.red
         }
@@ -225,10 +237,11 @@ NNS.VAR <- function(variables,
 
   }
 
-  nns_DVs <- do.call(cbind, nns_DVs)
+  nns_DVs <- data.frame(do.call(cbind, nns_DVs))
   colnames(nns_DVs) <- colnames(variables)
+  row.names(nns_DVs) <- seq_len(h)
 
-  RV <- lapply(relevant_vars,function(x) if(is.null(x)){NA} else {x})
+  RV <- lapply(relevant_vars, function(x) if(is.null(x)){NA} else {x})
 
   RV <- do.call(cbind, lapply(RV, `length<-`, max(lengths(RV))))
   colnames(RV) <- colnames(variables)
@@ -237,13 +250,17 @@ NNS.VAR <- function(variables,
   multi <- numeric()
 
   for(i in 1:length(colnames(RV))){
-      uni[i] <-  .5 + .5*(sum(unlist(strsplit(colnames(RV)[i], split = "_tau"))[1]==do.call(rbind,(strsplit(na.omit(RV[,i]), split = "_tau")))[,1])  / max(length(tau[[min(i, length(tau))]]), length(na.omit(RV[,i]))))
+      uni[i] <-  .5 + .5*((sum(unlist(strsplit(colnames(RV)[i], split = "_tau"))[1]==do.call(rbind,(strsplit(na.omit(RV[,i]), split = "_tau")))[,1]) -
+                             sum(unlist(strsplit(colnames(RV)[i], split = "_tau"))[1]!=do.call(rbind,(strsplit(na.omit(RV[,i]), split = "_tau")))[,1]))
+                          / max(ifelse(length(tau)>1, length(tau[[min(i, length(tau))]]), tau), length(na.omit(RV[,i]))))
       multi[i] <- 1 - uni[i]
   }
 
 
-  forecasts <- Reduce(`+`,list(t(t(nns_IVs_results)*uni) , t(t(nns_DVs)*multi)))
 
+  forecasts <- data.frame(Reduce(`+`,list(t(t(nns_IVs_results)*uni) , t(t(nns_DVs)*multi))))
+  colnames(forecasts) <- colnames(variables)
+  row.names(forecasts) <- seq_len(h)
 
   return( list("relevant_variables" = RV,
                univariate = nns_IVs_results,
