@@ -17,7 +17,8 @@ NNS.distance <- function(rpm, dist.estimate, type, k){
 
   y.hat <- rpm$y.hat
 
-  cols <- names(rpm)[names(rpm)!="y.hat"]
+  cols <- colnames(rpm)[names(rpm)!="y.hat"]
+
 
   if(type!="FACTOR"){
     rpm <- rbind(as.list(t(dist.estimate)), rpm[, .SD, .SDcols = cols])
@@ -31,11 +32,13 @@ NNS.distance <- function(rpm, dist.estimate, type, k){
 
 
   if(type=="L2"){
-    row.sums <- rpm[,  `:=` (Sum = Reduce(`+`, lapply(1 : n, function(i) (rpm[[i]]-as.numeric(dist.estimate)[i])^2)))][,Sum]
+    row.sums <- rpm[,  `:=` (Sum = Reduce(`+`, lapply(1 : n, function(i) (rpm[[i]]-as.numeric(dist.estimate)[i])^2)        ))][,Sum]
+                                    + 1/(1+Reduce(`+`, Map("==", rpm[, 1:n], as.numeric(dist.estimate))))
   }
 
   if(type=="L1"){
     row.sums <- rpm[,  `:=` (Sum = Reduce(`+`, lapply(1 : n, function(i) abs(rpm[[i]]-as.numeric(dist.estimate)[i]))))][,Sum]
+                                    + 1/(1+Reduce(`+`, Map("==", rpm[, 1:n], as.numeric(dist.estimate))))
   }
 
   if(type=="DTW"){
@@ -43,14 +46,14 @@ NNS.distance <- function(rpm, dist.estimate, type, k){
   }
 
   if(type=="FACTOR"){
-    row.sums <- rpm[,  `:=` (Sum = 1/Reduce(`+`, Map("==", rpm[, 1:n], as.numeric(dist.estimate))))][,Sum]
+    row.sums <- rpm[,  `:=` (Sum = 1/(1+Reduce(`+`, Map("==", rpm[, 1:n], as.numeric(dist.estimate)))))][,Sum]
   }
 
   row.sums[row.sums == 0] <- 1e-10
 
   if(k==1){
     if(length(which(row.sums == min(row.sums)))>1){
-      return(mode(rpm$y.hat[which(row.sums == min(row.sums))][1]))
+      return(mode(rpm$y.hat[which(row.sums == min(row.sums))]))
     }  else {
       return(rpm$y.hat[which.min(row.sums)][1])
     }
@@ -67,13 +70,15 @@ NNS.distance <- function(rpm, dist.estimate, type, k){
 
   weights <- weights / weights.sum
 
-  weights <- rowMeans(cbind(weights, rep(1/k, length(weights))))
+  if(type!="FACTOR"){
+    weights <- rowMeans(cbind(weights, rep(1/k, length(weights))))
 
-  weights[-highest] <- 0
+    weights[-highest] <- 0
 
-  weights.sum <- sum(weights)
+    weights.sum <- sum(weights)
 
-  weights <- weights / weights.sum
+    weights <- weights / weights.sum
+  }
 
   single.estimate <- sum(weights * rpm$y.hat)
 

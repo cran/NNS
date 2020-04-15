@@ -38,7 +38,7 @@ sd.x = ((UPM(2, mean(x), x) + LPM(2, mean(x), x)) * (length(x) / (length(x) - 1)
 sd.y = ((UPM(2, mean(y), y) + LPM(2, mean(y) , y)) * (length(y) / (length(y) - 1))) ^ .5
 cov.xy / (sd.x * sd.y)
 
-## ----cdfs,fig.align="center",fig.width=5,fig.height=3-------------------------
+## ----cdfs,fig.align="center",fig.width=5,fig.height=3, results='hide'---------
 P = ecdf(x)
 P(0) ; P(1)
 LPM(0, 0, x) ; LPM(0, 1, x)
@@ -57,12 +57,18 @@ Co.LPM(0, 0, x, y, 0, 0)
 Co.LPM(0, 0, x, y, c(0, 1), c(0, 1))
 
 # Continuous CDF:
-plot(sort(x), LPM.ratio(1, sort(x), x), type = "l", col = "blue", lwd = 3, xlab = "x")
+NNS.CDF(x, 1)
 
-## ----pdfs,fig.align="center",fig.width=5,fig.height=3-------------------------
-NNS.PDF(degree = 1, x)
+# CDF with target:
+NNS.CDF(x, 1, target = mean(x))
+
+# Survival Function:
+NNS.CDF(x, 1, type = "survival")
+
+## ----pdfs,fig.align="center",fig.width=5,fig.height=3, rows.print = 10, results='hide'----
+NNS.PDF(x)
 
 ## ----numerical integration----------------------------------------------------
 x = seq(0, 1, .001) ; y = x ^ 2
-UPM(1, 0, y) - LPM(1, 0, y)
+(UPM(1, 0, y) - LPM(1, 0, y)) * (1 - 0)
 

@@ -13,7 +13,7 @@ NNS.PDF(variable, degree = 1, target = NULL, bins = NULL, plot = TRUE)
 
 \item{target}{a numeric range of values [a,b] where a < b.  \code{NULL} (default) uses the \code{variable} observations.}
 
-\item{bins}{numeric; \code{NULL} (default) Selects number of observations as default bins.}
+\item{bins}{numeric; \code{NULL} (default) Selects number of observations as default number of bins.}
 
 \item{plot}{logical; plots PDF.}
 }
@@ -21,7 +21,7 @@ NNS.PDF(variable, degree = 1, target = NULL, bins = NULL, plot = TRUE)
 Returns a data.table containing the intervals used and resulting PDF of the variable.
 }
 \description{
-This function generates an empirical PDF using continuous CDFs from \link{LPM.ratio}.
+This function generates an empirical PDF using \link{dy.dx} on \link{NNS.CDF}.
 }
 \examples{
 set.seed(123)
