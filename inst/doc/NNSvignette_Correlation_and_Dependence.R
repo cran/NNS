@@ -2,10 +2,12 @@
 knitr::opts_chunk$set(echo = TRUE)
 
 ## ----setup2,message=FALSE,warning = FALSE-------------------------------------
-require(NNS)
+library(NNS)
+library(data.table)
 require(knitr)
 require(rgl)
-require(data.table)
+require(meboot)
+require(tdigest)
 require(dtw)
 
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center"---------------------
@@ -50,8 +52,8 @@ deps <- unlist(lapply(nns.mc, "[[", 2))
 
 ## View results
 hist(cors)
-abline(v = LPM.VaR(.975,0, cors), col = 'red')
-abline(v = UPM.VaR(.975,0, cors), col = 'red')
+abline(v = LPM.VaR(.025,0, cors), col = 'red')
+abline(v = UPM.VaR(.025,0, cors), col = 'red')
 
 
 ## Left tailed correlation p-value
@@ -65,14 +67,14 @@ cor_p_value
 ## Confidence Intervals
 ## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
 ## Lower CI
-LPM.VaR(.975, 0, cors)
+LPM.VaR(.025, 0, cors)
 ## Upper CI
-UPM.VaR(.975, 0, cors)
+UPM.VaR(.025, 0, cors)
 
 
 hist(deps)
-abline(v = LPM.VaR(.975,0, deps), col = 'red')
-abline(v = UPM.VaR(.975,0, deps), col = 'red')
+abline(v = LPM.VaR(.025,0, deps), col = 'red')
+abline(v = UPM.VaR(.025,0, deps), col = 'red')
 
 
 ## Left tailed dependence p-value
@@ -86,7 +88,7 @@ dep_p_value
 ## Confidence Intervals
 ## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
 ## Lower CI
-LPM.VaR(.975, 0, deps)
+LPM.VaR(.025, 0, deps)
 ## Upper CI
-UPM.VaR(.975, 0, deps)
+UPM.VaR(.025, 0, deps)
 

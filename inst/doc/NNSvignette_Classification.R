@@ -2,10 +2,12 @@
 knitr::opts_chunk$set(echo = TRUE)
 
 ## ----setup2, message=FALSE, warning = FALSE-----------------------------------
-require(NNS)
+library(NNS)
+library(data.table)
 require(knitr)
 require(rgl)
-require(data.table)
+require(meboot)
+require(tdigest)
 require(dtw)
 
 ## ----rhs, rows.print=18-------------------------------------------------------

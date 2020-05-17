@@ -336,12 +336,15 @@ PM.matrix <- function(LPM.degree, UPM.degree, target = "mean", variable, pop.adj
 LPM.ratio <- function(degree, target, variable){
   lpm <- LPM(degree, target, variable)
 
-  if(degree > 0){
-      upm <- UPM(degree, target, variable)
-      return(lpm / (lpm + upm))
+  if(degree>0){
+      area <- lpm + UPM(degree, target, variable)
   } else {
-      return(lpm)
+      area <- 1
   }
+
+
+
+  return(lpm / area)
 }
 
 
@@ -373,12 +376,13 @@ LPM.ratio <- function(degree, target, variable){
 UPM.ratio <- function(degree, target, variable){
   upm <- UPM(degree, target, variable)
 
-  if(degree > 0){
-    lpm <- LPM(degree, target, variable)
-    return(upm / (lpm + upm))
+  if(degree>0){
+    area <- LPM(degree, target, variable) + upm
   } else {
-    return(upm)
+    area <- 1
   }
+
+  return(upm / area)
 }
 
 
@@ -415,7 +419,7 @@ NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL , plot = TR
   d.dx <- (abs(max(target)) + abs(min(target))) / bins
   tgt <- seq(min(target), max(target), d.dx)
 
-  CDF <- NNS.CDF(variable, plot = FALSE)$Function
+  CDF <- NNS.CDF(variable, plot = FALSE, degree = degree)$Function
   PDF <- dy.dx(unlist(CDF[,1]), unlist(CDF[,2]), eval.point = tgt)
 
   if(plot){plot(tgt, PDF, col = 'steelblue', type = 'l', lwd = 3, xlab = "X", ylab = "Density")}
@@ -473,10 +477,10 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
 
   if(!is.null(target)){
      if(is.null(dim(variable)) || dim(variable)[2]==1){
-        if(target<min(variable) || target>max(variable))   stop("Please make sure target is within the observed values of variable.")
+          if(target<min(variable) || target>max(variable))   stop("Please make sure target is within the observed values of variable.")
      } else {
-      if(target[1]<min(variable[,1]) || target[1]>max(variable[,1])) stop("Please make sure target 1 is within the observed values of variable 1.")
-      if(target[2]<min(variable[,2]) || target[2]>max(variable[,2])) stop("Please make sure target 2 is within the observed values of variable 2.")
+        if(target[1]<min(variable[,1]) || target[1]>max(variable[,1])) stop("Please make sure target 1 is within the observed values of variable 1.")
+        if(target[2]<min(variable[,2]) || target[2]>max(variable[,2])) stop("Please make sure target 2 is within the observed values of variable 2.")
     }
   }
 
@@ -487,6 +491,7 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
   if(is.null(dim(variable)) || dim(variable)[2]==1){
 
     overall_target <- sort(variable)
+    x <- overall_target
 
     if(degree > 0){
       CDF <- LPM.ratio(degree, overall_target, variable)
@@ -494,6 +499,7 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
       cdf_fun <- ecdf(x)
       CDF <- cdf_fun(overall_target)
     }
+
 
     values <- cbind.data.frame(sort(variable), CDF)
     colnames(values) <- c(deparse(substitute(variable)), "CDF")
@@ -505,7 +511,6 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
     }
 
     ylabel <- "Probability"
-    x <- sort(variable)
 
     if(type == "survival"){
       CDF <- 1 - CDF
@@ -576,7 +581,7 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
     }
 
     if(type == "cumulative hazard"){
-      CDF <- -log((1 - CDF))
+        CDF <- -log((1 - CDF))
     }
 
 

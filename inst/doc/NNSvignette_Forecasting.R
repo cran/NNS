@@ -2,11 +2,13 @@
 knitr::opts_chunk$set(echo = TRUE)
 
 ## ----setup2, message=FALSE, warning = FALSE-----------------------------------
-require(NNS)
+library(NNS)
+library(data.table)
 require(knitr)
 require(rgl)
-require(data.table)
+require(tdigest)
 require(dtw)
+require(meboot)
 
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center", warning=FALSE------
 nns = NNS.ARMA(AirPassengers, 
@@ -82,7 +84,8 @@ sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 
 ## ----extension,results='hide',fig.width=5,fig.height=3,fig.align = "center"----
 NNS.ARMA(AirPassengers, 
-         h = 50, 
+         h = 50,
+         conf.intervals = .95,
          seasonal.factor = nns.optimal$periods, 
          method  = nns.optimal$method, 
          weights = nns.optimal$weights, 

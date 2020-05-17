@@ -7,22 +7,22 @@
 UPM.VaR(percentile, degree, x)
 }
 \arguments{
-\item{percentile}{numeric [0, 1]; The percentile for right-tail VaR.}
+\item{percentile}{numeric [0, 1]; The percentile for right-tail VaR (vectorized).}
 
 \item{degree}{integer; \code{(degree = 0)} for discrete distributions, \code{(degree = 1)} for continuous distributions.}
 
 \item{x}{a numeric vector.}
 }
 \value{
-Returns a numeric value representing the point at which \code{"percentile"} of the area of \code{x} is below.
+Returns a numeric value representing the point at which \code{"percentile"} of the area of \code{x} is above.
 }
 \description{
-Generates an upside value at risk (VaR) based on the Upper Partial Moment ratio
+Generates an upside value at risk (VaR) quantile based on the Upper Partial Moment ratio
 }
 \examples{
 set.seed(123)
 x <- rnorm(100)
 
-## For 95th percentile VaR (right-tail)
-UPM.VaR(0.95, 0, x)
+## For 5\% quantile, right-tail
+UPM.VaR(0.05, 0, x)
 }

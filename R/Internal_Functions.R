@@ -152,6 +152,10 @@ lag.mtx <- function(x, tau){
     relevant_lags <- sort(unlist(relevant_lags))
     mtx <- mtx[ , relevant_lags]
   }
+  vars <- which(grepl("tau_0", colnames(mtx)))
+
+  everything_else <- seq_len(dim(mtx)[2])[-vars]
+  mtx <- mtx[,c(vars, everything_else)]
 
   return(mtx)
 }
@@ -178,4 +182,73 @@ RP <- function(x, rows = NULL, cols = NULL, na.rm = FALSE) {
 }
 
 
+### Refactored meboot::meboot.part function using tdigest
+
+NNS.meboot.part <- function(x, n, z, xmin, xmax, desintxb, reachbnd)
+{
+  # Generate random numbers from the [0,1] uniform interval
+  p <- runif(n, min=0, max=1)
+
+  # Assign quantiles of x from p
+  td <- tdigest::tdigest(x, compression = max(100, log(n,10)*100))
+
+  q <- tryCatch(tdigest::tquantile(td, p) ,
+                error = LPM.VaR(p, 0, x))
+
+
+  ref1 <- which(p <= (1/n))
+  if(length(ref1) > 0){
+    qq <- approx(c(0,1/n), c(xmin,z[1]), p[ref1])$y
+    q[ref1] <- qq
+    if(!reachbnd)  q[ref1] <- qq + desintxb[1]-0.5*(z[1]+xmin)
+  }
+
+  ref4 <- which(p == ((n-1)/n))
+  if(length(ref4) > 0)
+    q[ref4] <- z[n-1]
+
+  ref5 <- which(p > ((n-1)/n))
+  if(length(ref5) > 0){
+    # Right tail proportion p[i]
+    qq <- approx(c((n-1)/n,1), c(z[n-1],xmax), p[ref5])$y
+    q[ref5] <- qq   # this implicitly shifts xmax for algorithm
+    if(!reachbnd)  q[ref5] <- qq + desintxb[n]-0.5*(z[n-1]+xmax)
+    # such that the algorithm gives xmax when p[i]=1
+    # this is the meaning of reaching the bounds xmax and xmin
+  }
+
+  q
+
+}
+
+### Refactored meboot::expand.sd function
+NNS.meboot.expand.sd <- function(x, ensemble, fiv=5)
+{
+  sdx <- if (is.null(ncol(x)))
+    sd(x) else apply(x, 2, sd)
+
+  sdf <- c(sdx, apply(ensemble, 2, sd))
+  sdfa <- sdf/sdf[1]  # ratio of actual sd to that of original data
+  sdfd <- sdf[1]/sdf  # ratio of desired sd to actual sd
+
+  # expansion is needed since some of these are <1 due to attenuation
+  mx <- 1+(fiv/100)
+  # following are expansion factors
+  id <- which(sdfa < 1)
+  if (length(id) > 0)
+    sdfa[id] <- runif(n=length(id), min=1, max=mx)
+
+
+  sdfdXsdfa <- sdfd[-1]*sdfa[-1]
+  id <- which(floor(sdfdXsdfa) > 0)
+  if (length(id) > 0) {
+    if(length(id) > 1) ensemble[,id] <- ensemble[,id] %*% diag(sdfdXsdfa[id]) else ensemble[,id] <- ensemble[,id] * sdfdXsdfa[id]
+  } else
+
+
+    if(is.ts(x)){
+      ensemble <- ts(ensemble, frequency=frequency(x), start=start(x))
+    }
+  ensemble
+}
 

@@ -58,9 +58,9 @@
 #' ## Confidence Intervals
 #' ## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
 #' ## Lower CI
-#' LPM.VaR(.975, 0, cors)
+#' LPM.VaR(.025, 0, cors)
 #' ## Upper CI
-#' UPM.VaR(.975, 0, cors)
+#' UPM.VaR(.025, 0, cors)
 #'
 #' ## Left tailed dependence p-value
 #' dep_p_value <- LPM(0, nns_cor_dep$Dependence, deps)
@@ -132,8 +132,8 @@ NNS.dep = function(x,
     nns.dep <- list(5L)
 
     if(any(unlist(uniques)==1)){
-      DT <- data.table(x, y)
-      setkey(DT[, x := x], x)
+      DT <- data.table::data.table(x, y)
+      data.table::setkey(DT[, x := x], x)
 
       for(i in 1:3){
         if(i==1){
