@@ -148,12 +148,13 @@ NNS.boost <- function(IVs.train,
       epochs <- NULL
     }
     old.threshold <- 1
-    test.features <- list()
-    results <- numeric()
 
     if(is.null(learner.trials)){learner.trials <- length(y)}
 
     learner.trials <- min(sum(choose(n, 1:n)), learner.trials)
+
+    results <- numeric(learner.trials)
+    test.features <- list(learner.trials)
 
     for(i in 1:learner.trials){
       set.seed(123 + i)
@@ -392,7 +393,7 @@ NNS.boost <- function(IVs.train,
   if(!is.null(cl)){
     clusterExport(cl,c("x","y"))
     if(status){
-      message("Parallel process running, status unavailable...","\r",appendLF=FALSE)
+      message("Parallel process running, status unavailable...","\r","\n",appendLF=FALSE)
     }
 
     estimates <- foreach(i = 1:dim(kf)[1], .packages = c("NNS","data.table","dtw"))%dopar%{

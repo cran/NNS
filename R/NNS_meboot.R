@@ -228,13 +228,17 @@
     if(setSpearman<1){
       matrix2 = matrix(, nrow=length(x), ncol = reps)
       matrix2[ordxx_2,] = qseq
-        # Intial search
+
+      # Intial search
+
+      e <- c(ensemble)
+      m <- c(matrix2)
+      l <- length(e)
+
       func <- function(ab, d=drift){
         a <- ab[1]
         b <- ab[2]
-        e <- c(ensemble)
-        m <- c(matrix2)
-        l <- length(e)
+
         ifelse(d,
               (abs(cor((a*m + b*e)/(a + b), e, method = "spearman") - setSpearman) +
                   abs(mean((a*m + b*e))/mean(e) - 1) +
@@ -260,7 +264,8 @@
 
     if(expand.sd)
       ensemble <- NNS.meboot.expand.sd(x=x, ensemble=ensemble, ...)
-    if(force.clt)
+
+    if(force.clt && reps > 1)
       ensemble <- meboot::force.clt(x=x, ensemble=ensemble)
 
     # scale adjustment
@@ -268,10 +273,6 @@
     if (scl.adjustment)
     {
       zz <- c(xmin,z,xmax) #extended list of z values
-      #v <- rep(NA, n) #storing within variances
-      #for (i in 2:(n+1)) {
-      #  v[i-1] <- ((zz[i] - zz[i-1])^2) / 12
-      #}
       v <- diff(zz^2) / 12
       xb <- mean(x)
       s1 <- sum((desintxb - xb)^2)
