@@ -4,7 +4,7 @@
 \alias{NNS.distance}
 \title{NNS Distance}
 \usage{
-NNS.distance(rpm, dist.estimate, type, k)
+NNS.distance(rpm, dist.estimate, type, k, n)
 }
 \arguments{
 \item{rpm}{REGRESSION.POINT.MATRIX from \link{NNS.reg}}
@@ -14,10 +14,12 @@ NNS.distance(rpm, dist.estimate, type, k)
 \item{type}{"L1", "L2" or "DTW"}
 
 \item{k}{\code{n.best} from \link{NNS.reg}}
+
+\item{n}{number of observations.}
 }
 \value{
 Returns sum of weighted distances.
 }
 \description{
-Internal function for NNS multivariate regression \link{NNS.reg} parallel instances.
+Internal kernel function for NNS multivariate regression \link{NNS.reg} parallel instances.
 }

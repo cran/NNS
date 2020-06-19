@@ -3,14 +3,14 @@
 #' Generates a nonlinear regression based on partial moment quadrant means.
 #'
 #' @param x a vector, matrix or data frame of variables of numeric or factor data types.
-#' @param y a numeric or factor vector with compatible dimsensions to \code{x}.
+#' @param y a numeric or factor vector with compatible dimensions to \code{x}.
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
+#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.975 to ensure high dependence for higher \code{("order")} and endpoint determination.
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
-#' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjuction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
+#' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
-#' @param point.est a numeric or factor vector with compatible dimsensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.
+#' @param point.est a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.
 #' @param location Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.
 #' @param return.values logical; \code{TRUE} (default), set to \code{FALSE} in order to only display a regression plot and call values as needed.
 #' @param plot  logical; \code{TRUE} (default) To plot regression.
@@ -21,7 +21,7 @@
 #' @param threshold  numeric [0, 1]; \code{(threshold = 0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}.
 #' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}.  \code{(n.best = "all")} will select and weight all generated regression points.  Analogous to \code{k} in a
 #' \code{k Nearest Neighbors} algorithm.  Different values of \code{n.best} are tested using cross-validation in \link{NNS.stack}.
-#' @param noise.reduction the method of determing regression points options: ("mean", "median", "mode", "off"); In low signal:noise situations,\code{(noise.reduction = "mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction = "median")} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction = "mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction = "off")} uses an overall central tendency measure for partitions.
+#' @param noise.reduction the method of determining regression points options: ("mean", "median", "mode", "off"); In low signal:noise situations,\code{(noise.reduction = "mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction = "median")} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction = "mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction = "off")} uses an overall central tendency measure for partitions.
 #' @param dist options:("L1", "L2", "DTW", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} seclects the Manhattan distance; \code{(dist = "DTW")} selects the dynamic time warping distance; \code{(dist = "FACTOR")} uses a frequency.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @param multivariate.call Internal parameter for multivariate regressions.
@@ -119,7 +119,7 @@
 
 NNS.reg = function (x, y,
                     factor.2.dummy = TRUE, order = NULL,
-                    stn = .95,
+                    stn = .975,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
                     point.est = NULL,
@@ -192,7 +192,8 @@ NNS.reg = function (x, y,
 
     if(!is.null(point.est)){
       if(!is.null(dim(x))){
-        new_x <- data.table::rbindlist(list(data.frame(x), data.frame(point.est)),use.names = FALSE)
+        if(is.null(dim(point.est))) point.est <- t(point.est)
+        new_x <- data.table::rbindlist(list(data.frame(x), data.frame(point.est)), use.names = FALSE)
       } else {
         new_x <- unlist(list(x, point.est))
       }
@@ -312,18 +313,16 @@ NNS.reg = function (x, y,
           dim.red.method <- tolower(dim.red.method)
           x.star.matrix <- matrix(nrow = length(y))
 
-          if(dim.red.method!="cor"){
-            x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE)
+          if(dim.red.method!="cor" && dim.red.method!="equal"){
+            x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE, asym = TRUE)$Dependence
             x.star.dep[is.na(x.star.dep)] <- 0
-            x.star.cor <- cor(cbind(x, y), method = "spearman")
-            x.star.cor[is.na(x.star.cor)] <- 0
-          } else {
-            x.star.cor <- cor(cbind(x, y), method = "spearman")
-            x.star.cor[is.na(x.star.cor)] <- 0
           }
 
+          x.star.cor <- cor(cbind(x, y), method = "spearman")
+          x.star.cor[is.na(x.star.cor)] <- 0
+
           if(dim.red.method == "nns.dep"){
-            x.star.coef <- x.star.dep$Dependence[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef <- x.star.dep[- (ncol(x) + 1), (ncol(x) + 1)]
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
@@ -359,11 +358,16 @@ NNS.reg = function (x, y,
 
             x.star.coef.3 <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
             x.star.coef.3[is.na(x.star.coef.3)] <- 0
-            x.star.coef.2 <- x.star.dep$Dependence[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef.2 <- x.star.dep[- (ncol(x) + 1), (ncol(x) + 1)]
             x.star.coef.2[is.na(x.star.coef.2)] <- 0
             x.star.coef <- rowMeans(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3))
             x.star.coef[is.na(x.star.coef)] <- 0
           }
+
+          if(dim.red.method == "equal") {
+            x.star.coef <- rep(1, ncol(x))
+          }
+
 
           preserved.coef <- x.star.coef
           x.star.coef[abs(x.star.coef) < threshold] <- 0
@@ -422,7 +426,7 @@ NNS.reg = function (x, y,
 
   dependence <- NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence
   dependence[is.na(dependence)] <- .01
-  ifelse(dependence < 0.5, dependence <- min(.5, dependence^(1/2)), dependence <- max(sqrt(0.5), dependence^1))
+
 
   if(is.null(original.columns) || is.null(dim.red.method)){
     synthetic.x.equation <- NULL
@@ -430,9 +434,9 @@ NNS.reg = function (x, y,
   }
 
   if(is.null(order)){
-    dep.reduced.order <- max(1, ifelse( (round(log(length(y))) * dependence)%%1 < .5 ,
-                                        floor(log(length(y)) * dependence),
-                                        ceiling(log(length(y)) * dependence)))
+    dep.reduced.order <- max(1, ifelse( (ceiling(log(length(y), 2)) * dependence)%%1 < .5 ,
+                                        floor(ceiling(log(length(y),2)) * dependence),
+                                        ceiling(ceiling(log(length(y),2)) * dependence)))
   } else {
     dep.reduced.order <- order
   }
@@ -440,15 +444,15 @@ NNS.reg = function (x, y,
 
 
   if(dependence > stn){
-    part.map <- NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 5, min.obs.stop = FALSE)
+    part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
     if(length(part.map$regression.points$x) == 0){
-      part.map <- NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), obs.req = 0, min.obs.stop = FALSE)
+      part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), obs.req = 0, min.obs.stop = FALSE)
     }
     if(dependence == 1){
       if(is.null(order)) {
         dep.reduced.order <- "max"
       }
-      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 1, min.obs.stop = FALSE)
+      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
     }
   } else {
     if(is.null(type)){
@@ -464,7 +468,7 @@ NNS.reg = function (x, y,
       }
     }
 
-    part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = type2, min.obs.stop = FALSE)
+    part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = type2, min.obs.stop = FALSE, obs.req = 0)
     if(length(part.map$regression.points$x) == 0){
       part.map <- NNS.part(x, y, type =  type2, noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), obs.req = 0, min.obs.stop = FALSE)
     }
@@ -477,141 +481,139 @@ NNS.reg = function (x, y,
   regression.points$x <- pmin(max(x), pmax(regression.points$x, min(x)))
   data.table::setkey(regression.points,x)
 
-  min.range <- min(regression.points$x)
-  max.range <- max(regression.points$x)
+  if(dependence < 1){
+      min.range <- min(regression.points$x)
+      max.range <- max(regression.points$x)
 
-  mid.min.range <- mean(c(min(x),min(regression.points$x)))
-  mid.max.range <- mean(c(max(x),max(regression.points$x)))
+      mid.min.range <- mean(c(min(x),min(regression.points$x)))
+      mid.max.range <- mean(c(max(x),max(regression.points$x)))
 
-  y.min <-  na.omit(y[x <= min.range])
-  l_y.min <- length(y.min)
-  l_y.min_unique <- length(unique(y.min))
+      y.min <-  na.omit(y[x <= min.range])
+      l_y.min <- length(y.min)
+      l_y.min_unique <- length(unique(y.min))
 
-  y.mid.min <- na.omit(y[x <= mid.min.range])
-  l_y.mid.min <- length(y.mid.min)
-  l_y.mid.min_unique <- length(unique(y.mid.min))
+      y.mid.min <- na.omit(y[x <= mid.min.range])
+      l_y.mid.min <- length(y.mid.min)
+      l_y.mid.min_unique <- length(unique(y.mid.min))
 
-  x.mid.min <- na.omit(x[x <= mid.min.range])
-  l_x.mid.min <- length(x.mid.min)
-  l_x.mid.min_unique <- length(unique(x.mid.min))
+      x.mid.min <- na.omit(x[x <= mid.min.range])
+      l_x.mid.min <- length(x.mid.min)
+      l_x.mid.min_unique <- length(unique(x.mid.min))
 
-  y.max <- na.omit(y[x >= max.range])
-  l_y.max <- length(y.max)
-  l_y.max_unique <- length(unique(y.max))
+      y.max <- na.omit(y[x >= max.range])
+      l_y.max <- length(y.max)
+      l_y.max_unique <- length(unique(y.max))
 
-  y.mid.max <- na.omit(y[x >= mid.max.range])
-  l_y.mid.max <- length(y.mid.max)
-  l_y.mid.max_unique <- length(unique(y.mid.max))
+      y.mid.max <- na.omit(y[x >= mid.max.range])
+      l_y.mid.max <- length(y.mid.max)
+      l_y.mid.max_unique <- length(unique(y.mid.max))
 
-  x.mid.max <- na.omit(x[x >= mid.max.range])
-  l_x.mid.max <- length(x.mid.max)
-  l_x.mid.max_unique <- length(unique(x.mid.max))
+      x.mid.max <- na.omit(x[x >= mid.max.range])
+      l_x.mid.max <- length(x.mid.max)
+      l_x.mid.max_unique <- length(unique(x.mid.max))
 
 
-  ### Endpoints
-  if(l_x.mid.min_unique > 1){
-    if(dependence < stn){
-      if(!is.null(type)){
-        Dynamic.average.mid.min <- mode_class(y.min)
-        x0 <- mode_class(y.min)
+      ### Endpoints
+      if(l_x.mid.min_unique > 1){
+            if(dependence < stn){
+                if(!is.null(type)){
+                    Dynamic.average.mid.min <- mode_class(y.min)
+                    x0 <- mode_class(y.min)
+                } else {
+
+                    Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])]  + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
+                    if(l_y.min>1 && l_y.mid.min>1){
+                        x0 <- sum(lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted.values[which.min(x[which(x <= min.range)])]*l_y.min,
+                            lm((y[which(x <= mid.min.range)]) ~  (x[which(x <= mid.min.range)]))$fitted.values[which.min(x[which(x <= mid.min.range)])]*l_y.mid.min) /
+                                sum(l_y.min, l_y.mid.min)
+                    } else {
+
+                        x0 <- y.min
+                    }
+                }
+            } else {
+                if(!is.null(type)){
+                    Dynamic.average.mid.min <- mode_class(y.min)
+                    x0 <- mode_class(y.min)
+                } else {
+                    Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])] + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
+                    x0 <- unique(y[x == min(x)])
+                }
+            }
       } else {
+            if(!is.null(type)){
+                Dynamic.average.mid.min <- mode_class(y.min)
+                x0 <- mode_class(y.min)
+            } else {
+                x0 <- unique(gravity(y[x == min(x)]))
 
-        Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])]  + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
-        if(l_y.min>1 && l_y.mid.min>1){
-          x0 <- sum(lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted.values[which.min(x[which(x <= min.range)])]*l_y.min,
-                    lm((y[which(x <= mid.min.range)]) ~  (x[which(x <= mid.min.range)]))$fitted.values[which.min(x[which(x <= mid.min.range)])]*l_y.mid.min) /
-            sum(l_y.min, l_y.mid.min)
-        } else {
-
-          x0 <- y.min
-        }
-      }
-    } else {
-      if(!is.null(type)){
-        Dynamic.average.mid.min <- mode_class(y.min)
-        x0 <- mode_class(y.min)
-      } else {
-        Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])] + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
-        x0 <- unique(y[x == min(x)])
-      }
-    }
-  } else {
-    if(!is.null(type)){
-      Dynamic.average.mid.min <- mode_class(y.min)
-      x0 <- mode_class(y.min)
-    } else {
-      x0 <- unique(gravity(y[x == min(x)]))
-      if(l_y.min==1){
-        Dynamic.average.mid.min <- lm((y[x <= tail(head(regression.points$x, 2),1)]) ~
-                                        (x[x <= tail(head(regression.points$x, 2),1)]))$fitted[which.max(x[x <= tail(head(regression.points$x, 2),1)])]
-      } else {
-        Dynamic.average.mid.min <- lm((y[x <= head(regression.points$x, 1)]) ~
+                if(l_y.min<5){
+                    Dynamic.average.mid.min <- NA
+                } else {
+                    Dynamic.average.mid.min <- lm((y[x <= head(regression.points$x, 1)]) ~
                                         (x[x <= head(regression.points$x, 1)]))$fitted[which.max(x[x <= head(regression.points$x, 1)])]  +
-          (mid.min.range - head(regression.points$x, 1)) * lm((y[x <= head(regression.points$x, 1)]) ~  (x[x <= head(regression.points$x, 1)]))$coef[2]
+                        (mid.min.range - head(regression.points$x, 1)) * lm((y[x <= head(regression.points$x, 1)]) ~  (x[x <= head(regression.points$x, 1)]))$coef[2]
+                }
+            }
       }
-    }
-  }
 
 
-
-
-
-  if(l_x.mid.max_unique > 1){
-    if(dependence < stn){
-      if(!is.null(type)){
-        Dynamic.average.mid.max <- mode_class(y.max)
-        x.max <- mode_class(y.max)
+      if(l_x.mid.max_unique > 1){
+          if(dependence < stn){
+              if(!is.null(type)){
+                  Dynamic.average.mid.max <- mode_class(y.max)
+                  x.max <- mode_class(y.max)
+              } else {
+                  Dynamic.average.mid.max <-  lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])] + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$coef[2]
+                  if(l_y.max>1 && l_y.mid.max>1){
+                      x.max <- sum(lm(y[which(x >= max.range)] ~ x[which(x >= max.range)])$fitted.values[which.max(x[which(x >= max.range)])]*l_y.max,
+                        lm(y[which(x >= mid.max.range)] ~ x[which(x >= mid.max.range)])$fitted.values[which.max(x[which(x >= mid.max.range)])]*l_y.mid.max) /
+                          sum(l_y.max, l_y.mid.max)
+                  } else{
+                      x.max <- y.max
+                  }
+              }
+          } else {
+              if(!is.null(type)){
+                  Dynamic.average.mid.max <- mode_class(y.max)
+                  x.max <- mode_class(y.max)
+              } else {
+                  x.max <- unique(y[x == max(x)])
+                  Dynamic.average.mid.max <- lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])]  + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
+              }
+          }
       } else {
-        Dynamic.average.mid.max <-  lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])] + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$coef[2]
-        if(l_y.max>1 && l_y.mid.max>1){
-          x.max <- sum(lm(y[which(x >= max.range)] ~ x[which(x >= max.range)])$fitted.values[which.max(x[which(x >= max.range)])]*l_y.max,
-                       lm(y[which(x >= mid.max.range)] ~ x[which(x >= mid.max.range)])$fitted.values[which.max(x[which(x >= mid.max.range)])]*l_y.mid.max) /
-            sum(l_y.max, l_y.mid.max)
-        } else{
-          x.max <- y.max
-        }
-      }
-    } else {
-      if(!is.null(type)){
-        Dynamic.average.mid.max <- mode_class(y.max)
-        x.max <- mode_class(y.max)
-      } else {
-        x.max <- unique(y[x == max(x)])
-        Dynamic.average.mid.max <- lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])]  + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
-      }
-    }
-  } else {
-    if(!is.null(type)){
-      Dynamic.average.mid.max <- mode_class(y.max)
-      x.max <- mode_class(y.max)
-    } else{
-      x.max <- unique(gravity(y[x == max(x)]))
-      if(l_y.max==1){
-        Dynamic.average.mid.max <- lm((y[x >= head(tail(regression.points$x, 2),1)]) ~
-                                        (x[x >= head(tail(regression.points$x, 2),1)]))$fitted[which.min(x[x >= head(tail(regression.points$x, 2),1)])]
-      } else {
-        Dynamic.average.mid.max <- lm((y[x >= tail(regression.points$x, 1)]) ~
+          if(!is.null(type)){
+              Dynamic.average.mid.max <- mode_class(y.max)
+              x.max <- mode_class(y.max)
+          } else{
+              x.max <- unique(gravity(y[x == max(x)]))
+
+              if(l_y.max<5){
+                  Dynamic.average.mid.max <- NA
+              } else {
+                  Dynamic.average.mid.max <- lm((y[x >= tail(regression.points$x, 1)]) ~
                                         (x[x >= tail(regression.points$x, 1)]))$fitted[which.min(x[x >= tail(regression.points$x, 1)])] +
-          (mid.max.range - tail(regression.points$x, 1)) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
+                  (mid.max.range - tail(regression.points$x, 1)) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
 
+              }
+
+          }
       }
 
-    }
-
-  }
 
 
-
-  ### Mid Endpoints
-  mid.max.rps <- data.table::data.table(do.call(rbind,list(c(mid.max.range, Dynamic.average.mid.max),
+      ### Mid Endpoints
+      mid.max.rps <- data.table::data.table(do.call(rbind,list(c(mid.max.range, Dynamic.average.mid.max),
                                                c(max(x), mean(x.max)))))
 
-  mid.min.rps <- data.table::data.table(do.call(rbind,list(c(min(x), mean(x0)),
+      mid.min.rps <- data.table::data.table(do.call(rbind,list(c(min(x), mean(x0)),
                                                c(mid.min.range, Dynamic.average.mid.min))))
 
-  regression.points <- data.table::rbindlist(list(regression.points, mid.max.rps ), use.names = FALSE)
+      regression.points <- data.table::rbindlist(list(regression.points, mid.max.rps ), use.names = FALSE)
 
-  regression.points <- data.table::rbindlist(list(regression.points, mid.min.rps ), use.names = FALSE)
+      regression.points <- data.table::rbindlist(list(regression.points, mid.min.rps ), use.names = FALSE)
+  }
 
   regression.points <- regression.points[complete.cases(regression.points),]
   regression.points <- regression.points[ , .(x,y)]
@@ -637,7 +639,7 @@ NNS.reg = function (x, y,
     }
   }
 
-  if(dim(regression.points)[1]>1){
+  if(dim(regression.points)[1] > 1){
     rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
     run <- regression.points[ , 'run' := x - data.table::shift(x)]
   } else {
@@ -666,6 +668,7 @@ NNS.reg = function (x, y,
 
   Regression.Coefficients <- unique(Regression.Coefficients)
   Regression.Coefficients[Regression.Coefficients == Inf] <- 1
+  Regression.Coefficients[is.na(Regression.Coefficients)] <- 0
 
   ### Fitted Values
   p <- length(regression.points[ , x])
@@ -714,6 +717,7 @@ NNS.reg = function (x, y,
 
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
 
+  fitted$y.hat[is.na(fitted$y.hat)] <- mode(na.omit(fitted$y.hat))
 
 
   Values <- cbind(x, Fitted = fitted[ , y.hat], Actual = fitted[ , y], Difference = fitted[ , y.hat] - fitted[ , y],  Accuracy = abs(round(fitted[ , y.hat]) - fitted[ , y]))
@@ -732,7 +736,7 @@ NNS.reg = function (x, y,
   bias <- fitted
   data.table::setkey(bias, x)
 
-  bias <- bias[, mean(residuals)*-1, by = gradient]
+  bias <- bias[, mode(residuals)*-1, by = gradient]
   fitted <- fitted[bias, on=.(gradient), y.hat := y.hat + V1]
 
   bias[, bias := lapply(.SD, data.table::frollmean, n = 2, fill = NA, align = 'right'), .SDcols = 2]
@@ -778,6 +782,7 @@ NNS.reg = function (x, y,
 
   Regression.Coefficients <- unique(Regression.Coefficients)
   Regression.Coefficients$Coefficient[Regression.Coefficients$Coefficient==Inf] <- 1
+  Regression.Coefficients$Coefficient[is.na(Regression.Coefficients$Coefficient)] <- 0
 
 
   ### Fitted Values
@@ -827,7 +832,7 @@ NNS.reg = function (x, y,
 
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
 
-
+  fitted$y.hat[is.na(fitted$y.hat)] <- mode(na.omit(fitted$y.hat))
 
   Values <- cbind(x, Fitted = fitted[ , y.hat], Actual = fitted[ , y], Difference = fitted[ , y.hat] - fitted[ , y],  Accuracy = abs(round(fitted[ , y.hat]) - fitted[ , y]))
 
@@ -857,7 +862,7 @@ NNS.reg = function (x, y,
   }
 
 
-  ###Standard errors estimatation
+  ###Standard errors estimation
   if(std.errors){
 
     fitted[, `:=`

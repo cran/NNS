@@ -8,60 +8,73 @@ dy.d_(
   x,
   y,
   wrt,
-  eval.points = "median",
-  folds = 5,
+  eval.points = "obs",
   mixed = FALSE,
-  plot = FALSE,
+  ncores = NULL,
   messages = TRUE
 )
 }
 \arguments{
 \item{x}{a numeric matrix or data frame.}
 
-\item{y}{a numeric vector with compatible dimsensions to \code{x}.}
+\item{y}{a numeric vector with compatible dimensions to \code{x}.}
 
-\item{wrt}{integer; Selects the regressor to differentiate with respect to.}
+\item{wrt}{integer; Selects the regressor to differentiate with respect to (vectorized).}
 
-\item{eval.points}{numeric or options: ("mean", median", "last", "all"); Regressor points to be evaluated.  \code{(eval.points = "median")} (default) to find the average partial derivative at the median of the variable with respect to.  Set to \code{(eval.points = "last")} to find the average partial derivative at the last observation of the variable with respect to (relevant for time-series data).  Set to \code{(eval.points="mean")} to find the average partial derivative at the mean of the variable with respect to. Set to \code{(eval.points = "all")} to find the overall partial derivative at every observation of the variable with respect to.}
-
-\item{folds}{integer; 5 (default) Sets the number of \code{folds} in the \link{NNS.stack} procedure for optimal \code{n.best} parameter.}
+\item{eval.points}{numeric or options: ("obs", "apd", "mean", "median", "last"); Regressor points to be evaluated.
+\itemize{
+\item Numeric values must be in matrix or data.frame form to be evaluated for each regressor, otherwise, a vector of points will evaluate only at the \code{wrt} regressor.  See examples for use cases.
+\item Set to \code{(eval.points = "obs")} (defalut) to find the average partial derivative at every observation of the variable with respect to \emph{for specific tuples of given observations.}
+\item Set to \code{(eval.points = "apd")} to find the average partial derivative at every observation of the variable with respect to \emph{over the entire distribution of other regressors.}
+\item Set to \code{(eval.points = "mean")} to find the partial derivative at the mean of value of every variable.
+\item Set to \code{(eval.points = "median")} to find the partial derivative at the median value of every variable.
+\item Set to \code{(eval.points = "last")} to find the partial derivative at the last observation of every value (relevant for time-series data).
+}}
 
 \item{mixed}{logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.}
 
-\item{plot}{logical; \code{FALSE} (default) Set to \code{(plot = TRUE)} to view plot.
-Default setting is \code{(noise.reduction = "mean")}.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 
-\item{messages}{logical; \code{TRUE} (default) Prints status messages of cross-validation on \code{n.best} parameter for \link{NNS.reg}.}
+\item{messages}{logical; \code{TRUE} (default) Prints status messages.}
 }
 \value{
-Returns:
+Returns column-wise matrix of wrt regressors:
 \itemize{
-\item{\code{dy.d_(...)$"First Derivative"}} the 1st derivative
-\item{\code{dy.d_(...)$"Second Derivative"}} the 2nd derivative
-\item{\code{dy.d_(...)$"Mixed Derivative"}} the mixed derivative (for two independent variables only).
+\item{\code{dy.d_(...)[, wrt]$First}} the 1st derivative
+\item{\code{dy.d_(...)[, wrt]$Second}} the 2nd derivative
+\item{\code{dy.d_(...)[, wrt]$Mixed}} the mixed derivative (for two independent variables only).
 }
 }
 \description{
-Returns the numerical partial derivate of \code{y} with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as \code{f(x + h)} and \code{f(x - h)} values.
+Returns the numerical partial derivative of \code{y} with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as \code{f(x + h)} and \code{f(x - h)} values.
 }
 \examples{
 \dontrun{
 set.seed(123) ; x_1 <- runif(100) ; x_2 <- runif(100) ; y <- x_1 ^ 2 * x_2 ^ 2
 B <- cbind(x_1, x_2)
 
-## To find average partial derivative of y wrt 1st regressor, only supply 1 value in [eval.points]
+#' ## To find derivatives of y wrt 1st regressor for specific points of both regressors
+dy.d_(B, y, wrt = c(1, 2), eval.points = t(c(.5, .5)))
+
+## To find average partial derivative of y wrt 1st regressor,
+only supply 1 value in [eval.points], or a vector of [eval.points]:
 dy.d_(B, y, wrt = 1, eval.points = c(.5))
 
-dy.d_(B, y, wrt = 1, eval.points = mean(B[, 1]))
-
-## To find derivatives of y wrt 1st regressor and specified 2nd regressor
-dy.d_(B, y, wrt = 1, eval.points = c(.5, .5))
+dy.d_(B, y, wrt = 1, eval.points = fivenum(B[,1]))
 
 
-## Known function analysis: [y = a ^ 2 * b ^ 2]
-x_1 <- seq(0, 1, .1) ; x_2 <- seq(0, 1, .1)
-B <- expand.grid(x_1, x_2) ; y <- B[ , 1] ^ 2 * B[ , 2] ^ 2
-dy.d_(B, y, wrt = 1, eval.points = c(.5, .5))}
+## To find average partial derivative of y wrt 1st regressor,
+for every oberservation of 1st regressor:
+apd <- dy.d_(B, y, wrt = 1, eval.points = "apd")
+plot(B[,1], apd[,1]$First)
+
+## 95\% Confidence Interval to test if 0 is within
+### Lower CI
+LPM.VaR(.025, 0, apd[,1]$First)
+
+### Upper CI
+UPM.VaR(.025, 0, apd[,1]$First)
+}
 }
 \references{
 Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"

@@ -43,6 +43,9 @@
 #'
 #' @references
 #' \itemize{
+#' \item Vinod, H.D. and Viole, F. (2020) Maximum Entropy Bootstrap and Improved Monte Carlo Simulations
+#' \href{https://ssrn.com/abstract=3621614}{https://ssrn.com/abstract=3621614}
+#'
 #' \item Vinod, H.D. (2013), Maximum Entropy Bootstrap Algorithm Enhancements.
 #' \href{http://ssrn.com/abstract=2285041}{http://ssrn.com/abstract=2285041}.
 #'
@@ -71,7 +74,7 @@
 
  NNS.meboot <- function(x,
                         reps=999,
-                        setSpearman=1,
+                        setSpearman=NULL,
                         drift=TRUE,
                         trim=0.10,
                         xmin=NULL,
@@ -110,11 +113,9 @@
 
     ### Fred Viole SUGGESTION PART 1 of 2
 
-    if(setSpearman <1){
-      ordxx_2 <- order(ordxx)
+    if(setSpearman < 1){
+      if(setSpearman < -0.5) ordxx_2 <- rev(ordxx) else ordxx_2 <- order(ordxx)
     }
-
-    #ordxx <- sort.int(x, index.return=TRUE)
 
     # symmetry
 
@@ -127,7 +128,7 @@
 
     # Compute intermediate points on the sorted series.
 
-    z <- rowMeans(embed(xx, 2))
+    z <- Rfast::rowmeans(embed(xx, 2))
 
     # Compute lower limit for left tail ('xmin') and
     # upper limit for right tail ('xmax').
@@ -189,7 +190,7 @@
     # The first and last interval means have distinct formulas.
     # See Theil and Laitinen (1980) for details.
 
-    aux <- colSums( t(embed(xx, 3))*c(0.25,0.5,0.25) )
+    aux <- Rfast::colsums( t(embed(xx, 3))*c(0.25,0.5,0.25) )
     desintxb <- c(0.75*xx[1]+0.25*xx[2], aux, 0.25*xx[n-1]+0.75*xx[n])
 
     # Generate random numbers from the [0,1] uniform interval and
@@ -250,6 +251,7 @@
 
       }
 
+
       res <- optim(c(.01,.01), func, control=list(abstol = .01))
 
       ensemble <- (res$par[1]*matrix2 +
@@ -288,10 +290,9 @@
     } else
       kappa <- NULL
 
-
     # Force min / max values
-    if(!is.null(trim[[2]])) ensemble <- apply(ensemble, 2, function(x) pmax(trim[[2]], x))
-    if(!is.null(trim[[3]])) ensemble <- apply(ensemble, 2, function(x) pmin(trim[[3]], x))
+    if(!is.null(trim[[2]])) ensemble <- apply(ensemble, 2, function(z) pmax(trim[[2]], z))
+    if(!is.null(trim[[3]])) ensemble <- apply(ensemble, 2, function(z) pmin(trim[[3]], z))
 
     if(is.ts(x)){
       ensemble <- ts(ensemble, frequency=frequency(x), start=start(x))
@@ -301,13 +302,12 @@
     }
 
 
-
     # Computation time
     ptm2 <- proc.time(); elapsr <- meboot::elapsedtime(ptm1, ptm2)
     if(elaps)
       cat("\n  Elapsed time:", elapsr$elaps,
           paste(elapsr$units, ".", sep=""), "\n")
 
-    list(x=x, replicates=ensemble, ensemble=rowMeans(ensemble), xx=xx, z=z, dv=dv, dvtrim=dvtrim, xmin=xmin,
+    list(x=x, replicates=ensemble, ensemble=Rfast::rowmeans(ensemble), xx=xx, z=z, dv=dv, dvtrim=dvtrim, xmin=xmin,
          xmax=xmax, desintxb=desintxb, ordxx=ordxx, kappa = kappa, elaps=elapsr)
   }

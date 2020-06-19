@@ -1,6 +1,7 @@
 #' NNS Normalization
 #'
 #' Normalizes a matrix of variables based on nonlinear scaling normalization method.
+#'
 #' @param A a numeric matrix or data frame.
 #' @param linear logical; \code{FALSE} (default) Performs a linear scaling normalization, resulting in equal means for all variables.
 #' @param chart.type  options: ("l", "b"); \code{NULL} (default).  Set \code{(chart.type = "l")} for line,
@@ -22,7 +23,7 @@ NNS.norm <- function(A,
                      chart.type = NULL,
                      location = "topleft"){
 
-  m  <- colMeans(A)
+  m  <- Rfast::colmeans(A)
   m[m==0] <- 1e-10
   RG <- m %o% (1 / m)
 
@@ -32,9 +33,9 @@ NNS.norm <- function(A,
       } else {
         scale.factor <- abs(NNS.dep(A)$Dependence)
       }
-    scales <- colMeans(RG * scale.factor)
+    scales <- Rfast::colmeans(RG * scale.factor)
   } else {
-      scales <- colMeans(RG)
+      scales <- Rfast::colmeans(RG)
   }
 
 

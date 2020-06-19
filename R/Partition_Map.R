@@ -1,14 +1,15 @@
 #' NNS Partition Map
 #'
 #' Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchial clustering method).  Basis for correlation \link{NNS.cor}, dependence \link{NNS.dep}, regression \link{NNS.reg} routines.
+#'
 #' @param x a numeric vector.
-#' @param y a numeric vector with compatible dimsensions to \code{x}.
+#' @param y a numeric vector with compatible dimensions to \code{x}.
 #' @param Voronoi logical; \code{FALSE} (default) Displays a Voronoi type diagram using partial moment quadrants.
 #' @param type \code{NULL} (default) Controls the partitioning basis.  Set to \code{(type = "XONLY")} for X-axis based partitioning.  Defaults to \code{NULL} for both X and Y-axis partitioning.
 #' @param order integer; Number of partial moment quadrants to be generated.  \code{(order = "max")} will institute a perfect fit.
 #' @param obs.req integer; (10 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.
 #' @param min.obs.stop logical; \code{TRUE} (default) Stopping condition where quadrants will not be further partitioned if a single cluster contains less than the entered value of \code{obs.req}.
-#' @param noise.reduction the method of determing regression points options: ("mean", "median", "mode", "off"); \code{(noise.reduction = "mean")} uses means for partitions.  \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction = "off")} where an overall central tendency measure is used.
+#' @param noise.reduction the method of determining regression points options: ("mean", "median", "mode", "off"); \code{(noise.reduction = "mean")} uses means for partitions.  \code{(noise.reduction = "median")} uses medians instead of means for partitions, while \code{(noise.reduction = "mode")} uses modes instead of means for partitions.  Defaults to \code{(noise.reduction = "off")} where an overall central tendency measure is used.
 #' @return Returns:
 #'  \itemize{
 #'   \item{\code{"dt"}} a \link{data.table} of \code{x} and \code{y} observations with their partition assignment \code{"quadrant"} in the 3rd column and their prior partition assignment \code{"prior.quadrant"} in the 4th column.
@@ -84,15 +85,12 @@ NNS.part = function(x, y,
     }
 
     if(!is.numeric(order)) {
-        obs.req <- 1
-        type <- type
-        hard.stop <- max(ceiling(log(length(x), 2)), 1)
+        obs.req <- 0
     } else {
         obs.req <- obs.req
-        type <- type
-        hard.stop <- max(floor(log(length(x), 2)), 1)
     }
 
+    hard.stop <- max(ceiling(log(length(x), 2)), 1)
 
     if(is.null(type)) {
         i <- 0L
@@ -235,7 +233,6 @@ NNS.part = function(x, y,
                 new.parts <- length(unique(PART$quadrant))
             }
             if((min(PART$counts) <= obs.req) && i >= 1) break
-            if(obs.req == 0 & old.parts >= new.parts) break
             i = i + 1L
         }
         if (!is.numeric(order)) {
@@ -258,15 +255,15 @@ NNS.part = function(x, y,
     if(!is.null(type)) {
         i <- 0L
         while (i >= 0) {
-            if(i == order | i == hard.stop) break
-            PART[counts >= 1 * obs.req, `:=`(counts, .N), by = quadrant]
-            PART[old.counts >= 1 * obs.req, `:=`(old.counts, .N), by = prior.quadrant]
+            if(i == order || i == hard.stop) break
+            PART[counts >= obs.req, `:=`(counts, .N), by = quadrant]
+            PART[old.counts >= obs.req, `:=`(old.counts, .N), by = prior.quadrant]
 
-            obs.req.rows <- PART[counts >= 1 * obs.req, which = TRUE]
+            obs.req.rows <- PART[counts >= obs.req, which = TRUE]
 
-            old.obs.req.rows <- PART[old.counts >= 1 * obs.req, which = TRUE]
+            old.obs.req.rows <- PART[old.counts >= obs.req, which = TRUE]
 
-            if(obs.req > 0 & length(obs.req.rows) < length(old.obs.req.rows)) break
+            if(obs.req > 0 && (length(obs.req.rows) < length(old.obs.req.rows))) break
             if(noise.reduction == "off") {
                 RP <- PART[obs.req.rows, lapply(.SD, gravity), by = quadrant, .SDcols = x:y]
 
@@ -344,7 +341,6 @@ NNS.part = function(x, y,
             }
 
             if((min(PART$counts) <= obs.req) && i >= 1) break
-            if(obs.req == 0 & old.parts >= new.parts) break
             i <- i + 1L
         }
 

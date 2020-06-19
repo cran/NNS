@@ -3,11 +3,11 @@
 #' Ensemble method for classification using the predictions of the NNS multivariate regression \link{NNS.reg} collected from uncorrelated feature combinations.
 #'
 #' @param IVs.train a matrix or data frame of variables of numeric or factor data types.
-#' @param DV.train a numeric or factor vector with compatible dimsensions to \code{(IVs.train)}.
-#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimsensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
-#' @param type \code{NULL} (default).  To perform a classification of disrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
+#' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
+#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
+#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
 #' @param representative.sample logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.
-#' @param depth options: (integer, NULL, "max"); Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")}(default) will be signifcantly faster, but increase the variance of results, which is suggested for mixed continuous and discrete (unordered, ordered) data.
+#' @param depth options: (integer, NULL, "max"); Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")}(default) will be significantly faster, but increase the variance of results, which is suggested for mixed continuous and discrete (unordered, ordered) data.
 #' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.
 #' @param learner.trials integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  \code{(learner.trials = 100)} is the default setting.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
@@ -385,33 +385,11 @@ NNS.boost <- function(IVs.train,
   kf$N <- kf$N / sum(kf$N)
 
 
-  if(num_cores>1){
-    cl <- makeCluster(num_cores)
-    registerDoParallel(cl)
-  } else { cl <- NULL }
 
-  if(!is.null(cl)){
-    clusterExport(cl,c("x","y"))
-    if(status){
-      message("Parallel process running, status unavailable...","\r","\n",appendLF=FALSE)
-    }
-
-    estimates <- foreach(i = 1:dim(kf)[1], .packages = c("NNS","data.table","dtw"))%dopar%{
-
-      NNS.reg(x[,eval(parse(text=kf$V1[i]))], y, point.est = z[,eval(parse(text=kf$V1[i]))],
-              plot=FALSE, residual.plot = FALSE, order = depth, n.best = n.best,
-              factor.2.dummy = FALSE, ncores = 1, type = type, dist = dist)$Point.est * kf$N[i]
-    }
-  } else {
     for(i in 1:dim(kf)[1]){
 
       if(status){
         message("% of Final Estimate = ", format(i/dim(kf)[1], digits =  3, nsmall = 2),"     ","\r", appendLF = FALSE)
-        if(i == length(keeper.features)){
-          message("% of Final Estimate = 1.000             ","\r", appendLF = FALSE)
-          message("                                        ","\r", appendLF = TRUE)
-          flush.console()
-        }
       }
 
 
@@ -419,17 +397,11 @@ NNS.boost <- function(IVs.train,
                                 point.est = data.matrix(z[, eval(parse(text=kf$V1[i]))]),
                                 plot = FALSE, residual.plot = FALSE, order = depth,
                                 n.best = n.best,
-                                factor.2.dummy = FALSE, ncores = 1,
-                                type = type, dist = dist)$Point.est * kf$N[i]
+                                factor.2.dummy = FALSE, ncores = ncores,
+                                type = type, dist = dist)$Point.est/dim(kf)[1]
 
     }
 
-  }
-
-  if(!is.null(cl)){
-    stopCluster(cl)
-    registerDoSEQ()
-  }
 
   estimates <- Reduce("+", estimates)
 
