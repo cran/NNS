@@ -10,7 +10,7 @@ NNS.part(
   Voronoi = FALSE,
   type = NULL,
   order = NULL,
-  obs.req = 10,
+  obs.req = 8,
   min.obs.stop = TRUE,
   noise.reduction = "off"
 )
@@ -26,7 +26,7 @@ NNS.part(
 
 \item{order}{integer; Number of partial moment quadrants to be generated.  \code{(order = "max")} will institute a perfect fit.}
 
-\item{obs.req}{integer; (10 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.}
+\item{obs.req}{integer; (8 default) Required observations per cluster where quadrants will not be further partitioned if observations are not greater than the entered value.  Reduces minimum number of necessary observations in a quadrant to 1 when \code{(obs.req = 1)}.}
 
 \item{min.obs.stop}{logical; \code{TRUE} (default) Stopping condition where quadrants will not be further partitioned if a single cluster contains less than the entered value of \code{obs.req}.}
 
@@ -41,7 +41,7 @@ Returns:
   }
 }
 \description{
-Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchial clustering method).  Basis for correlation \link{NNS.cor}, dependence \link{NNS.dep}, regression \link{NNS.reg} routines.
+Creates partitions based on partial moment quadrant means, iteratively assigning identifications to observations based on those quadrants (unsupervised partitional and hierarchial clustering method).  Basis for correlation, dependence \link{NNS.dep}, regression \link{NNS.reg} routines.
 }
 \examples{
 set.seed(123)

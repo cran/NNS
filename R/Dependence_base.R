@@ -59,17 +59,18 @@ NNS.dep.base <- function(x,
     if(asym){type <- "XONLY"} else {type <- NULL}
 
     if (print.map == TRUE) {
-      part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = 10,
+      part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = NULL,
                            Voronoi = TRUE, min.obs.stop = TRUE)
     } else {
-      part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = 10,
+      part.map <- NNS.part(x, y, order = order, type = type, noise.reduction = "mean", obs.req = NULL,
                            Voronoi = FALSE, min.obs.stop = TRUE)
     }
 
     part.df <- part.map$dt
 
-    if(any(length(unique(x)) < sqrt(length(x)) | length(unique(y)) < sqrt(length(y))  | is.na(sd(x)) | is.na(sd(y)) | sd(x)==0 | sd(y)==0 | length(x)<100 )){
+    if(any(length(unique(x)) < sqrt(length(x)) | length(unique(y)) < sqrt(length(y))  | is.na(sd(x)) | is.na(sd(y)) | sd(x)==0 | sd(y)==0 | length(x) < 20)){
       part.df[, `:=`(mean.x = mean(x), mean.y = mean(y)), by = prior.quadrant]
+
       if (degree == 0) {
         part.df <- part.df[x != mean.x & y != mean.y, ]
       }
@@ -138,6 +139,6 @@ NNS.dep.base <- function(x,
     }
 
   } else {
-    NNS.dep.matrix(x, order = order, degree = degree, asym = asym)
+    NNS.dep.matrix(x, asym = asym)
   }
 }

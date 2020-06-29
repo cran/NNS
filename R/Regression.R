@@ -6,7 +6,7 @@
 #' @param y a numeric or factor vector with compatible dimensions to \code{x}.
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.975 to ensure high dependence for higher \code{("order")} and endpoint determination.
+#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
@@ -119,7 +119,7 @@
 
 NNS.reg = function (x, y,
                     factor.2.dummy = TRUE, order = NULL,
-                    stn = .975,
+                    stn = .95,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
                     point.est = NULL,
@@ -521,7 +521,8 @@ NNS.reg = function (x, y,
                     x0 <- mode_class(y.min)
                 } else {
 
-                    Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])]  + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
+                    Dynamic.average.mid.min <- tryCatch(lm(y[which(x <= min.range)] ~ 0 + x[which(x <= min.range)], offset = rep(head(regression.points$y, 1), length(y[which(x <= min.range)])))$fitted[which.max(x[which(x <= min.range)])]  + (mid.min.range - max(x[which(x <= min.range)])) * lm(y[which(x <= min.range)] ~  0 + x[which(x <= min.range)], offset = rep(head(regression.points$y, 1), length(y[which(x <= min.range)])) )$coef[1],
+                                                        error = function(e) NA)
                     if(l_y.min>1 && l_y.mid.min>1){
                         x0 <- sum(lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted.values[which.min(x[which(x <= min.range)])]*l_y.min,
                             lm((y[which(x <= mid.min.range)]) ~  (x[which(x <= mid.min.range)]))$fitted.values[which.min(x[which(x <= mid.min.range)])]*l_y.mid.min) /
@@ -536,7 +537,8 @@ NNS.reg = function (x, y,
                     Dynamic.average.mid.min <- mode_class(y.min)
                     x0 <- mode_class(y.min)
                 } else {
-                    Dynamic.average.mid.min <- lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted[which.max(x[which(x <= min.range)])] + (mid.min.range - max(x[which(x <= min.range)])) * lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$coef[2]
+                    Dynamic.average.mid.min <- tryCatch(lm(y[which(x <= min.range)] ~  0 + x[which(x <= min.range)], offset = rep(head(regression.points$y, 1), length(y[which(x <= min.range)])))$fitted[which.max(x[which(x <= min.range)])] + (mid.min.range - max(x[which(x <= min.range)])) * lm(y[x <= head(regression.points$x, 1)] ~  0 + x[x <= head(regression.points$x, 1)], offset = rep(tail(regression.points$y, 1), length(y[x <= head(regression.points$x, 1)])))$coef[1],
+                                                        error = function(e) NA)
                     x0 <- unique(y[x == min(x)])
                 }
             }
@@ -547,12 +549,13 @@ NNS.reg = function (x, y,
             } else {
                 x0 <- unique(gravity(y[x == min(x)]))
 
-                if(l_y.min<5){
+                if(l_y.min < 5){
                     Dynamic.average.mid.min <- NA
                 } else {
-                    Dynamic.average.mid.min <- lm((y[x <= head(regression.points$x, 1)]) ~
-                                        (x[x <= head(regression.points$x, 1)]))$fitted[which.max(x[x <= head(regression.points$x, 1)])]  +
-                        (mid.min.range - head(regression.points$x, 1)) * lm((y[x <= head(regression.points$x, 1)]) ~  (x[x <= head(regression.points$x, 1)]))$coef[2]
+                    Dynamic.average.mid.min <- tryCatch(lm(y[x <= head(regression.points$x, 1)] ~ 0 +
+                                        x[x <= head(regression.points$x, 1)], offset = rep(head(regression.points$y, 1), length(y[x <= head(regression.points$x, 1)])))$fitted[which.max(x[x <= head(regression.points$x, 1)])]  +
+                        (mid.min.range - head(regression.points$x, 1)) * lm(y[x <= head(regression.points$x, 1)] ~  0 + x[x <= head(regression.points$x, 1)], offset = rep(head(regression.points$y, 1), length(y[x <= head(regression.points$x, 1)])))$coef[1],
+                        error = function(e) NA)
                 }
             }
       }
@@ -564,7 +567,8 @@ NNS.reg = function (x, y,
                   Dynamic.average.mid.max <- mode_class(y.max)
                   x.max <- mode_class(y.max)
               } else {
-                  Dynamic.average.mid.max <-  lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])] + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$coef[2]
+                  Dynamic.average.mid.max <-  tryCatch(lm(y[which(x >= max.range)] ~ 0 + x[which(x >= max.range)], offset = rep(tail(regression.points$y, 1), length(y[which(x >= max.range)])))$fitted[which.min(x[which(x >= max.range)])] + (mid.max.range - min(x[which(x >= max.range)])) * lm(y[which(x >= max.range)] ~  0 + x[which(x >= max.range)], offset = rep(tail(regression.points$y, 1), length(y[which(x >= max.range)])))$coef[1],
+                                                       error = function(e) NA)
                   if(l_y.max>1 && l_y.mid.max>1){
                       x.max <- sum(lm(y[which(x >= max.range)] ~ x[which(x >= max.range)])$fitted.values[which.max(x[which(x >= max.range)])]*l_y.max,
                         lm(y[which(x >= mid.max.range)] ~ x[which(x >= mid.max.range)])$fitted.values[which.max(x[which(x >= mid.max.range)])]*l_y.mid.max) /
@@ -579,7 +583,8 @@ NNS.reg = function (x, y,
                   x.max <- mode_class(y.max)
               } else {
                   x.max <- unique(y[x == max(x)])
-                  Dynamic.average.mid.max <- lm((y[which(x >= max.range)]) ~  (x[which(x >= max.range)]))$fitted[which.min(x[which(x >= max.range)])]  + (mid.max.range - min(x[which(x >= max.range)])) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
+                  Dynamic.average.mid.max <- tryCatch(lm(y[which(x >= max.range)] ~  0 + x[which(x >= max.range)], offset = rep(tail(regression.points$y, 1), length(y[which(x >= max.range)])))$fitted[which.min(x[which(x >= max.range)])]  + (mid.max.range - min(x[which(x >= max.range)])) * lm(y[x >= tail(regression.points$x, 1)] ~  0 + x[x >= tail(regression.points$x, 1)], offset = rep(tail(regression.points$y, 1), length(y[x >= tail(regression.points$x, 1)])))$coef[1],
+                                                      error = function(e) NA)
               }
           }
       } else {
@@ -589,13 +594,13 @@ NNS.reg = function (x, y,
           } else{
               x.max <- unique(gravity(y[x == max(x)]))
 
-              if(l_y.max<5){
+              if(l_y.max < 5){
                   Dynamic.average.mid.max <- NA
               } else {
-                  Dynamic.average.mid.max <- lm((y[x >= tail(regression.points$x, 1)]) ~
-                                        (x[x >= tail(regression.points$x, 1)]))$fitted[which.min(x[x >= tail(regression.points$x, 1)])] +
-                  (mid.max.range - tail(regression.points$x, 1)) * lm((y[x >= tail(regression.points$x, 1)]) ~  (x[x >= tail(regression.points$x, 1)]))$coef[2]
-
+                  Dynamic.average.mid.max <- tryCatch(lm(y[x >= tail(regression.points$x, 1)] ~ 0 +
+                                                           x[x >= tail(regression.points$x, 1)], offset = rep(tail(regression.points$y, 1), length(y[x >= tail(regression.points$x, 1)])))$fitted[which.min(x[x >= tail(regression.points$x, 1)])] +
+                                                        (mid.max.range - tail(regression.points$x, 1)) * lm(y[x >= tail(regression.points$x, 1)] ~  0 + x[x >= tail(regression.points$x, 1)], offset = rep(tail(regression.points$y, 1), length(y[x >= tail(regression.points$x, 1)])))$coef[1],
+                                                      error = function(e) NA)
               }
 
           }

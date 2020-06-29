@@ -19,6 +19,7 @@
 
 
 
+
 .onLoad <- function(libname = find.package("NNS"), pkgname = "NNS"){
 
   # CRAN Note avoidance
@@ -42,6 +43,9 @@
   requireNamespace("stringr")
   requireNamespace("meboot")
   requireNamespace("tdigest")
+  requireNamespace("Rfast")
+
+
 
   .datatable.aware = TRUE
 
