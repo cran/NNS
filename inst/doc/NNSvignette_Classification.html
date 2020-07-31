@@ -323,13 +323,19 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>We can see how <code>NNS</code> partitions each regressor by calling the <code>$rhs.partitions</code> output. You will notice that each partition is not an equal interval, nor of equal length, which differentiates <code>NNS</code> from other bandwidth or tree-based techniques.</p>
 <p>Higher dependence between a regressor and the dependent variable will allow for a larger number of partitions. This is determined internally with the <code>NNS.dep</code> measure.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">NNS.reg</span>(iris[,<span class="dv">1</span><span class="op">:</span><span class="dv">4</span>], iris[,<span class="dv">5</span>], <span class="dt">residual.plot =</span> <span class="ot">FALSE</span>, <span class="dt">ncores =</span> <span class="dv">1</span>)<span class="op">$</span>rhs.partitions</a></code></pre></div>
-<pre><code>##    Sepal.Length Sepal.Width Petal.Length Petal.Width
-## 1:     4.300000    2.000000     1.000000   0.1000000
-## 2:     5.012804    2.500157     1.233148   0.1658602
-## 3:     5.725607    3.000314     1.466297   0.2317204
-## 4:     6.812804    3.700157     5.114497   1.8457280
-## 5:     7.900000    4.400000     6.007248   2.1728640
-## 6:           NA          NA     6.900000   2.5000000</code></pre>
+<pre><code>##     Sepal.Length Sepal.Width Petal.Length Petal.Width
+##  1:     4.300000    2.000000     1.000000   0.1000000
+##  2:     4.620216    2.476690     1.148925   0.1500137
+##  3:     4.940433    2.953381     1.297850   0.2000274
+##  4:     5.566603    3.232644     1.395571   0.3667951
+##  5:     6.056165    3.816322     1.585332   1.3001408
+##  6:     6.453990    4.400000     4.494541   1.4951783
+##  7:     7.176995          NA     4.900364   1.7996376
+##  8:     7.900000          NA     5.082222   1.9997027
+##  9:           NA          NA     5.568089   2.2992260
+## 10:           NA          NA     5.895483   2.3996130
+## 11:           NA          NA     6.397741   2.5000000
+## 12:           NA          NA     6.900000          NA</code></pre>
 </div>
 </div>
 </div>
@@ -371,13 +377,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-6" title="6"></a>
 <a class="sourceLine" id="cb11-7" title="7">b</a></code></pre></div>
 <pre><code>## $OBJfn.reg
-## [1] 0.8612245
+## [1] 0.9346939
 ## 
 ## $NNS.reg.n.best
 ## [1] 3
 ## 
 ## $OBJfn.dim.red
-## [1] 0.8734694
+## [1] 0.9510204
 ## 
 ## $NNS.dim.red.threshold
 ## [1] 0.93
