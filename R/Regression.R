@@ -64,7 +64,7 @@
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995}
+#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
 #'
 #' Vinod, H. and Viole, F. (2017) "Nonparametric Regression Using Clusters"
 #' \url{https://link.springer.com/article/10.1007/s10614-017-9713-5}
@@ -742,19 +742,28 @@ NNS.reg = function (x, y,
   data.table::setkey(bias, x)
 
   bias <- bias[, mode(residuals)*-1, by = gradient]
+
   fitted <- fitted[bias, on=.(gradient), y.hat := y.hat + V1]
 
-  bias[, bias := lapply(.SD, data.table::frollmean, n = 2, fill = NA, align = 'right'), .SDcols = 2]
+  bias[, bias_r := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'right'), .SDcols = 2]
+  bias[, bias_l := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'left'), .SDcols = 2]
+
+  bias[, bias := rowMeans(.SD, na.rm = TRUE), .SDcols = c("bias_r", "bias_l")]
+
+  bias[, bias_r := NULL]
+  bias[, bias_l := NULL]
+
 
   bias <- data.table::rbindlist(list(bias, data.frame(t(c(0,0,0)))), use.names = FALSE)
-  bias[is.na(bias)] <- 0
 
   if(!is.null(type)){
-    regression.points[, y := round(y + bias$bias)]
+    regression.points[, y := ifelse((y + bias$bias)%%1 < 0.5, floor(y + bias$bias), ceiling(y + bias$bias))]
 
   } else {
     regression.points[, y := y + bias$bias]
   }
+
+
 
   regression.points$y <- pmin(regression.points$y, max(y))
   regression.points$y <- pmax(regression.points$y, min(y))
@@ -821,13 +830,13 @@ NNS.reg = function (x, y,
     }
 
     if(!is.null(type)){
-      point.est.y <- round(point.est.y)
+      point.est.y <- ifelse(point.est.y%%1 < 0.5, floor(point.est.y), ceiling(point.est.y))
     }
   }
 
   colnames(estimate) <- NULL
   if(!is.null(type)){
-    estimate <- round(estimate)
+    estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
   }
 
   fitted <- data.table::data.table(x = part.map$dt$x,
@@ -851,7 +860,6 @@ NNS.reg = function (x, y,
 
   fitted <- cbind(fitted, gradient)
   fitted$residuals <- fitted$y.hat - fitted$y
-
 
 
   if(!is.null(type)){

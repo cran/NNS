@@ -101,7 +101,7 @@ reduce the \code{CV.size}.
 }
 \references{
 Viole, F. (2016) "Classification Using NNS Clustering Analysis"
-\url{https://ssrn.com/abstract=2864711}
+\url{https://www.ssrn.com/abstract=2864711}
 }
 \author{
 Fred Viole, OVVO Financial Systems

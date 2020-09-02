@@ -2,7 +2,7 @@
 
 
 # NNS
-Nonlinear nonparametric statistics using partial moments.  Partial moments are the [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) and [asymptotically approximate the area of f(x)](https://ssrn.com/abstract=2186471).  These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
+Nonlinear nonparametric statistics using partial moments.  Partial moments are the [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) and [asymptotically approximate the area of f(x)](https://www.ssrn.com/abstract=2186471).  These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
 
 NNS offers: 
   - Numerical Integration & Numerical Differentiation
@@ -17,10 +17,10 @@ NNS offers:
 
 Companion R-package and datasets to: 
 
-#### Viole, F. and Nawrocki, D. (2013) ["*Nonlinear Nonparametric Statistics: Using Partial Moments*"](http://amzn.com/1490523995)
+#### Viole, F. and Nawrocki, D. (2013) ["*Nonlinear Nonparametric Statistics: Using Partial Moments*"]( https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp)
 
 ## Current Version
-[![NNS](https://img.shields.io/badge/NNS%3E%3D-0.4.0-blue.svg)](https://cran.r-project.org/package=NNS) is built on [![doParallel](https://img.shields.io/badge/doParallel%3E%3D-1.0.14-6666ff.svg)](https://cran.r-project.org/package=doParallel) architecture with notable performance enhancements.
+[![NNS](https://img.shields.io/badge/NNS%3E%3D-0.5.5-blue.svg)](https://cran.r-project.org/package=NNS) is built on [![doParallel](https://img.shields.io/badge/doParallel%3E%3D-1.0.14-6666ff.svg)](https://cran.r-project.org/package=doParallel) architecture with notable performance enhancements.
 
 [![NNS](https://img.shields.io/badge/NNS%3E%3D-0.3.0-blue.svg)](https://cran.r-project.org/package=NNS) is built on [![data.table](https://img.shields.io/badge/data.table%3E%3D-1.10.4-6666ff.svg)](https://cran.r-project.org/package=data.table) architecture with notable performance enhancements.
 
@@ -47,7 +47,7 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 0.4.7},
+    note = {R package version 0.5.5},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```

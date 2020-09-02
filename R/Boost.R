@@ -29,7 +29,7 @@
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Classification Using NNS Clustering Analysis"
-#' \url{https://ssrn.com/abstract=2864711}
+#' \url{https://www.ssrn.com/abstract=2864711}
 #' @examples
 #'  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
 #'  \dontrun{
@@ -39,7 +39,7 @@
 #'  type = "CLASS")
 #'
 #'  ## Test accuracy
-#'  mean( a$results == as.numeric(iris[141:150, 5]))
+#'  mean(a$results == as.numeric(iris[141:150, 5]))
 #'  }
 #'
 #' @export
@@ -439,7 +439,8 @@ NNS.boost <- function(IVs.train,
     return(list("results" = estimates,
                 "feature.weights" = plot.table/sum(plot.table)))
   } else {
-    return(list("results" = round(estimates),
+    estimates <- ifelse(estimates%%1 < 0.5, floor(estimates), ceiling(estimates))
+    return(list("results" = estimates,
                 "feature.weights" = plot.table/sum(plot.table)))
   }
 }

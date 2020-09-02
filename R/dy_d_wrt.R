@@ -23,9 +23,15 @@
 #' \item{\code{dy.d_(...)[, wrt]$Second}} the 2nd derivative
 #' \item{\code{dy.d_(...)[, wrt]$Mixed}} the mixed derivative (for two independent variables only).
 #' }
+#'
 #' @author Fred Viole, OVVO Financial Systems
+#'
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995}
+#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
+#'
+#' Vinod, H. and Viole, F. (2020) "Comparing Old and New Partial Derivative Estimates from Nonlinear Nonparametric Regressions"
+#' \url{https://www.ssrn.com/abstract=3681104}
+#'
 #' @examples
 #' \dontrun{
 #' set.seed(123) ; x_1 <- runif(100) ; x_2 <- runif(100) ; y <- x_1 ^ 2 * x_2 ^ 2
@@ -36,7 +42,7 @@
 #'
 #' ## To find average partial derivative of y wrt 1st regressor,
 #' only supply 1 value in [eval.points], or a vector of [eval.points]:
-#' dy.d_(B, y, wrt = 1, eval.points = c(.5))
+#' dy.d_(B, y, wrt = 1, eval.points = .5)
 #'
 #' dy.d_(B, y, wrt = 1, eval.points = fivenum(B[,1]))
 #'
@@ -138,7 +144,7 @@ dy.d_<- function(x, y, wrt,
 
     deriv.points <- data.table::data.table(do.call(rbind, replicate(3*length(eval.points), deriv.points, simplify = FALSE)))
 
-    data.table::set(deriv.points, i=NULL, j = wrt, value = rep(unlist(rbind(original.eval.points.min,
+    data.table::set(deriv.points, i=NULL, j = as.integer(wrt), value = rep(unlist(rbind(original.eval.points.min,
                                                                             eval.points,
                                                                             original.eval.points.max))
                                                                , each = sampsize, length.out = dim(deriv.points)[1] ))

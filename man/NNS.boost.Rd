@@ -84,13 +84,13 @@ Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary
  type = "CLASS")
 
  ## Test accuracy
- mean( a$results == as.numeric(iris[141:150, 5]))
+ mean(a$results == as.numeric(iris[141:150, 5]))
  }
 
 }
 \references{
 Viole, F. (2016) "Classification Using NNS Clustering Analysis"
-\url{https://ssrn.com/abstract=2864711}
+\url{https://www.ssrn.com/abstract=2864711}
 }
 \author{
 Fred Viole, OVVO Financial Systems
