@@ -123,8 +123,10 @@ NNS.VAR <- function(variables,
     num_cores <- ncores
   }
 
-  cl <- makeCluster(detectCores()-1)
-  registerDoParallel(cl)
+  if(num_cores>1){
+    cl <- makeCluster(num_cores)
+    registerDoParallel(cl)
+  } else { cl <- NULL }
 
   if(status){
     message("Currently generating univariate estimates...","\r", appendLF=TRUE)
@@ -141,13 +143,12 @@ NNS.VAR <- function(variables,
     a <- a[, c(1,(i+1))]
     interpolation_start <- which(!is.na(a[,2]))[1]
     interpolation_point <- tail(which(!is.na(a[,2])), 1)
-    a <- a[interpolation_start:interpolation_point,]
     a <- a[complete.cases(a),]
 
     if(dim(a)[1]<last_point){
         nns_IVs$interpolation <- NNS.reg(a[,1], a[,2], order = "max",
-                                        point.est = index, plot=FALSE,
-                                        ncores = 1)$Point.est
+                                        point.est = index, plot = FALSE,
+                                        ncores = 1, point.only = TRUE)$Point.est
 
         new_variable <- nns_IVs$interpolation
     } else {
@@ -171,7 +172,6 @@ NNS.VAR <- function(variables,
              method = b$method, ncores = 1, plot = FALSE) + b$bias.shift
 
 
-
     if(na_s[i] > 0){
         na_s_extrapolation <- rowMeans(cbind(tail(nns_IVs$interpolation, na_s[i]), head(nns_IVs$results, na_s[i])))
         nns_IVs$interpolation <- c(nns_IVs$interpolation, na_s_extrapolation)
@@ -181,7 +181,6 @@ NNS.VAR <- function(variables,
     nns_IVs$obj_fn <- b$obj.fn
 
     return(list(nns_IVs, na.omit(na_s[i]), head(nns_IVs$results, na_s[i])))
-
   }
 
 
@@ -217,8 +216,11 @@ NNS.VAR <- function(variables,
 
   }
 
-  stopCluster(cl)
-  registerDoSEQ()
+
+  if(!is.null(cl)){
+      stopCluster(cl)
+      registerDoSEQ()
+  }
 
   nns_IVs_interpolated_extrapolated <- data.frame(do.call(cbind, lapply(nns_IVs_interpolated_extrapolated_2, function(x) head(x, dim(variables)[1]))))
 
@@ -228,6 +230,7 @@ NNS.VAR <- function(variables,
   for(i in 1:ncol(variables)){
       new_values[[i]] <- c(nns_IVs_interpolated_extrapolated[,i], nns_IVs_results[,i])
   }
+
 
 
   new_values <- data.frame(do.call(cbind, new_values))
@@ -285,15 +288,15 @@ NNS.VAR <- function(variables,
                                order = NULL)
 
     if(any(dim.red.method == "cor" | dim.red.method == "all")){
-        rel.1 <- abs(cor(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]), method = "spearman"))
+        rel.1 <- abs(cor(cbind(lagged_new_values_train[, i], lagged_new_values_train[, -i]), method = "spearman"))
     }
 
     if(any(dim.red.method == "nns.dep" | dim.red.method == "all")){
-        rel.2 <- NNS.dep(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]))$Dependence
+        rel.2 <- NNS.dep(cbind(lagged_new_values_train[, i], lagged_new_values_train[, -i]))$Dependence
     }
 
     if(any(dim.red.method == "nns.caus" | dim.red.method == "all")){
-        rel.3 <- NNS.caus(cbind(lagged_new_values_train[, i],lagged_new_values_train[, -i]))
+        rel.3 <- NNS.caus(cbind(lagged_new_values_train[, i], lagged_new_values_train[, -i]))
     }
 
     if(dim.red.method == "cor"){
@@ -312,12 +315,12 @@ NNS.VAR <- function(variables,
         rel_vars <- ((rel.1+rel.2+rel.3)/3)[1, -1]
     }
 
-    rel_vars <- names(rel_vars[rel_vars>cor_threshold$NNS.dim.red.threshold])
+    rel_vars <- names(rel_vars[rel_vars > cor_threshold$NNS.dim.red.threshold])
     rel_vars <- rel_vars[rel_vars!=i]
 
-    relevant_vars[[i]] <- rel_vars
+    relevant_vars <- rel_vars
 
-    if(any(length(rel_vars)==0 | is.null(relevant_vars[[i]]))){
+    if(any(length(rel_vars)==0 | is.null(relevant_vars))){
         rel_vars <- names(lagged_new_values_train)
     }
 
@@ -335,9 +338,9 @@ NNS.VAR <- function(variables,
                                order = "max", stack = FALSE)
 
 
-        nns_DVs[[i]] <- DV_values$stack
+        nns_DVs <- DV_values$stack
     } else {
-        nns_DVs[[i]] <- nns_IVs_results[,i]
+        nns_DVs <- nns_IVs_results[,i]
     }
 
   list(nns_DVs, relevant_vars)
@@ -347,26 +350,15 @@ NNS.VAR <- function(variables,
   if(num_cores>1){
       stopCluster(cl)
       registerDoSEQ()
+  }
 
       nns_DVs <- lists[[1]]
       relevant_vars <- lists[[2]]
-
-      nns_DVs <- lapply(nns_DVs, unlist)
-      nns_DVs <- data.frame(do.call(cbind, (lapply(nns_DVs, function(x) (tail(x, h))))))
-
-      RV <- lapply(relevant_vars, function(x) if(length(unlist(x))==0){NA} else {x})
-      RV <- lapply(RV, unlist)
-
-
-  } else {
-      nns_DVs <- lists[[1]][[ncol(variables)]]
-      relevant_vars <- lists[[2]][[ncol(variables)]]
 
       nns_DVs <- data.frame(do.call(cbind, nns_DVs))
       nns_DVs <- head(nns_DVs, h)
 
       RV <- lapply(relevant_vars, function(x) if(length(x)==0){NA} else {x})
-  }
 
 
 

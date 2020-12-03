@@ -1,8 +1,8 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.5.5
-Date: 2020-09-01
+Version: 0.5.6
+Date: 2020-12-03
 Author: Fred Viole
 Maintainer: Fred Viole <ovvo.financial.systems@gmail.com>
 Description: Nonlinear nonparametric statistics using partial moments.  Partial moments are the elements of variance and asymptotically approximate the area of f(x).  These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.  NNS offers: Numerical integration, Numerical differentiation, Clustering, Correlation, Dependence, Causal analysis, ANOVA, Regression, Classification, Seasonality, Autoregressive modeling, Normalization and Stochastic dominance.  All routines based on: Viole, F. and Nawrocki, D. (2013), Nonlinear Nonparametric Statistics: Using Partial Moments (ISBN: 1490523995).
@@ -11,10 +11,10 @@ BugReports: https://github.com/OVVO-Financial/NNS/issues
 LazyData: TRUE
 RoxygenNote: 7.1.1
 Depends: R (>= 3.3.0), doParallel
-Imports: data.table, dtw, meboot, Rfast, rgl, stringr, tdigest
+Imports: caret, data.table, dtw, meboot, Rfast, rgl, stringr, tdigest
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-09-01 18:14:18 UTC; fredv
+Packaged: 2020-12-03 17:50:19 UTC; fredv
 Repository: CRAN
-Date/Publication: 2020-09-02 06:50:37 UTC
+Date/Publication: 2020-12-03 18:50:05 UTC

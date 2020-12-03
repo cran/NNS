@@ -163,13 +163,14 @@ lag.mtx <- function(x, tau){
 
 
 ### Row products for NNS.dep.hd
-RP <- function(x, rows = NULL, cols = NULL, na.rm = FALSE) {
+RowP <- function(x, rows = NULL, cols = NULL, na.rm = FALSE) {
 
   if (!is.null(rows) && !is.null(cols)) x <- x[rows, cols, drop = FALSE]
   else if (!is.null(rows)) x <- x[rows, , drop = FALSE]
   else if (!is.null(cols)) x <- x[, cols, drop = FALSE]
 
-  n <- nrow(x)
+  n <- ifelse(is.null(nrow(x)), 0, nrow(x))
+
   y <- double(length = n)
 
   if (n == 0L) return(y)

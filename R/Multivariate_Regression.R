@@ -1,4 +1,6 @@
-NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL, n.best = NULL, type = NULL, point.est = NULL, plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'off', dist = "L2", return.values = FALSE, plot.regions = FALSE, ncores=NULL){
+NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, n.best = NULL, type = NULL, point.est = NULL, point.only = FALSE,
+                       plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'off', dist = "L2",
+                       return.values = FALSE, plot.regions = FALSE, ncores=NULL){
 
 
   ### For Multiple regressions
@@ -42,7 +44,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
   ###  Regression Point Matrix
   if(is.numeric(order) || is.null(order)){
 
-    reg.points <- apply(original.IVs, 2, function(b) NNS.reg(b, original.DV, factor.2.dummy = FALSE, order = order, stn = stn, type = type, noise.reduction = noise.reduction, plot = FALSE, multivariate.call = TRUE)$x)
+    reg.points <- apply(original.IVs, 2, function(b) NNS.reg(b, original.DV, factor.2.dummy = factor.2.dummy, order = order, stn = stn, type = type, noise.reduction = noise.reduction, plot = FALSE, multivariate.call = TRUE)$x)
 
     if(length(unique(sapply(reg.points, length))) != 1){
       reg.points.matrix <- do.call('cbind', lapply(reg.points, `length<-`, max(lengths(reg.points))))
@@ -179,7 +181,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
 
 
 
-  if(n.best > 1 && is.null(point.est)){
+  if(n.best > 1 && !point.only){
     if(!is.null(cl)){
         fitted.matrix$y.hat <- parallel::parApply(cl, original.IVs, 1, function(z) NNS::NNS.distance(REGRESSION.POINT.MATRIX, dist.estimate = z, type = dist, k = n.best)[1])
     } else {
@@ -203,7 +205,6 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
     central.points <- apply(original.IVs, 2, function(x) mean(c(mean(x), median(x), mode(x), mean(c(max(x), min(x))))))
 
     predict.fit <- numeric()
-    predict.fit.iter <- list()
 
     if(is.null(np)){
       l <- length(point.est)
@@ -311,7 +312,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = FALSE, order = NULL, stn = NULL,
 
       predict.fit <- DISTANCES
 
-
+      if(point.only) return(list(Point.est = predict.fit,  RPM = REGRESSION.POINT.MATRIX[] ))
 
     }
 

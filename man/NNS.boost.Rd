@@ -15,6 +15,7 @@ NNS.boost(
   learner.trials = 100,
   epochs = NULL,
   CV.size = 0.25,
+  balance = FALSE,
   ts.test = NULL,
   folds = 5,
   threshold = NULL,
@@ -46,6 +47,8 @@ NNS.boost(
 \item{epochs}{integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.}
 
 \item{CV.size}{numeric [0, 1]; \code{(CV.size = .25)} (default) Sets the cross-validation size.  Defaults to 0.25 for a 25 percent random sampling of the training set.}
+
+\item{balance}{logical; \code{FALSE} (default) Uses both up and down sampling from \code{caret} to balance the classes.  \code{type="CLASS"} required.}
 
 \item{ts.test}{integer; NULL (default) Sets the length of the test set for time-series data; typically \code{2*h} parameter value from \link{NNS.ARMA} or double known periods to forecast.}
 

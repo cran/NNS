@@ -206,6 +206,7 @@ NNS.ARMA <- function(variable,
         x <- Component.index[[i]] ; y <- Component.series[[i]]
         last.y <- tail(y, 1)
 
+
         ## Skeleton NNS regression for NNS.ARMA
         reg.points <- tail(NNS.reg(x, y, return.values = FALSE , plot = FALSE, multivariate.call = TRUE), 4)
         reg.points <- reg.points[complete.cases(reg.points),]
@@ -333,7 +334,7 @@ if(!is.null(cl)){
   if(!is.null(conf.intervals)){
       upper_CIs <- apply(CIs, 1, function(z) UPM.VaR(1-conf.intervals, 0, z))
       lower_CIs <- apply(CIs, 1, function(z) LPM.VaR(1-conf.intervals, 0, z))
-      results <- cbind.data.frame(Estimates,  lower_CIs,  upper_CIs)
+      results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_CIs),  pmax(Estimates, upper_CIs))
       colnames(results) = c("Estimates",
                             paste0("Lower ", round(conf.intervals*100,2), "% CI"),
                             paste0("Upper ", round(conf.intervals*100,2), "% CI"))
