@@ -341,15 +341,41 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>We can see how <code>NNS</code> partitions each regressor by calling the <code>$rhs.partitions</code> output. You will notice that each partition is not an equal interval, nor of equal length, which differentiates <code>NNS</code> from other bandwidth or tree-based techniques.</p>
 <p>Higher dependence between a regressor and the dependent variable will allow for a larger number of partitions. This is determined internally with the <code>NNS.dep</code> measure.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">NNS.reg</span>(iris[,<span class="dv">1</span><span class="op">:</span><span class="dv">4</span>], iris[,<span class="dv">5</span>], <span class="dt">residual.plot =</span> <span class="ot">FALSE</span>, <span class="dt">ncores =</span> <span class="dv">1</span>)<span class="op">$</span>rhs.partitions</span></code></pre></div>
-<pre><code>##    Sepal.Length Sepal.Width Petal.Length Petal.Width
-## 1:     4.300000    2.000000     1.000000   0.1000000
-## 2:     4.657800    2.500157     1.199337   0.1500137
-## 3:     5.015599    3.000314     1.398673   0.2000274
-## 4:     6.294219    3.700157     4.326619   1.2686665
-## 5:     7.097110    4.400000     5.095300   1.5112959
-## 6:     7.900000          NA     5.626123   2.0343249
-## 7:           NA          NA     6.263062   2.2671625
-## 8:           NA          NA     6.900000   2.5000000</code></pre>
+<pre><code>##     Sepal.Length Sepal.Width Petal.Length Petal.Width
+##  1:     4.300000    2.000000     1.000000   0.1000000
+##  2:     4.587463    2.614574     1.100000   0.2000274
+##  3:     4.678381    2.800096     1.194480   0.2989259
+##  4:     4.781618    2.991738     1.295346   0.3985679
+##  5:     4.881907    3.200218     1.395571   1.0015932
+##  6:     4.983331    3.400017     1.495255   1.0953344
+##  7:     5.082635    3.542109     1.594271   1.1954045
+##  8:     5.199676    4.400000     1.772417   1.2958876
+##  9:     5.380061          NA     3.895815   1.3951196
+## 10:     5.480308          NA     3.984682   1.4951783
+## 11:     5.579322          NA     4.117390   1.5935931
+## 12:     5.680130          NA     4.200662   1.6921804
+## 13:     5.779234          NA     4.382381   1.7942140
+## 14:     6.000133          NA     4.484313   1.8927238
+## 15:     6.077476          NA     4.580489   1.9926151
+## 16:     6.175173          NA     4.682001   2.0998675
+## 17:     6.278550          NA     4.780779   2.2919822
+## 18:     6.377086          NA     4.881235   2.3898204
+## 19:     6.499777          NA     4.979978   2.4893963
+## 20:     6.676644          NA     5.082222   2.5000000
+## 21:     6.771158          NA     5.176081          NA
+## 22:     6.872370          NA     5.275621          NA
+## 23:     7.195815          NA     5.375161          NA
+## 24:     7.690889          NA     5.476672          NA
+## 25:     7.900000          NA     5.579322          NA
+## 26:           NA          NA     5.675823          NA
+## 27:           NA          NA     5.775399          NA
+## 28:           NA          NA     5.872861          NA
+## 29:           NA          NA     5.972401          NA
+## 30:           NA          NA     6.074127          NA
+## 31:           NA          NA     6.352421          NA
+## 32:           NA          NA     6.700116          NA
+## 33:           NA          NA     6.900000          NA
+##     Sepal.Length Sepal.Width Petal.Length Petal.Width</code></pre>
 </div>
 </div>
 </div>
@@ -391,16 +417,16 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb11-6"><a href="#cb11-6"></a></span>
 <span id="cb11-7"><a href="#cb11-7"></a>b</span></code></pre></div>
 <pre><code>## $OBJfn.reg
-## [1] 1
+## [1] 0.9550416
 ## 
 ## $NNS.reg.n.best
 ## [1] 3
 ## 
 ## $OBJfn.dim.red
-## [1] 0.9050618
+## [1] 0.9071887
 ## 
 ## $NNS.dim.red.threshold
-## [1] 0.47
+## [1] 0.775
 ## 
 ## $reg
 ##  [1] 1 2 3 3 3 3 3 3 2 3

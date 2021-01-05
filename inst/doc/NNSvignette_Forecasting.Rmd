@@ -172,19 +172,28 @@ We included the ability to use any number of specified seasonal periods simultan
 * `weights`
 
 Instead of weighting by the `seasonal.factor` strength of seasonality, we offer the ability to weight each per any defined compatible vector summing to 1.  
-Equal weighting would be `weights = rep((1/length(seasonal.factor)), length(seasonal.factor))`.
+Equal weighting would be `weights = "equal"`.
 
 * `conf.intervals`
 
-Provides the values for the specified confidence intervals within [0,1] for each forecasted point and plots the bootstapped replicates for the forecasted points.
+Provides the values for the specified confidence intervals within [0,1] for each forecasted point and plots the bootstrapped replicates for the forecasted points.
 
 * `seasonal.factor = FALSE`
 
 We also included the ability to use all detected seasonal periods simultaneously, weighted by their strength of seasonality.  Computationally expensive when used with nonlinear regressions and large numbers of relevant periods.
 
+
 * `best.periods`
 
 This parameter restricts the number of detected seasonal periods to use, again, weighted by their strength.  To be used in conjunction with  `seasonal.factor = FALSE`.
+
+* `modulo`
+
+To be used in conjunction with `seasonal.factor = FALSE`.  This parameter will ensure logical seasonal patterns (i.e., `modulo = 7` for daily data) are included along with the results.
+
+* `mod.only`
+
+To be used in conjunction with `seasonal.factor = FALSE & modulo != NULL`.  This parameter will ensure empirical patterns are kept along with the logical seasonal patterns.
 
 * `dynamic = TRUE`
 

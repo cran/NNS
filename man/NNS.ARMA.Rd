@@ -11,6 +11,8 @@ NNS.ARMA(
   seasonal.factor = TRUE,
   weights = NULL,
   best.periods = 2,
+  modulo = NULL,
+  mod.only = TRUE,
   negative.values = FALSE,
   method = "nonlin",
   dynamic = FALSE,
@@ -31,11 +33,15 @@ NNS.ARMA(
 
 \item{seasonal.factor}{logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}}
 
-\item{weights}{numeric; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains.}
+\item{weights}{numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.}
 
 \item{best.periods}{integer; [2] (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
 
 \code{(seasonal.factor = FALSE)}.}
+
+\item{modulo}{integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.}
+
+\item{mod.only}{logical; code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.}
 
 \item{negative.values}{logical; \code{FALSE} (default) If the variable can be negative, set to
 \code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.}

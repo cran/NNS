@@ -4,16 +4,7 @@
 \alias{dy.d_}
 \title{Partial Derivative dy/d_[wrt]}
 \usage{
-dy.d_(
-  x,
-  y,
-  wrt,
-  eval.points = "obs",
-  cross.val = TRUE,
-  mixed = FALSE,
-  ncores = NULL,
-  messages = TRUE
-)
+dy.d_(x, y, wrt, eval.points = "obs", mixed = FALSE, messages = TRUE)
 }
 \arguments{
 \item{x}{a numeric matrix or data frame.}
@@ -32,11 +23,7 @@ dy.d_(
 \item Set to \code{(eval.points = "last")} to find the partial derivative at the last observation of every value (relevant for time-series data).
 }}
 
-\item{cross.val}{logical; \code{TRUE} (default) To utilize the cross-validation regression \link{NNS.stack} for finite differences.  Cross-validation is more accurate than the faster dimension reduction alternative.}
-
 \item{mixed}{logical; \code{FALSE} (default) If mixed derivative is to be evaluated, set \code{(mixed = TRUE)}.}
-
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 
 \item{messages}{logical; \code{TRUE} (default) Prints status messages.}
 }
@@ -67,7 +54,7 @@ dy.d_(B, y, wrt = 1, eval.points = fivenum(B[,1]))
 
 
 ## To find average partial derivative of y wrt 1st regressor,
-for every oberservation of 1st regressor:
+for every observation of 1st regressor:
 apd <- dy.d_(B, y, wrt = 1, eval.points = "apd")
 plot(B[,1], apd[,1]$First)
 

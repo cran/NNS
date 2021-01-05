@@ -259,7 +259,7 @@ NNS.stack <- function(IVs.train,
           THRESHOLDS[[b]] <- best.threshold
           best.nns.ord[[b]] <- max(na.omit(nns.ord))
           if(i > 2 && is.na(nns.ord[i])) break
-          if(i > 2  && (nns.ord[i] <= nns.ord[i-1]) && (nns.ord[i] <= nns.ord[i-2])) break
+          if(i > 2 && (nns.ord[i] <= nns.ord[i-1]) && (nns.ord[i] <= nns.ord[i-2])) break
         }
       }
 
@@ -321,7 +321,7 @@ NNS.stack <- function(IVs.train,
       CV.IVs.test <- data.frame(CV.IVs.test[, relevant_vars])
 
       for(i in c(1:l, length(IVs.train[ , 1]))){
-        index <- which(c(1:l, length(IVs.train[ , 1])) %in% i)
+        index <- which(c(1:l, length(IVs.train[ , 1])) == i)
         if(status){
           message("Current NNS.reg(... , n.best = ", i ," ) MAX Iterations Remaining = " ,l-index+1," ","\r",appendLF=TRUE)
         }
@@ -389,7 +389,7 @@ NNS.stack <- function(IVs.train,
 
       if(b==folds){
         if(!is.null(type))  best.nns.cv <- min(1, mode(na.omit(unlist(best.nns.cv))))   else best.nns.cv <- mode(na.omit(unlist(best.nns.cv)))
-        best.k <- round(fivenum(as.numeric(rep(names(table(unlist(best.k))), table(unlist(best.k)))))[4])
+        best.k <- ceiling(LPM.VaR(.625, 0, as.numeric(rep(names(table(unlist(best.k))), table(unlist(best.k))))))
         nns.method.1 <- NNS.reg(IVs.train[ , relevant_vars], DV.train, point.est = IVs.test[, relevant_vars], plot = FALSE, n.best = best.k, order = order, ncores = ncores,
                                 type = type, point.only = TRUE)$Point.est
         if(!is.null(type) && !is.null(nns.method.1)){
