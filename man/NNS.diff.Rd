@@ -4,7 +4,7 @@
 \alias{NNS.diff}
 \title{NNS Numerical Differentiation}
 \usage{
-NNS.diff(f, point, h = 0.1, tol = 1e-10, print.trace = FALSE)
+NNS.diff(f, point, h = 0.1, tol = 1e-10, digits = 12, print.trace = FALSE)
 }
 \arguments{
 \item{f}{an expression or call or a formula with no lhs.}
@@ -13,7 +13,9 @@ NNS.diff(f, point, h = 0.1, tol = 1e-10, print.trace = FALSE)
 
 \item{h}{numeric [0, ...]; Initial step for secant projection.  Defaults to \code{(h = 0.1)}.}
 
-\item{tol}{numeric; Sets the tolerance for the stopping condition of the inferred \code{h}.  Defualts to \code{(tol = 1e-10)}.}
+\item{tol}{numeric; Sets the tolerance for the stopping condition of the inferred \code{h}.  Defaults to \code{(tol = 1e-10)}.}
+
+\item{digits}{numeric; Sets the number of digits specification of the output.  Defaults to \code{(digits = 12)}.}
 
 \item{print.trace}{logical; \code{FALSE} (default) Displays each iteration, lower y-intercept, upper y-intercept and inferred \code{h}.}
 }
@@ -21,7 +23,7 @@ NNS.diff(f, point, h = 0.1, tol = 1e-10, print.trace = FALSE)
 Returns a matrix of values, intercepts, derivatives, inferred step sizes for multiple methods of estimation.
 }
 \description{
-Determines numerical derivative of a given function using projected secant lines on the y-axis.  These projected points infer finite steps \code{h}, in the finite step method.
+Determines numerical derivative of a given univariate function using projected secant lines on the y-axis.  These projected points infer finite steps \code{h}, in the finite step method.
 }
 \examples{
 f <- function(x) sin(x) / x

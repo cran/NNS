@@ -5,7 +5,6 @@
 #' @param x a numeric vector, matrix or data frame.
 #' @param y \code{NULL} (default) or a numeric vector with compatible dimensions to \code{x}.
 #' @param asym logical; \code{FALSE} (default) Allows for asymmetrical dependencies.
-#' @param fact logical; \code{FALSE} (default) If any variable is a factor, set to \code{factor = TRUE}.
 #' @param print.map logical; \code{FALSE} (default) Plots quadrant means.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
 #' @note p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or independence between \code{x,y}.
@@ -75,100 +74,46 @@
 NNS.dep = function(x,
                    y = NULL,
                    asym = FALSE,
-                   fact = FALSE,
                    print.map = FALSE){
 
   oldw <- getOption("warn")
   options(warn = -1)
-  order <- NULL
-
-  if(asym) type <- "XONLY" else type <- NULL
 
   l <- length(x)
 
   if(!is.null(y)){
-    # No dependence if only a single value
-    if(is.factor(y) | fact) factor_signal <- TRUE else factor_signal <- FALSE
-    if(length(unique(x))<= sqrt(l) | length(unique(y))<= sqrt(l)){
-      if(print.map){
-        NNS.part(x, y, order = 1, Voronoi = TRUE, type = type)
-      }
 
-      options(warn = oldw)
-      discrete_res = cor(x, y, method = "spearman")
-      return(list("Correlation" = discrete_res,
-                  "Dependence" = abs(discrete_res)))
-    }
+    obs <- max(10, l/5)
 
+    # Define segments
+    if(print.map) PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = TRUE)$dt else PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = FALSE)$dt
 
+    PART[, weights := .N/l, by = prior.quadrant]
+    weights <- PART[, weights[1], by = prior.quadrant]$V1
 
+    ll <- expression(max(min(100, .N), 8))
 
-    segs <- list(5L)
-    uniques <- list(5L)
+    res <- PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
+    res[is.na(res)] <- 0
 
-    # Define indicies for segments
-    segs[[1]] <- as.integer(1 : min(50, l/5))
-    uniques[[1]] <- length(unique(x[segs[[1]]]))
-    first_point <- tail(segs[[1]],1)
+    # Compare each asymmetry
+    res_xy <- PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
+    res_yx <- PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
 
-    segs[[5]] <- as.integer(max(1, (l - min(50, l/5))) : l)
-    uniques[[5]] <- length(unique(x[segs[[5]]]))
-    last_point <- segs[[5]][1]
-
-    ll <- last_point - first_point
-    seg <- as.integer(ll/4)
-
-
-
-    segs[[2]] <- as.integer(max(1, (first_point + 1*seg - min(50, l/10))) : min(l,(first_point + 1*seg + min(50, l/10))))
-    uniques[[2]] <- length(unique(x[segs[[2]]]))
-
-    segs[[3]] <- as.integer(max(1, (first_point + 2*seg - min(50, l/10))) : min(l,(first_point + 2*seg + min(50, l/10))))
-    uniques[[3]] <- length(unique(x[segs[[3]]]))
-
-    segs[[4]] <- as.integer(max(1, (first_point + 3*seg - min(50, l/10))) : min(l,(first_point + 3*seg + min(50, l/10))))
-    uniques[[4]] <- length(unique(x[segs[[4]]]))
-
-
-
-    weights <- (c(.5, 1, 1, 1, .5)/4)
-    nns.dep <- list(5L)
-
-    if(any(unlist(uniques)==1)){
-      weights <- c(1/3, 1/3, 1/3)
-      nns.dep <- list(3L)
-
-      DT <- data.table::data.table(x, y)
-      data.table::setkey(DT[, x := x], x)
-
-      nns.dep[[1]] <- NNS.dep.base(DT[, .SD[1], by="x"]$x, DT[, .SD[1], by = "x"]$y, print.map = FALSE, asym = asym)
-      nns.dep[[2]] <- NNS.dep.base(DT[, .SD[min(1,round(.N/2))], by="x"]$x, DT[, .SD[min(1,round(.N/2))], by = "x"]$y, print.map = FALSE, asym = asym)
-      nns.dep[[3]] <- NNS.dep.base(DT[, .SD[.N], by = "x"]$x, DT[, .SD[.N], by = "x"]$y, print.map = FALSE, asym = asym)
-
-    } else {
-
-      nns.dep <- lapply(segs, function(z) NNS.dep.base(x[z], y[z], print.map = FALSE, asym = asym))
-
-    }
-
-    if(print.map){
-      NNS.part(x, y, order = order, min.obs.stop = TRUE, Voronoi = TRUE, type = type, noise.reduction = "mean")
-    }
+    res_xy[is.na(res_xy)] <- 0
+    res_yx[is.na(res_yx)] <- 0
 
     options(warn = oldw)
 
-    dep <- sum(weights * unlist(lapply(nns.dep, `[[`, 2)))
+    if(asym) dependence <- sum(abs(res_xy$V1) * weights) else dependence <- max(sum(abs(res$V1) * weights),
+                                                                                sum(abs(res_xy$V1) * weights),
+                                                                                sum(abs(res_yx$V1) * weights))
 
-    seasonal <- tryCatch(dim(NNS.seas(y, plot = FALSE)$all.periods)[1], error = NULL)
+    corr <- mean(c(sum(res$V1 * weights),
+                   sum(res_xy$V1 * weights),
+                   sum(res_yx$V1 * weights)))
 
-    ll <- l / 2
-
-    if(is.null(seasonal) | factor_signal) seasonal <- dep else seasonal <- ((ll-seasonal) / ll)^2
-
-    if(dep == 1 | seasonal == 1) dependence <- 1
-    if(dep > seasonal) dependence <- dep else dependence <- mean(c(dep, seasonal))
-
-    return(list("Correlation" = sum(weights * unlist(lapply(nns.dep, `[[`, 1))),
+    return(list("Correlation" = corr,
                 "Dependence" = dependence))
 
   } else {

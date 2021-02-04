@@ -54,6 +54,10 @@ NNS.part = function(x, y,
                                     "off"))) {
         stop("Please ensure noise.reduction is from 'mean', 'median', 'mode' or 'off'")
     }
+
+    if(any(class(x)=="tbl")) x <- as.vector(unlist(x))
+    if(any(class(y)=="tbl")) y <- as.vector(unlist(y))
+
     if (is.null(obs.req)) obs.req <- 8
 
     if (!is.null(order) && order == 0) order <- 1
@@ -362,6 +366,8 @@ NNS.part = function(x, y,
         PART[, `:=`(counts = NULL, old.counts = NULL, q_new = NULL)]
 
         RP <- data.table::setorder(RP[], quadrant)[]
+
+        if(mean(c(length(unique(diff(x))), length(unique(x)))) < .33*length(x)) RP$x <- ifelse(RP$x%%1 < .5, floor(RP$x), ceiling(RP$x))
 
         if(Voronoi) {
             abline(v = c(PART[ ,min(x), by=prior.quadrant]$V1,max(x)), lty = 3)

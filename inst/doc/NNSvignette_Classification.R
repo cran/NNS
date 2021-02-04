@@ -7,6 +7,7 @@ library(data.table)
 require(knitr)
 require(rgl)
 require(meboot)
+require(plyr)
 require(tdigest)
 require(dtw)
 
@@ -22,8 +23,7 @@ a = NNS.boost(IVs.train = iris[-test.set, 1:4],
               IVs.test = iris[test.set, 1:4],
               epochs = 100, learner.trials = 100, 
               status = FALSE,
-              type = "CLASS",
-              ncores = 1)
+              type = "CLASS")
 
 a$results
 
@@ -35,7 +35,7 @@ mean( a$results == as.numeric(iris[test.set, 5]) )
 b = NNS.stack(IVs.train = iris[-test.set, names(a$feature.weights)], 
               DV.train = iris[-test.set, 5],
               IVs.test = iris[test.set, names(a$feature.weights)],
-              type = "CLASS",
+              type = "CLASS", stack = FALSE,
               ncores = 1)
 
 b

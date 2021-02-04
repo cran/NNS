@@ -10,6 +10,7 @@
 #' @param obj.fn expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
+#' @param lin.only logical; \code{FALSE} (default) Restricts the optimization to linear methods only.
 #' @param print.trace logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.
 #'
@@ -59,8 +60,11 @@ NNS.ARMA.optim <- function(variable, training.set,
                         obj.fn = expression(sum((predicted - actual)^2)),
                         objective = "min",
                         linear.approximation = TRUE,
+                        lin.only = FALSE,
                         print.trace = TRUE,
                         ncores = NULL){
+
+  if(any(class(variable)=="tbl")) variable <- as.vector(unlist(variable))
 
   if(length(training.set)==length(variable)){ stop("Please provide a 'training.set' value (integer) less than the length of the variable.")}
 
@@ -100,7 +104,7 @@ NNS.ARMA.optim <- function(variable, training.set,
   seasonal.factor <- seasonal.factor[seasonal.factor <= (l/denominator)]
   seasonal.factor <- unique(seasonal.factor)
 
-  if(length(seasonal.factor)==0){stop(paste0('Please ensure "seasonal.factor" contains elements less than ', l/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))}
+  if(length(seasonal.factor)==0) seasonal.factor <- 1
 
   oldw <- getOption("warn")
   options(warn = -1)
@@ -114,7 +118,9 @@ NNS.ARMA.optim <- function(variable, training.set,
   previous.estimates <- list()
   previous.seasonals <- list()
 
-  for(j in c('lin','nonlin','both')){
+  if(lin.only) methods <- "lin" else methods <- c('lin','nonlin','both')
+
+  for(j in methods){
       current.seasonals <- list()
       current.estimate <- numeric()
       seasonal.combs <- list()
@@ -169,12 +175,12 @@ NNS.ARMA.optim <- function(variable, training.set,
               registerDoParallel(cl)
           } else { cl <- NULL }
 
-          nns.estimates.indiv <- foreach(k = 1 : ncol(seasonal.combs[[i]]),.packages = "NNS")%dopar%{
+          nns.estimates.indiv <- foreach(k = 1 : ncol(seasonal.combs[[i]]),.packages = c("NNS", "data.table", "plyr"))%dopar%{
           actual <- tail(variable, h)
 
           predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor =  seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
 
-          eval(obj.fn)
+          nns.estimates.indiv <- eval(obj.fn)
 
         }
 
@@ -249,6 +255,7 @@ NNS.ARMA.optim <- function(variable, training.set,
     overall.seasonals[[which(c("lin",'nonlin','both')==j)]] <- current.seasonals[length(current.estimate)]
     overall.estimates[[which(c("lin",'nonlin','both')==j)]] <- current.estimate[length(current.estimate)]
 
+
     if(print.trace){
         if(i > 1){
             print(paste0("BEST method = ", paste0("'",j,"'"),  ", seasonal.factor = ", paste("c(", paste(unlist(current.seasonals[length(current.estimate)]), collapse = ", "))," )"))
@@ -261,7 +268,8 @@ NNS.ARMA.optim <- function(variable, training.set,
 
     gc()
 
-
+    if(lin.only) predicted <- current.estimate
+    if(j!='lin' && lin.only){ break }
 
   } # for j in c('lin','nonlin','both')
 

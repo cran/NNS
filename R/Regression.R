@@ -138,13 +138,14 @@ NNS.reg = function (x, y,
   oldw <- getOption("warn")
   options(warn = -1)
 
-  if(plot.regions && !is.null(order) && order == 'max'){
-    stop('Please reduce the "order" or set "plot.regions = FALSE".')
-  }
+  if(plot.regions && !is.null(order) && order == 'max') stop('Please reduce the "order" or set "plot.regions = FALSE".')
 
-  if(!is.null(confidence.interval) && std.errors == FALSE){
-    std.errors <- TRUE
-  }
+  if(!is.null(confidence.interval) && std.errors == FALSE) std.errors <- TRUE
+
+  if(any(class(x)=="tbl") && dim(x)[2]==1) x <- as.vector(unlist(x))
+  if(any(class(x)=="tbl")) x <- as.data.frame(x)
+
+
 
   if(!is.null(dim.red.method)){
     if(is.null(dim(x)) || dim(x)[1]==1){
@@ -153,44 +154,38 @@ NNS.reg = function (x, y,
   }
 
   if(!is.null(type)){
+    type <- tolower(type)
+    noise.reduction <- "mode"
+  }
+
+  if(plyr::is.discrete(y)){
     type <- "class"
     noise.reduction <- "mode"
   }
 
-  if(class(y) == "factor"){
-    type <- "class"
-    noise.reduction <- "mode"
-  }
+  if(any(class(y)=="tbl")) y <- as.vector(unlist(y))
 
-  if(!plot){
-    residual.plot <- FALSE
-  }
+  if(!plot) residual.plot <- FALSE
 
   # Variable names
   original.names <- colnames(x)
   original.columns <- ncol(x)
 
-  if(!is.null(original.columns) & is.null(colnames(x))){
-    x <- data.frame(x)
-  }
+  if(!is.null(original.columns) & is.null(colnames(x))) x <- data.frame(x)
 
   y.label <- deparse(substitute(y))
-  if(is.null(y.label)){
-    y.label <- "y"
-  }
+
+  if(is.null(y.label)) y.label <- "y"
 
 
   if(is.null(original.columns)){
     x.label <- deparse(substitute(x))
-    if(is.null(x.label)){
-      x.label <- "x"
-    }
+    if(is.null(x.label)) x.label <- "x"
   }
 
   if(factor.2.dummy){# && !multivariate.call){
-    if(is.list(x) & !is.data.frame(x)){
-      x <- do.call(cbind, x)
-    }
+    if(is.list(x) & !is.data.frame(x)) x <- do.call(cbind, x)
+
 
     if(!is.null(point.est)){
       if(!is.null(dim(x)) && dim(x)[2]>1){
@@ -202,11 +197,8 @@ NNS.reg = function (x, y,
     }
 
 
-    if(!is.null(dim(x)) && dim(x)[2]>1){
-      x <- do.call(cbind, lapply(data.frame(x), factor_2_dummy_FR))
-    } else {
-      x <- factor_2_dummy_FR(x)
-    }
+    if(!is.null(dim(x)) && dim(x)[2]>1) x <- do.call(cbind, lapply(data.frame(x), factor_2_dummy_FR)) else x <- factor_2_dummy_FR(x)
+
 
     x <- data.matrix(x)
 
@@ -219,17 +211,12 @@ NNS.reg = function (x, y,
         new_x <- factor_2_dummy_FR(new_x)
       }
 
-      if(is.null(dim(point.est))){
-        l_point.est <- length(point.est)
-      } else {
-        l_point.est <- dim(point.est)[1]
-      }
+      if(is.null(dim(point.est))) l_point.est <- length(point.est) else l_point.est <- dim(point.est)[1]
+
 
       point.est <- tail(new_x, l_point.est)
 
-      if(is.null(dim(point.est)) || dim(point.est)[2]==1){
-        point.est <- as.vector(unlist(point.est))
-      }
+      if(is.null(dim(point.est)) || dim(point.est)[2]==1) point.est <- as.vector(unlist(point.est))
 
     } else { # is.null(point.est)
       point.est.y <- NULL
@@ -241,9 +228,7 @@ NNS.reg = function (x, y,
   original.columns <- ncol(x)
 
   y.label <- deparse(substitute(y))
-  if(is.null(y.label)){
-    y.label <- "y"
-  }
+  if(is.null(y.label)) y.label <- "y"
 
 
   y <- as.numeric(y)
@@ -317,7 +302,7 @@ NNS.reg = function (x, y,
 
           if(dim.red.method!="cor" && dim.red.method!="equal"){
             if(!is.null(type)) fact <- TRUE else fact <- FALSE
-            x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE, asym = TRUE, fact = fact)$Dependence
+            x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE, asym = TRUE)$Dependence
             x.star.dep[is.na(x.star.dep)] <- 0
           }
 
@@ -426,10 +411,8 @@ NNS.reg = function (x, y,
 
   } # Multivariate
 
-  if(all(x == 1:length(x))) asymmetry <- FALSE else asymmetry <- TRUE
 
-  if(!is.null(type)) fact <- TRUE else fact <- FALSE
-  dependence <- NNS.dep(x, y, print.map = FALSE, asym = asymmetry, fact = fact)$Dependence
+  dependence <- NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence
   dependence[is.na(dependence)] <- .01
 
   if(is.null(original.columns) || is.null(dim.red.method)){
@@ -438,11 +421,7 @@ NNS.reg = function (x, y,
   }
 
   if(is.null(order)){
-    if(is.null(type)){
-      dep.reduced.order <- max(1, floor(floor(log(length(y),2)) * dependence))
-    } else {
-      dep.reduced.order <- max(1, ceiling(ceiling(log(length(y),2)) * dependence))
-    }
+    dep.reduced.order <- min(ceiling(log(length(y))), ceiling(ceiling(log(length(y),2)) * dependence))
   } else {
     dep.reduced.order <- order
   }
@@ -522,7 +501,7 @@ NNS.reg = function (x, y,
     if(l_x.mid.min_unique > 1 && l_y.min > 5){
       if(dependence < stn){
         if(!is.null(type)){
-          x0 <- mode_class(y.min)
+          if(type=="class") x0 <- mode_class(y.min) else x0 <- unique(gravity(y[x == min(x)]))
         } else {
           if(l_y.min>1 && l_y.mid.min>1){
             x0 <- sum(lm((y[which(x <= min.range)]) ~  (x[which(x <= min.range)]))$fitted.values[which.min(x[which(x <= min.range)])]*l_y.min,
@@ -534,14 +513,14 @@ NNS.reg = function (x, y,
         }
       } else {
         if(!is.null(type)){
-          x0 <- mode_class(y.min)
+          if(type=="class") x0 <- mode_class(y.min) else x0 <- unique(y[x == min(x)])
         } else {
           x0 <- unique(y[x == min(x)])
         }
       }
     } else {
       if(!is.null(type)){
-        x0 <- mode_class(y.min)
+        if(type=="class") x0 <- mode_class(y.min) else x0 <- unique(gravity(y[x == min(x)]))
       } else {
         x0 <- unique(gravity(y[x == min(x)]))
       }
@@ -551,7 +530,7 @@ NNS.reg = function (x, y,
     if(l_x.mid.max_unique > 1 && l_y.max > 5){
       if(dependence < stn){
         if(!is.null(type)){
-          x.max <- mode_class(y.max)
+          if(type=="class") x.max <- mode_class(y.max) else x.max <- unique(gravity(y[x == max(x)]))
         } else {
           if(l_y.max > 1 && l_y.mid.max > 1){
             x.max <- sum(lm(y[which(x >= max.range)] ~ x[which(x >= max.range)])$fitted.values[which.max(x[which(x >= max.range)])]*l_y.max,
@@ -563,14 +542,14 @@ NNS.reg = function (x, y,
         }
       } else {
         if(!is.null(type)){
-          x.max <- mode_class(y.max)
+          if(type=="class") x.max <- mode_class(y.max) else x.max <- unique(gravity(y[x == max(x)]))
         } else {
           x.max <- unique(y[x == max(x)])
         }
       }
     } else {
       if(!is.null(type)){
-        x.max <- mode_class(y.max)
+        if(type=="class") x.max <- mode_class(y.max) else x.max <- unique(gravity(y[x == max(x)]))
       } else{
         x.max <- unique(gravity(y[x == max(x)]))
       }
@@ -581,6 +560,13 @@ NNS.reg = function (x, y,
     max.rps <- data.table::data.table(t(c(max(x), mean(x.max))))
 
     min.rps <- data.table::data.table(t(c(min(x), mean(x0))))
+
+    regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps ), use.names = FALSE)
+  } else {
+    ### Endpoints
+    max.rps <- data.table::data.table(t(c(max(x), y[x == max(x)][1])))
+
+    min.rps <- data.table::data.table(t(c(min(x), y[x == min(x)][1])))
 
     regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps ), use.names = FALSE)
   }
@@ -653,7 +639,7 @@ NNS.reg = function (x, y,
   coef.interval <- findInterval(x, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE)
   reg.interval <- findInterval(x, regression.points[, x], left.open = FALSE)
 
-  if(!is.null(order) && is.character(order)){
+  if(plyr::is.discrete(order)){
     estimate <- y
   } else{
     estimate <- ((x - regression.points[reg.interval, x]) * Regression.Coefficients[coef.interval, Coefficient]) + regression.points[reg.interval, y]
@@ -675,13 +661,13 @@ NNS.reg = function (x, y,
     }
 
     if(!is.null(type)){
-      point.est.y <- round(point.est.y)
+      if(type=="class") point.est.y <- ifelse(point.est.y%%1 < .5, floor(point.est.y), ceiling(point.est.y))
     }
   }
 
   colnames(estimate) <- NULL
   if(!is.null(type)){
-    estimate <- round(estimate)
+    if(type=="class") estimate <- ifelse(estimate%%1 < .5, floor(estimate), ceiling(estimate))
   }
 
   fitted <- data.table::data.table(x = part.map$dt$x,
@@ -706,7 +692,7 @@ NNS.reg = function (x, y,
   fitted <- cbind(fitted, gradient)
   fitted$residuals <- fitted$y.hat - fitted$y
 
-  if(dependence < stn){
+  if(dependence < stn && !plyr::is.discrete(x) && mean(c(length(unique(diff(x))), length(unique(x)))) > .33*length(x)){
     bias <- fitted
     data.table::setkey(bias, x)
 
@@ -725,7 +711,7 @@ NNS.reg = function (x, y,
     bias <- data.table::rbindlist(list(bias, data.frame(t(c(0,0,0)))), use.names = FALSE)
 
     if(!is.null(type)){
-      regression.points[, y := ifelse((y + bias$bias)%%1 < 0.5, floor(y + bias$bias), ceiling(y + bias$bias))]
+      if(type=="class") regression.points[, y := ifelse((y + bias$bias)%%1 < 0.5, floor(y + bias$bias), ceiling(y + bias$bias))] else regression.points[, y := y + bias$bias]
     } else {
       regression.points[, y := y + bias$bias]
     }
@@ -801,13 +787,13 @@ NNS.reg = function (x, y,
     }
 
     if(!is.null(type)){
-      point.est.y <- ifelse(point.est.y%%1 < 0.5, floor(point.est.y), ceiling(point.est.y))
+      if(type=="class") point.est.y <- ifelse(point.est.y%%1 < 0.5, floor(point.est.y), ceiling(point.est.y))
     }
   }
 
   colnames(estimate) <- NULL
   if(!is.null(type)){
-    estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
+      if(type=="class") estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
   }
 
   fitted <- data.table::data.table(x = part.map$dt$x,
@@ -834,7 +820,7 @@ NNS.reg = function (x, y,
 
 
   if(!is.null(type)){
-    Prediction.Accuracy <- (length(y) - sum( abs( round(y.fitted) - (y)) > 0)) / length(y)
+    if(type=="class") Prediction.Accuracy <- (length(y) - sum( abs( round(y.fitted) - (y)) > 0)) / length(y) else Prediction.Accuracy <- NULL
   } else {
     Prediction.Accuracy <- NULL
   }

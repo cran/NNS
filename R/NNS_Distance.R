@@ -18,26 +18,24 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
   l <- nrow(rpm)
   y.hat <- rpm$y.hat
 
-
   if(type!="FACTOR"){
     rpm <- rbind(as.list(t(dist.estimate)), rpm[, .SD, .SDcols = 1:n])
-    rpm[, names(rpm) := lapply(.SD, as.numeric)]
-    rpm <- rpm[,lapply(.SD, function(b) (b - min(b)) / max(1e-10, (max(b) - min(b)))), .SDcols = 1:n]
-    dist.estimate <- as.numeric(rpm[1, ])
+    rpm <- rpm[, names(rpm) := lapply(.SD, function(b) (b - min(b)) / max(1e-10, (max(b) - min(b)))), .SDcols = 1:n]
+    dist.estimate <- unlist(rpm[1, ])
     rpm <- rpm[-1,]
   }
 
   rpm$y.hat <- y.hat
 
+  rpm_mat <- t(rpm[, 1:n])
+
 
   if(type=="L2"){
-    rpm$Sum <- Rfast::rowsums(t(t(rpm[, 1:n]) - (dist.estimate))^2, parallel = TRUE)
-    rpm$Sum <- rpm$Sum +  1/(1 + ( Rfast::rowsums(t(t(rpm[, 1:n]) == (dist.estimate)), parallel = TRUE)))
+    rpm$Sum <- Rfast::rowsums(t(rpm_mat - dist.estimate)^2 + 1/(1/l + t(rpm_mat == dist.estimate)), parallel = TRUE)
   }
 
   if(type=="L1"){
-    rpm$Sum <- Rfast::rowsums(t(t(rpm[, 1:n]) - (dist.estimate)), parallel = TRUE)
-    rpm$Sum <- rpm$Sum +  1/(1 + ( Rfast::rowsums(t(t(rpm[1:n]) == (dist.estimate)), parallel = TRUE)))
+    rpm$Sum <- Rfast::rowsums(abs(t(rpm_mat - dist.estimate)) + 1/(1/l + t(rpm_mat == dist.estimate)), parallel = TRUE)
   }
 
   if(type=="DTW"){
@@ -45,7 +43,7 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
   }
 
   if(type=="FACTOR"){
-    rpm$Sum <- 1/(1 + ( Rfast::rowsums(t(t(rpm[,1:n]) == (dist.estimate)), parallel = TRUE)))
+    rpm$Sum <- 1/(1/l + ( Rfast::rowsums(t(rpm_mat == dist.estimate), parallel = TRUE)))
   }
 
   rpm$Sum[rpm$Sum == 0] <- 1e-10
@@ -64,11 +62,10 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
   rpm <- rpm[1:min(k,l),]
 
   inv <- (1 / rpm$Sum)
-
   weights <- inv / sum(inv)
-  norm_weights <- dnorm(rpm$Sum)
-  norm_weights <- norm_weights / sum(norm_weights)
 
+  norm_weights <- pmin(max(rpm$Sum), dnorm(rpm$Sum, mean(rpm$Sum), sd(rpm$Sum)))
+  norm_weights <- norm_weights / sum(norm_weights)
   weights <- (weights + norm_weights)/2
 
   single.estimate <- sum(weights * rpm$y.hat)

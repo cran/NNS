@@ -27,7 +27,9 @@ NNS.seas <- function(variable,
                      mod.only = TRUE,
                      plot = TRUE){
 
-  if(length(variable)<5){
+  if(any(class(variable)=="tbl")) variable <- as.vector(unlist(variable))
+
+  if(length(variable) < 5){
     return(data.table::data.table("Period" = 0, "Coefficient.of.Variation" = 0, "Variable.Coefficient.of.Variation" = 0, key = "Coefficient.of.Variation"))
   }
 
@@ -107,14 +109,7 @@ NNS.seas <- function(variable,
 
 
 
-    if(plot){
-      plot(instances[index], output[index], xlab = "Period", ylab = "Coefficient of Variation", main = "Seasonality Test", ylim = c(0, 2 * abs(sd(variable) / mean(variable))))
 
-      points(M[1, Period], M[1, Coefficient.of.Variation], pch = 19, col = 'red')
-
-      abline(h = abs(sd(variable) / mean(variable)), col = "red", lty = 5)
-      text(mean(instances[index]), abs(sd(variable) / mean(variable)), pos = 3, "Variable Coefficient of Variation", col = 'red')
-    }
 
     if(!is.null(modulo)){
         a <- M$Period
@@ -142,11 +137,21 @@ NNS.seas <- function(variable,
                                    rep(M[1, 3], length(periods))))
 
         M <- data.table::rbindlist(list(M[mod_index, ], mod_cv), use.names = FALSE)
+    }
 
+    M <- M[Period < length(variable)/2,]
+
+    if(plot){
+        plot(unlist(M[, 1]), unlist(M[, 2]), xlab = "Period", ylab = "Coefficient of Variation", main = "Seasonality Test", ylim = c(0, 2 * abs(sd(variable) / mean(variable))))
+
+        points(unlist(M[, 1])[1], unlist(M[, 2])[1], pch = 19, col = 'red')
+
+        abline(h = abs(sd(variable) / mean(variable)), col = "red", lty = 5)
+        text(mean(unlist(M[, 1])), abs(sd(variable) / mean(variable)), pos = 3, "Variable Coefficient of Variation", col = 'red')
     }
 
     return(list("all.periods" = M,
-                "best.period" = unlist(M[1, Period]),
+                "best.period" = unlist(M[1, 1]),
                 "periods" = as.vector(unlist(M[, 1]))))
 
 }

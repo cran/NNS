@@ -23,8 +23,7 @@ NNS.boost(
   objective = "min",
   extreme = FALSE,
   feature.importance = TRUE,
-  status = TRUE,
-  ncores = NULL
+  status = TRUE
 )
 }
 \arguments{
@@ -42,7 +41,7 @@ NNS.boost(
 
 \item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.}
 
-\item{learner.trials}{integer; \code{NULL} (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  \code{(learner.trials = 100)} is the default setting.}
+\item{learner.trials}{integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.}
 
 \item{epochs}{integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.}
 
@@ -66,8 +65,6 @@ NNS.boost(
 \item{feature.importance}{logical; \code{TRUE} (default) Plots the frequency of features used in the final estimate.}
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
-
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set \code{$results}, and the final feature loadings \code{$feature.weights}.
