@@ -1,5 +1,5 @@
-95bdb188500aebe0d4cfdc4256a6e642 *DESCRIPTION
-028710478b6f67a991cbea1385c107dc *NAMESPACE
+5ebec06e79b07b1699e46c96d71730f4 *DESCRIPTION
+dc816e302c6edc3b6c0684acdaef2ab2 *NAMESPACE
 6bad8d4655908214b581113d7df2a8c1 *R/ANOVA.R
 ed80c9481965ffb66f8fd6e74b021b2e *R/ARMA.R
 60037e2dbba247778cc05d05c9da07cf *R/ARMA_optim.R
@@ -22,7 +22,7 @@ bf431a37ec405b0daeb42f853102654e *R/Normalization.R
 b0980b22863433d2889dff152c57b0ff *R/Numerical_Differentiation.R
 b6656e69ebf97c50aa26717d3c0f0e5f *R/Partial_Moments.R
 0e3668acd73f533de7c4f5f9720f74d3 *R/Partition_Map.R
-ce14a479bf5bef81fbdadc08c081a3f9 *R/Regression.R
+69dbdbe80fcbc9e4e25e79a38365950c *R/Regression.R
 bc20fa9aa3d50d7ad96bf89ab3d72386 *R/SD_Efficient_Set.R
 67771152602366fbf4f1ecf2913f15be *R/SSD.R
 8e49032735ba29529cb1326e29e38b9d *R/Seasonality_Test.R
@@ -32,7 +32,7 @@ f1e4fa01a789481cd0d973ad2a99a363 *R/Uni_Causation.R
 26eaa2797b07a5462020ad3b26126135 *R/Uni_SD_Routines.R
 2c6a2464353804e2e2e2ec1887840061 *R/dy_d_wrt.R
 371cb5e362278b89a6ef08f3d9d5504e *R/dy_dx.R
-0cf31513908776a6faeb92625f5bbc40 *R/gvload.R
+819cadd27e943f309ba2da71c19156ae *R/gvload.R
 9e9eb4169d72e7c1a44496b48634b8b3 *README.md
 cf34ae1558a6decc60dbc0b88af163cc *build/vignette.rds
 d053ad5416f348b77225cb276c48b138 *inst/doc/NNSvignette_Classification.R
@@ -46,7 +46,7 @@ cc64e8e815c060d06dd17ce762dac39c *inst/doc/NNSvignette_Clustering_and_Regression
 3f48f9642d392dde99100b200ea9ac8f *inst/doc/NNSvignette_Correlation_and_Dependence.html
 d09e845c1a55d906f46d8f40026be987 *inst/doc/NNSvignette_Forecasting.R
 4a89cc94162f3df2a2c9d50576f203b6 *inst/doc/NNSvignette_Forecasting.Rmd
-28521822e32439f82df661f12dcf0c35 *inst/doc/NNSvignette_Forecasting.html
+743304ead988a41cfec64b8d2552ff84 *inst/doc/NNSvignette_Forecasting.html
 82705171340cc54e585e84c86a9c7608 *inst/doc/NNSvignette_Partial_Moments.R
 2d887bc733ec03fb98632a8e1de24f57 *inst/doc/NNSvignette_Partial_Moments.Rmd
 e2206e31bc24d8dc3e459499d2532f83 *inst/doc/NNSvignette_Partial_Moments.html
