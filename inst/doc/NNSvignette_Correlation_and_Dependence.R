@@ -14,20 +14,33 @@ require(dtw)
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center"---------------------
 x = seq(0, 3, .01) ; y = 2 * x
 
-cor(x, y)
-NNS.dep(x, y, print.map = TRUE)
+## ----linear1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
+NNS.part(x, y, Voronoi = TRUE, order = 3)
 
-## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center"------------------
+## ----res1---------------------------------------------------------------------
+cor(x, y)
+NNS.dep(x, y)
+
+## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center", results='hide'----
 x=seq(0, 3, .01) ; y = x ^ 10
 
+## ----nonlinear1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
+NNS.part(x, y, Voronoi = TRUE, order = 3)
+
+## ----res2---------------------------------------------------------------------
 cor(x, y)
-NNS.dep(x, y, print.map = TRUE)
+NNS.dep(x, y)
 
 ## ----dependence,fig.width=5,fig.height=3,fig.align = "center"-----------------
 set.seed(123)
 df <- data.frame(x = runif(10000, -1, 1), y = runif(10000, -1, 1))
 df <- subset(df, (x ^ 2 + y ^ 2 <= 1 & x ^ 2 + y ^ 2 >= 0.95))
-NNS.dep(df$x, df$y, print.map = TRUE)
+
+## ----circle1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
+NNS.part(df$x, df$y, Voronoi = TRUE, order = 3, obs.req = 0)
+
+## ----res3---------------------------------------------------------------------
+NNS.dep(df$x, df$y)
 
 ## ----multi--------------------------------------------------------------------
 set.seed(123)
@@ -38,7 +51,11 @@ NNS.dep.hd(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
 ## p-values for [NNS.dep]
 x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 
-nns_cor_dep <- NNS.dep(x,abs (y), print.map = TRUE)
+## ----perm1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
+NNS.part(x, y, Voronoi = TRUE, order = 3)
+
+## ----permutattions_res--------------------------------------------------------
+nns_cor_dep <- NNS.dep(x, y)
 nns_cor_dep
 
 ## Create permutations of y

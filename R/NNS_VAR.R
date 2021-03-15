@@ -69,6 +69,20 @@
 #'  ### Using lags c(1,2,3) for variables 1 and 3, while using lags c(4,5,6) for variable 2
 #'  NNS.VAR(A, h = 12, tau = list(c(1,2,3), c(4,5,6), c(1,2,3)), status = TRUE)
 #'
+#'  ### CONFIDENCE INTERVALS FOR PREDICTIONS
+#'  # Store NNS.VAR output
+#'  nns_estimate <- NNS.VAR(A, h = 12, tau = 4, status = TRUE)
+#'
+#'  # Create bootstrap replicates using NNS.meboot
+#'  replicates <- NNS.meboot(nns_estimate$ensemble[,1])$replicates
+#'
+#'  # Apply UPM.VaR and LPM.VaR for desired confidence interval
+#'  upper_CIs <- apply(replicates, 1, function(g) UPM.VaR(1-.95, 0, g))
+#'  lower_CIs <- apply(replicates, 1, function(g) LPM.VaR(1-.95, 0, g))
+#'
+#'  # View results
+#'  cbind(nns_estimate$ensemble[,1], lower_CIs, upper_CIs)
+#'
 #'
 #'  #########################################
 #'  ### NOWCASTING with Mixed Frequencies ###
@@ -98,6 +112,9 @@ NNS.VAR <- function(variables,
                     objective = "min",
                     status = TRUE,
                     ncores = NULL){
+
+  oldw <- getOption("warn")
+  options(warn = -1)
 
   if(any(class(variables)=="tbl")) variables <- as.data.frame(variables)
 
@@ -405,6 +422,8 @@ NNS.VAR <- function(variables,
 
   IE <- data.table::data.table(nns_IVs_interpolated_extrapolated)
   colnames(IE) <- colnames(variables)
+
+  options(warn = oldw)
 
   if(sum(na_s)>0){
   return( list("interpolated_and_extrapolated" = IE,

@@ -7,7 +7,7 @@
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
 #' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", \code{numeric vector}, NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  Alternatively, user can specify a numeric vector of coefficients.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
 #' @param point.est a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.
@@ -153,6 +153,9 @@ NNS.reg = function (x, y,
     }
   }
 
+  synthetic.x.equation <- NULL
+  x.star <- NULL
+
   if(!is.null(type)){
     type <- tolower(type)
     noise.reduction <- "mode"
@@ -183,7 +186,7 @@ NNS.reg = function (x, y,
     if(is.null(x.label)) x.label <- "x"
   }
 
-  if(factor.2.dummy){# && !multivariate.call){
+  if(factor.2.dummy){
     if(is.list(x) & !is.data.frame(x)) x <- do.call(cbind, x)
 
 
@@ -221,7 +224,7 @@ NNS.reg = function (x, y,
     } else { # is.null(point.est)
       point.est.y <- NULL
     }
-  } #if(factor.2.dummy && !multivariate.call)
+  } #if(factor.2.dummy)
 
   # Variable names
   original.names <- colnames(x)
@@ -297,10 +300,10 @@ NNS.reg = function (x, y,
         y <- as.numeric(y)
 
         if(!is.null(dim.red.method) & !is.null(dim(x))){
-          dim.red.method <- tolower(dim.red.method)
+          if(!is.numeric(dim.red.method)) dim.red.method <- tolower(dim.red.method)
           x.star.matrix <- matrix(nrow = length(y))
 
-          if(dim.red.method!="cor" && dim.red.method!="equal"){
+          if(!is.numeric(dim.red.method) && dim.red.method!="cor" && dim.red.method!="equal"){
             if(!is.null(type)) fact <- TRUE else fact <- FALSE
             x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE, asym = TRUE)$Dependence
             x.star.dep[is.na(x.star.dep)] <- 0
@@ -309,17 +312,17 @@ NNS.reg = function (x, y,
           x.star.cor <- cor(cbind(x, y), method = "spearman")
           x.star.cor[is.na(x.star.cor)] <- 0
 
-          if(dim.red.method == "nns.dep"){
+          if(!is.numeric(dim.red.method) && dim.red.method == "nns.dep"){
             x.star.coef <- x.star.dep[- (ncol(x) + 1), (ncol(x) + 1)]
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
-          if(dim.red.method == "cor"){
+          if(!is.numeric(dim.red.method) && dim.red.method == "cor"){
             x.star.coef <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
-          if(dim.red.method == "nns.caus"){
+          if(!is.numeric(dim.red.method) && dim.red.method == "nns.caus"){
             if(is.null(tau)){
               tau <- "cs"
             }
@@ -328,10 +331,9 @@ NNS.reg = function (x, y,
             cause <- NNS.caus(cbind(x, y), tau = tau, plot = FALSE)
             cause[is.na(cause)] <- 0
             x.star.coef <- (cause[(ncol(x) + 1), ] - cause[ ,(ncol(x) + 1)])[-(ncol(x) + 1)]
-
           }
 
-          if(dim.red.method == "all"){
+          if(!is.numeric(dim.red.method) && dim.red.method == "all"){
             if(is.null(tau)){
               tau <- "cs"
             }
@@ -352,9 +354,9 @@ NNS.reg = function (x, y,
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
-          if(dim.red.method == "equal") {
-            x.star.coef <- rep(1, ncol(x))
-          }
+          if(!is.numeric(dim.red.method) && dim.red.method == "equal")  x.star.coef <- rep(1, ncol(x))
+
+          if(is.numeric(dim.red.method)) x.star.coef <- dim.red.method
 
 
           preserved.coef <- x.star.coef
@@ -371,7 +373,7 @@ NNS.reg = function (x, y,
             x.star.coef[x.star.coef == 0] <- preserved.coef
           }
 
-          DENOMINATOR <- sum( abs( x.star.coef) > 0)
+          if(is.numeric(dim.red.method)) DENOMINATOR <- sum(dim.red.method) else DENOMINATOR <- sum( abs( x.star.coef) > 0)
 
           synthetic.x.equation.coef <- data.table::data.table(Variable = colnames.list, Coefficient = x.star.coef)
 
@@ -413,19 +415,14 @@ NNS.reg = function (x, y,
 
 
   dependence <- NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence
-  dependence[is.na(dependence)] <- .01
+  if(dependence < .25) dependence <- min(.25, dependence + .1)
+  dependence[is.na(dependence)] <- .1
 
-  if(is.null(original.columns) || is.null(dim.red.method)){
-    synthetic.x.equation <- NULL
-    x.star <- NULL
-  }
+  dependence <- min(1, dependence)
 
-  if(is.null(order)){
-    dep.reduced.order <- min(ceiling(log(length(y))), ceiling(ceiling(log(length(y),2)) * dependence))
-  } else {
-    dep.reduced.order <- order
-  }
+  dep.reduced.order <- ifelse((dependence*10)%%1<.5, floor(dependence*10), ceiling(dependence*10))
 
+  if(!is.null(order)) dep.reduced.order <- order
 
   if(dependence > stn){
     part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
@@ -560,17 +557,14 @@ NNS.reg = function (x, y,
     max.rps <- data.table::data.table(t(c(max(x), mean(x.max))))
 
     min.rps <- data.table::data.table(t(c(min(x), mean(x0))))
-
-    regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps ), use.names = FALSE)
   } else {
     ### Endpoints
     max.rps <- data.table::data.table(t(c(max(x), y[x == max(x)][1])))
 
     min.rps <- data.table::data.table(t(c(min(x), y[x == min(x)][1])))
-
-    regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps ), use.names = FALSE)
   }
 
+  regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps ), use.names = FALSE)
   regression.points <- regression.points[complete.cases(regression.points),]
   regression.points <- regression.points[ , .(x,y)]
   data.table::setkey(regression.points, x, y)
@@ -700,20 +694,16 @@ NNS.reg = function (x, y,
 
     fitted <- fitted[bias, on=.(gradient), y.hat := y.hat + V1]
 
-    bias[, bias_r := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'right'), .SDcols = 2]
-    bias[, bias_l := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'left'), .SDcols = 2]
+    bias_r <- c(bias[, bias_r := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'right'), .SDcols = 2]$bias_r, 0)
+    bias_l <- c(0, bias[, bias_l := lapply(.SD, data.table::frollmean, n = 2, fill = 0, align = 'left'), .SDcols = 2]$bias_l)
+    bias_c <- bias[, bias_c := lapply(.SD, data.table::frollmean, n = 3, fill = 0, align = 'center'), .SDcols = 2]$bias_c
 
-    bias[, bias := rowMeans(.SD, na.rm = TRUE), .SDcols = c("bias_r", "bias_l")]
-
-    bias[, bias_r := NULL]
-    bias[, bias_l := NULL]
-
-    bias <- data.table::rbindlist(list(bias, data.frame(t(c(0,0,0)))), use.names = FALSE)
+    bias <- suppressWarnings((bias_r + bias_l + bias_c)/3)
 
     if(!is.null(type)){
-      if(type=="class") regression.points[, y := ifelse((y + bias$bias)%%1 < 0.5, floor(y + bias$bias), ceiling(y + bias$bias))] else regression.points[, y := y + bias$bias]
+      if(type=="class") suppressWarnings(regression.points[, y := ifelse((y + bias)%%1 < 0.5, floor(y + bias), ceiling(y + bias))]) else suppressWarnings(regression.points[, y := y + bias])
     } else {
-      regression.points[, y := y + bias$bias]
+      suppressWarnings(regression.points[, y := y + bias])
     }
   }
 

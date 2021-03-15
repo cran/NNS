@@ -76,42 +76,61 @@ NNS.dep = function(x,
                    asym = FALSE,
                    print.map = FALSE){
 
-  oldw <- getOption("warn")
-  options(warn = -1)
-
-  l <- length(x)
 
   if(!is.null(y)){
+    x <- as.numeric(x)
+    l <- length(x)
 
+    y <- as.numeric(y)
     obs <- max(10, l/5)
 
     # Define segments
     if(print.map) PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = TRUE)$dt else PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = FALSE)$dt
+
+    PART <- PART[complete.cases(PART),]
 
     PART[, weights := .N/l, by = prior.quadrant]
     weights <- PART[, weights[1], by = prior.quadrant]$V1
 
     ll <- expression(max(min(100, .N), 8))
 
-    res <- PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
+    res <- suppressWarnings(PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
     res[is.na(res)] <- 0
 
     # Compare each asymmetry
-    res_xy <- PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
-    res_yx <- PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant]
+    res_xy <- suppressWarnings(PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
+    res_yx <- suppressWarnings(PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
 
     res_xy[is.na(res_xy)] <- 0
     res_yx[is.na(res_yx)] <- 0
 
-    options(warn = oldw)
+
+
 
     if(asym) dependence <- sum(abs(res_xy$V1) * weights) else dependence <- max(sum(abs(res$V1) * weights),
                                                                                 sum(abs(res_xy$V1) * weights),
                                                                                 sum(abs(res_yx$V1) * weights))
 
+    lx <- PART[, length(unique(x))]
+    ly <- PART[, length(unique(y))]
+    degree_x <- min(10, max(1,lx-1), max(1,ly-1))
+
+    I_x <- lx > sqrt(l)
+    I_y <- ly > sqrt(l)
+    I <- I_x * I_y
+
+    poly_base <- dependence
+
+    if(I == 1) poly_base <- tryCatch(summary(lm(abs(y)~poly(x, degree_x), raw = TRUE))$r.squared,
+                                                      warning = function(w) dependence,
+                                                      error = function(e) dependence)
+
+    dependence <- mean(c(rep(dependence,3), poly_base))
+
     corr <- mean(c(sum(res$V1 * weights),
                    sum(res_xy$V1 * weights),
                    sum(res_yx$V1 * weights)))
+
 
     return(list("Correlation" = corr,
                 "Dependence" = dependence))
