@@ -72,17 +72,10 @@ NNS.ARMA.optim <- function(variable, training.set,
   objective <- tolower(objective)
 
   if (is.null(ncores)) {
-      cores <- detectCores()
-      num_cores <- as.integer(cores / 2)
+      num_cores <- as.integer(parallel::detectCores()) - 1
   } else {
-      cores <- detectCores()
       num_cores <- ncores
   }
-
-  subcores <-  1
-
-
-  if((num_cores+subcores)>cores){ stop(paste0("Please ensure total number of cores [ncores + subcores] is less than ", cores))}
 
   if(is.null(training.set)){stop("Please use the length of the variable less the forecast period as the training.set value.")}
 
@@ -93,13 +86,9 @@ NNS.ARMA.optim <- function(variable, training.set,
   h <- length(variable) - training.set
   actual <- tail(variable, h)
 
-  if(is.null(training.set)){
-      l <- length(variable)
-  } else {
-      l <- training.set
-  }
+  if(is.null(training.set)) l <- length(variable) else l <- training.set
 
-  denominator <- min(4, max(2, as.integer(l/100)))
+  denominator <- min(5, max(2, ifelse((l/100)%%1 < .5, floor(l/100), ceiling(l/100))))
 
   seasonal.factor <- seasonal.factor[seasonal.factor <= (l/denominator)]
   seasonal.factor <- unique(seasonal.factor)
@@ -164,27 +153,27 @@ NNS.ARMA.optim <- function(variable, training.set,
           # Find the min (obj.fn) for a given seasonals sequence
           actual <- tail(variable, h)
 
-          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = unlist(overall.seasonals[[1]]), method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = unlist(overall.seasonals[[1]]), method = j, plot = FALSE, negative.values = negative.values, ncores = 1)
 
           nns.estimates.indiv <- eval(obj.fn)
 
       } else {
 
           if(num_cores>1){
-              cl <- makeCluster(num_cores)
-              registerDoParallel(cl)
-          } else { cl <- NULL }
+            cl <- parallel::makeCluster(num_cores)
+            doParallel::registerDoParallel(cl)
+          }
 
           nns.estimates.indiv <- foreach(k = 1 : ncol(seasonal.combs[[i]]),.packages = c("NNS", "data.table", "plyr"))%dopar%{
           actual <- tail(variable, h)
 
-          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor =  seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values, ncores = subcores)
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor =  seasonal.combs[[i]][ , k], method = j, plot = FALSE, negative.values = negative.values, ncores = 1)
 
           nns.estimates.indiv <- eval(obj.fn)
 
         }
 
-        if(!is.null(cl)){
+        if(num_cores>1){
             stopCluster(cl)
             registerDoSEQ()
         }
@@ -281,7 +270,7 @@ NNS.ARMA.optim <- function(variable, training.set,
       nns.SSE <- min(unlist(overall.estimates))
 
     if(length(nns.periods)>1){
-        predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = subcores, weights = rep((1/length(nns.periods)),length(nns.periods)))
+        predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = 1, weights = rep((1/length(nns.periods)),length(nns.periods)))
 
         weight.SSE <- eval(obj.fn)
 
@@ -319,7 +308,7 @@ NNS.ARMA.optim <- function(variable, training.set,
       nns.SSE <- max(unlist(overall.estimates))
 
       if(length(nns.periods)>1){
-          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = subcores, weights = rep((1/length(nns.periods)),length(nns.periods)))
+          predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = 1, weights = rep((1/length(nns.periods)),length(nns.periods)))
 
           weight.SSE <- eval(obj.fn)
 

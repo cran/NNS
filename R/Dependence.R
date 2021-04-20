@@ -5,11 +5,13 @@
 #' @param x a numeric vector, matrix or data frame.
 #' @param y \code{NULL} (default) or a numeric vector with compatible dimensions to \code{x}.
 #' @param asym logical; \code{FALSE} (default) Allows for asymmetrical dependencies.
-#' @param print.map logical; \code{FALSE} (default) Plots quadrant means.
+#' @param p.value logical; \code{FALSE} (default) Generates 100 independent random permutations to test results against and plots 95 percent confidence intervals along with all results.
+#' @param print.map logical; \code{FALSE} (default) Plots quadrant means, or p-value replicates.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
-#' @note p-values and confidence intervals can be obtained from sampling random permutations of \code{y_p} and running \code{NNS.dep(x,y_p)} to compare against a null hypothesis of 0 correlation or independence between \code{x,y}.
 #'
+#' @note
 #' \code{NNS.cor} has been deprecated \code{(NNS >= 0.5.4)} and can be called via \code{NNS.dep}.
+#'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{ https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
@@ -23,59 +25,20 @@
 #' x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
 #' B <- cbind(x, y, z)
 #' NNS.dep(B)
-#'
-#'
-#' ## p-values for [NNS.dep]
-#' x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
-#'
-#'
-#' nns_cor_dep <- NNS.dep(x, y, print.map = TRUE)
-#' nns_cor_dep
-#'
-#' ## Create permutations of y
-#' y_p <- replicate(1000, sample.int(length(y)))
-#'
-#' ## Generate new correlation and dependence measures on each new permutation of y
-#' nns.mc <- apply(y_p, 2, function(g) NNS.dep(x, y[g]))
-#'
-#' ## Store results
-#' cors <- unlist(lapply(nns.mc, "[[", 1))
-#' deps <- unlist(lapply(nns.mc, "[[", 2))
-#'
-#' ## View results
-#' hist(cors)
-#' hist(deps)
-#'
-#' ## Left tailed correlation p-value
-#' cor_p_value <- LPM(0, nns_cor_dep$Correlation, cors)
-#' cor_p_value
-#'
-#' ## Right tailed correlation p-value
-#' cor_p_value <- UPM(0, nns_cor_dep$Correlation, cors)
-#' cor_p_value
-#'
-#' ## Confidence Intervals
-#' ## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
-#' ## Lower CI
-#' LPM.VaR(.025, 0, cors)
-#' ## Upper CI
-#' UPM.VaR(.025, 0, cors)
-#'
-#' ## Left tailed dependence p-value
-#' dep_p_value <- LPM(0, nns_cor_dep$Dependence, deps)
-#' dep_p_value
-#'
-#' ## Right tailed dependence p-value
-#' dep_p_value <- UPM(0, nns_cor_dep$Dependence, deps)
-#' dep_p_value
 #' }
 #' @export
 
 NNS.dep = function(x,
                    y = NULL,
                    asym = FALSE,
+                   p.value = FALSE,
                    print.map = FALSE){
 
+  if(p.value){
+      y_p <- replicate(100, sample.int(length(y)))
+      x <- cbind(x, y, matrix(y[y_p], ncol = dim(y_p)[2], byrow = F))
+      y <- NULL
+  }
 
   if(!is.null(y)){
     x <- as.numeric(x)
@@ -85,8 +48,11 @@ NNS.dep = function(x,
     obs <- max(10, l/5)
 
     # Define segments
-    if(print.map) PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = TRUE)$dt else PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = FALSE)$dt
+    if(print.map) PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = TRUE) else PART <- NNS.part(x, y, order = NULL, obs.req = obs, min.obs.stop = TRUE, type = "XONLY", Voronoi = FALSE)
 
+    if(dim(PART$regression.points)[1]==0) return(list("Correlation" = 0, "Dependence" = 0))
+
+    PART <- PART$dt
     PART <- PART[complete.cases(PART),]
 
     PART[, weights := .N/l, by = prior.quadrant]
@@ -94,17 +60,15 @@ NNS.dep = function(x,
 
     ll <- expression(max(min(100, .N), 8))
 
-    res <- suppressWarnings(PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
+    res <- suppressWarnings(tryCatch(PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant], error = function(e) 0))
     res[is.na(res)] <- 0
 
     # Compare each asymmetry
-    res_xy <- suppressWarnings(PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
-    res_yx <- suppressWarnings(PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], min(10, as.integer(sqrt(.N))), raw = TRUE)))$r.squared, by = prior.quadrant])
+    res_xy <- suppressWarnings(tryCatch(PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant], error = function(e) 0))
+    res_yx <- suppressWarnings(tryCatch(PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant], error = function(e) 0))
 
     res_xy[is.na(res_xy)] <- 0
     res_yx[is.na(res_yx)] <- 0
-
-
 
 
     if(asym) dependence <- sum(abs(res_xy$V1) * weights) else dependence <- max(sum(abs(res$V1) * weights),
@@ -121,9 +85,9 @@ NNS.dep = function(x,
 
     poly_base <- dependence
 
-    if(I == 1) poly_base <- tryCatch(summary(lm(abs(y)~poly(x, degree_x), raw = TRUE))$r.squared,
+    if(I == 1) poly_base <- suppressWarnings(tryCatch(summary(lm(abs(y)~poly(x, degree_x), raw = TRUE))$r.squared,
                                                       warning = function(w) dependence,
-                                                      error = function(e) dependence)
+                                                      error = function(e) dependence))
 
     dependence <- mean(c(rep(dependence,3), poly_base))
 
@@ -136,7 +100,44 @@ NNS.dep = function(x,
                 "Dependence" = dependence))
 
   } else {
-    return(NNS.dep.matrix(x, asym = asym))
+    if(p.value){
+      original.par <- par(no.readonly = TRUE)
+
+      nns.mc <- apply(x, 2, function(g) NNS.dep(x[,1], g))
+
+      ## Store results
+      cors <- unlist(lapply(nns.mc, "[[", 1))
+      deps <- unlist(lapply(nns.mc, "[[", 2))
+
+
+          cor_lower_CI <- LPM.VaR(.025, 0, cors[-c(1,2)])
+          cor_upper_CI <- UPM.VaR(.025, 0, cors[-c(1,2)])
+          dep_lower_CI <- LPM.VaR(.025, 0, deps[-c(1,2)])
+          dep_upper_CI <- UPM.VaR(.025, 0, deps[-c(1,2)])
+      if(print.map){
+          par(mfrow = c(1, 2))
+          hist(cors[-c(1,2)], main = "NNS Correlation", xlab = NULL, xlim = c(min(cors), max(cors[-1])))
+          abline(v = cors[2], col = "red", lwd = 2)
+          mtext("Result", side = 3, col = "red", at = cors[2])
+          abline(v =  cor_lower_CI, col = "red", lwd = 2, lty = 3)
+          abline(v =  cor_upper_CI , col = "red", lwd = 2, lty = 3)
+          hist(deps[-c(1,2)], main = "NNS Dependence", xlab = NULL, xlim = c(min(deps), max(deps[-1])))
+          abline(v = deps[2], col = "red", lwd = 2)
+          mtext("Result", side = 3, col = "red", at = deps[2])
+          abline(v =  dep_lower_CI , col = "red", lwd = 2, lty = 3)
+          abline(v =  dep_upper_CI , col = "red", lwd = 2, lty = 3)
+          par(mfrow = original.par)
+      }
+
+      return(list("Correlation" = as.numeric((cors)[2]),
+                  "Correlation p.value" = min(LPM(0, cors[2], cors[-c(1,2)]),
+                                              UPM(0, cors[2], cors[-c(1,2)])),
+                  "Correlation 95% CIs" = c(cor_lower_CI, cor_upper_CI),
+                  "Dependence" = as.numeric((deps)[2]),
+                  "Dependence p.value" = min(LPM(0, deps[2], deps[-c(1,2)]),
+                                             UPM(0, deps[2], deps[-c(1,2)])),
+                  "Dependence 95% CIs" = c(dep_lower_CI, dep_upper_CI)))
+    } else return(NNS.dep.matrix(x, asym = asym))
   }
 
 }

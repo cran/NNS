@@ -50,6 +50,8 @@ Once a `threshold` is obtained, `NNS.boost` will test various feature combinatio
 
 Let's have a look and see how it works.  We use 140 random `iris` observations as our training set with the 10 holdout observations as our test set.
 
+**NOTE: Base category of response variable should be 1, not 0 for classification problems when using** `NNS.boost(..., type = "CLASS")`.
+
 ```{r NNSBOOST,fig.align = "center", fig.height = 8,fig.width=6.5}
 set.seed(1234)
 test.set = sample(150,10)
@@ -75,6 +77,8 @@ The `NNS.stack()` routine cross-validates for a given objective function the `n.
 
 Using the reduced features (if any and calling them from `names(a$feature.weights)`) from our `NNS.boost` output, we can further cross-validate the classification using `NNS.stack`.
 
+**NOTE: Base category of response variable should be 1, not 0 for classification problems when using** `NNS.stack(..., type = "CLASS")`.
+
 ```{r NNSstack,fig.align = "center", fig.height = 8,fig.width=6.5,message=FALSE}
 b = NNS.stack(IVs.train = iris[-test.set, names(a$feature.weights)], 
               DV.train = iris[-test.set, 5],
@@ -90,11 +94,11 @@ mean( b$stack == as.numeric(iris[test.set, 5]) )
 ## Brief Notes on Other Parameters
 * `representative.sample` uses a representation of each of the regressors via Tukey's five number summary as well as `mean` and `mode`.  This encoding of the regressors greatly reduces large datasets runtimes.
 
-* `depth = "max"` will force all observations to be their own partition, forcing a perfect fit of the multivariate regression.  In essence, this is the basis for a `kNN` nearest neighbor type of classification.  **For mixed data type regressors / features, it is suggested to use** `NNS.boost(..., depth = "max", ...)`.
+* `depth = "max"` will force all observations to be their own partition, forcing a perfect fit of the multivariate regression.  In essence, this is the basis for a `kNN` nearest neighbor type of classification.
 
 * `n.best = 1` will use the single nearest neighbor.  When coupled with `depth = "max"`, `NNS` will emulate a `kNN = 1` but as the dimensions increase the results diverge demonstrating `NNS` is less sensitive to the curse of dimensionality than `kNN`.
 
-* `extreme` will use the maximum `threshold` obtained, and may result in errors if that threshold cannot be eclipsed by subsequent iterations.
+* `extreme` will use the maximum or minimum `threshold` obtained, and may result in errors if that threshold cannot be eclipsed by subsequent iterations.
 
 
 # References

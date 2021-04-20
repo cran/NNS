@@ -5,10 +5,9 @@
 #' @param IVs.train a matrix or data frame of variables of numeric or factor data types.
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
 #' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
-#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
+#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
 #' @param representative.sample logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.
-#' @param depth options: (integer, NULL, "max"); Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors.  \code{(depth = "max")}(default) will be significantly faster, but increase the variance of results, which is suggested for mixed continuous and discrete (unordered, ordered) data.
-#' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}. Analogous to \code{k} in a \code{k Nearest Neighbors} algorithm.  If \code{NULL}, determines the optimal clusters via the \link{NNS.stack} procedure.
+#' @param depth options: (integer, NULL, "max"); \code{(depth = NULL)}(default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors, analogous to tree depth.
 #' @param learner.trials integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
 #' @param CV.size numeric [0, 1]; \code{(CV.size = .25)} (default) Sets the cross-validation size.  Defaults to 0.25 for a 25 percent random sampling of the training set.
@@ -23,9 +22,9 @@
 #' @param feature.importance logical; \code{TRUE} (default) Plots the frequency of features used in the final estimate.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #'
-#' @return Returns a vector of fitted values for the dependent variable test set \code{$results}, and the final feature loadings \code{$feature.weights}.
+#' @return Returns a vector of fitted values for the dependent variable test set \code{$results}, and the final feature loadings \code{$feature.weights}, along with final feature frequencies \code{$feature.frequency}.
 #'
-#' @note Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].
+#' @note Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for multiple class problems.
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Classification Using NNS Clustering Analysis"
@@ -36,7 +35,7 @@
 #'  a <- NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
 #'  IVs.test = iris[141:150, 1:4],
 #'  epochs = 100, learner.trials = 100,
-#'  type = "CLASS")
+#'  type = "CLASS", depth = NULL)
 #'
 #'  ## Test accuracy
 #'  mean(a$results == as.numeric(iris[141:150, 5]))
@@ -50,8 +49,7 @@ NNS.boost <- function(IVs.train,
                       IVs.test = NULL,
                       type = NULL,
                       representative.sample = FALSE,
-                      depth = "max",
-                      n.best = NULL,
+                      depth = NULL,
                       learner.trials = 100,
                       epochs = NULL,
                       CV.size = .25,
@@ -66,6 +64,9 @@ NNS.boost <- function(IVs.train,
                       status = TRUE){
 
   if(is.null(obj.fn)) stop("Please provide an objective function")
+
+  if(tolower(type) == "class" && min(as.numeric(DV.train))==0) warning("Base response variable category should be 1, not 0.")
+
 
   if(any(class(IVs.train)=="tbl")) IVs.train <- as.data.frame(IVs.train)
   if(any(class(DV.train)=="tbl")) DV.train <- as.vector(unlist(DV.train))
@@ -94,6 +95,15 @@ NNS.boost <- function(IVs.train,
     IVs.test <- IVs.train
   } else {
     if(any(class(IVs.test)=="tbl")) IVs.test <- as.data.frame(IVs.test)
+  }
+
+  if(is.null(colnames(IVs.train))){
+    colnames.list <- list()
+    for(i in 1 : dim(IVs.train)[2]){
+      colnames.list[i] <- paste0("X", i)
+    }
+    colnames(IVs.train) <- as.character(colnames.list)
+    colnames(IVs.test) <- colnames(IVs.train)
   }
 
   if(balance){
@@ -149,25 +159,6 @@ NNS.boost <- function(IVs.train,
   fold <- list()
 
   old.threshold <- 0
-
-  if(is.null(n.best)){
-    if(status){
-      message("Currently determining optimal [n.best] clusters...","\r",appendLF=TRUE)
-    }
-
-    nns_est <- NNS.stack(x, y, folds = 1, status = status,
-                         method = 1, order = depth,
-                         obj.fn = obj.fn, ts.test = ts.test,
-                         objective = objective,
-                         ncores = 1, type = type, stack = FALSE)
-
-    n.best <- nns_est$NNS.reg.n.best
-    probability.threshold <- nns_est$probability.threshold
-
-    if(status){
-      message("Currently determining learning threshold...","\r",appendLF=TRUE)
-    }
-  }
 
   # Add test loop for highest threshold ...
   if(is.null(threshold)){
@@ -232,8 +223,9 @@ NNS.boost <- function(IVs.train,
       predicted <- NNS.reg(new.iv.train[,test.features[[i]]],
                            new.dv.train,
                            point.est = new.iv.test[,test.features[[i]]],
+                           dim.red.method = "equal",
                            plot = FALSE, residual.plot = FALSE, order = depth,
-                           n.best = n.best, factor.2.dummy = FALSE,
+                           factor.2.dummy = FALSE,
                            ncores = 1, type = type)$Point.est
 
       predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
@@ -299,6 +291,11 @@ NNS.boost <- function(IVs.train,
     message("                                       ", "\r", appendLF = FALSE)
   }
 
+  if(objective=="max"){
+    reduced.test.features <- test.features[which(results>=threshold)]
+  } else {
+    reduced.test.features <- test.features[which(results<=threshold)]
+  }
 
   keeper.features <- list()
 
@@ -355,12 +352,13 @@ NNS.boost <- function(IVs.train,
         }
       }
 
-      features <- sort(sample(n, sample(2:n, 1), replace = FALSE))
+      features <- sort(sample(unlist(reduced.test.features), sample(2:length(unlist(reduced.test.features)),1), replace = TRUE))
 
       #If estimate is > threshold, store 'features'
       predicted <- NNS.reg(new.iv.train[, features],
                            new.dv.train, point.est = new.iv.test[, features],
-                           plot = FALSE, residual.plot = FALSE, order = depth, n.best = n.best,
+                           dim.red.method = "equal",
+                           plot = FALSE, residual.plot = FALSE, order = depth,
                            factor.2.dummy = FALSE, ncores = 1, type = type)$Point.est
 
       predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
@@ -389,11 +387,7 @@ NNS.boost <- function(IVs.train,
       }
     }
   } else { # !is.null(epochs)
-    if(objective=="max"){
-      keeper.features <- test.features[which(results>=threshold)]
-    } else {
-      keeper.features <- test.features[which(results<=threshold)]
-    }
+      keeper.features <- reduced.test.features
   }
 
   keeper.features <- keeper.features[!sapply(keeper.features, is.null)]
@@ -415,39 +409,38 @@ NNS.boost <- function(IVs.train,
   kf <- data.table::data.table(table(as.character(keeper.features)))
   kf$N <- kf$N / sum(kf$N)
 
+  kf_reduced <- apply(kf, 1, function(x) eval(parse(text=x[1])))
+
+  scale_factor <- table(unlist(kf_reduced))/min(table(unlist(kf_reduced)))
+
+  final_scale <- as.numeric(rep(names(scale_factor), ifelse(scale_factor%%1 < .5, floor(scale_factor), ceiling(scale_factor))))
 
 
-  for(i in 1:dim(kf)[1]){
-
-    if(status){
-      message("% of Final Estimate = ", format(i/dim(kf)[1], digits =  3, nsmall = 2),"     ","\r", appendLF = FALSE)
-    }
+  if(status) message("Generating Final Estimate" ,"\r", appendLF = TRUE)
 
 
-    estimates[[i]] <- NNS.stack(data.matrix(x[, eval(parse(text=kf$V1[i]))]),
-                                y,
-                                IVs.test = data.matrix(z[, eval(parse(text=kf$V1[i]))]),
-                                order = depth, method = 1,
-                                ncores = 1,
-                                stack = FALSE, status = FALSE,
-                                type = type, dist = dist, folds = 1)$stack/dim(kf)[1]
+      estimates <- NNS.stack(data.matrix(x[, unlist(final_scale)]),
+                             y,
+                             IVs.test = data.matrix(z[, unlist(final_scale)]),
+                             order = depth, dim.red.method = "equal",
+                             ncores = 1,
+                             stack = FALSE, status = status,
+                             type = type, dist = dist, folds = 1)$stack
 
-    estimates[[i]][is.na(predicted)] <- mean(unlist(estimates[[i]]), na.rm = TRUE)
+      estimates[is.na(unlist(estimates))] <- mean(unlist(estimates), na.rm = TRUE)
 
-  }
-
-
-  estimates <- Reduce("+", estimates)
-  estimates <- na.omit(estimates)
 
   if(!is.null(type)){
     estimates <- pmin(estimates, max(as.numeric(y)))
     estimates <- pmax(estimates, min(as.numeric(y)))
   }
 
+
   plot.table <- table(unlist(keeper.features))
 
-  names(plot.table) <- features[eval(as.numeric(names(plot.table)))]
+  names(plot.table) <- colnames(IVs.train)[eval(as.numeric(names(plot.table)))]
+
+  plot.table <- plot.table[rev(order(plot.table))]
 
   if(feature.importance){
 
@@ -461,22 +454,26 @@ NNS.boost <- function(IVs.train,
               main="Feature Frequency in Final Estimate",
               xlab = "Frequency",las=1)
     } else {
-      barplot(sort(plot.table,decreasing = FALSE)[1:min(n,10)],
+      barplot(sort(plot.table,decreasing = FALSE),
               horiz = TRUE,
               col='steelblue',
               main="Feature Frequency in Final Estimate",
               xlab = "Frequency", las = 1)
     }
-    par(mar=c(5.1, 4.1, 4.1, 2.1))
+    par(mfrow=c(1,1))
     par(original.par)
   }
   gc()
   if(is.null(type)){
     return(list("results" = estimates,
-                "feature.weights" = plot.table/sum(plot.table)))
+                "feature.weights" = plot.table/sum(plot.table),
+                "feature.frequency" = plot.table))
   } else {
-    estimates <- ifelse(estimates%%1 < probability.threshold, floor(estimates), ceiling(estimates))
+
+    estimates <- ifelse(estimates%%1 < .5, floor(estimates), ceiling(estimates))
+
     return(list("results" = estimates,
-                "feature.weights" = plot.table/sum(plot.table)))
+                "feature.weights" = plot.table/sum(plot.table),
+                "feature.frequency" = plot.table))
   }
 }

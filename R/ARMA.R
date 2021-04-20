@@ -88,15 +88,13 @@ NNS.ARMA <- function(variable,
 
 
   if (is.null(ncores)) {
-      num_cores <- as.integer(detectCores() / 2) - 1
+      num_cores <- as.integer(parallel::detectCores()  - 1)
   } else {
       num_cores <- ncores
   }
 
-  if(num_cores>1){
-      cl <- makeCluster(num_cores)
-      registerDoParallel(cl)
-  } else { cl <- NULL }
+  if(num_cores>1) doParallel::registerDoParallel(num_cores)
+
 
   if(!is.null(best.periods) && !is.numeric(seasonal.factor)){
       seasonal.factor <- FALSE
@@ -243,10 +241,7 @@ NNS.ARMA <- function(variable,
     }#Linear == T
 
 
-    if(!negative.values){
-        Regression.Estimates <- pmax(0, Regression.Estimates)
-    }
-
+    if(!negative.values) Regression.Estimates <- pmax(0, Regression.Estimates)
 
 
     if(method == 'both'){
@@ -260,15 +255,10 @@ NNS.ARMA <- function(variable,
 
   } # j loop
 
-if(!is.null(cl)){
-    stopCluster(cl)
-    registerDoSEQ()
-}
+  if(num_cores>1) registerDoSEQ()
 
 
-  if(!is.null(conf.intervals)){
-      CIs <- NNS.meboot(Estimates, reps=399)$replicates
-  }
+  if(!is.null(conf.intervals)) CIs <- NNS.meboot(Estimates, reps=399)$replicates
 
 
   #### PLOTTING
@@ -290,9 +280,7 @@ if(!is.null(cl)){
     }
 
 
-    if(is.null(label)){
-      label <- "Variable"
-    }
+    if(is.null(label)) label <- "Variable"
 
 
     if(!is.null(conf.intervals)){

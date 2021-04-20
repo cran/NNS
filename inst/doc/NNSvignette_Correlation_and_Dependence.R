@@ -42,11 +42,6 @@ NNS.part(df$x, df$y, Voronoi = TRUE, order = 3, obs.req = 0)
 ## ----res3---------------------------------------------------------------------
 NNS.dep(df$x, df$y)
 
-## ----multi--------------------------------------------------------------------
-set.seed(123)
-x <- rnorm(1000); y <- rnorm(1000); z <- rnorm(1000)
-NNS.dep.hd(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
-
 ## ----permutations-------------------------------------------------------------
 ## p-values for [NNS.dep]
 x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
@@ -54,59 +49,28 @@ x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 ## ----perm1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
 NNS.part(x, y, Voronoi = TRUE, order = 3)
 
-## ----permutattions_res--------------------------------------------------------
-nns_cor_dep <- NNS.dep(x, y)
-nns_cor_dep
+## ----permutattions_res,fig.width=5,fig.height=3,fig.align = "center"----------
+NNS.dep(x, y, p.value = TRUE, print.map = TRUE)
 
-## Create permutations of y
-y_p <- replicate(100, sample.int(length(y)))
+## ----multi--------------------------------------------------------------------
+set.seed(123)
+x <- rnorm(1000); y <- rnorm(1000); z <- rnorm(1000)
+NNS.copula(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
 
-## Generate new correlation and dependence measures on each new permutation of y
-nns.mc <- apply(y_p, 2, function(g) NNS.dep(x, y[g]))
+## ----multisim-----------------------------------------------------------------
+# Add variable x to original data to avoid total independence (example only)
+original.data <- cbind(x, y, z, x)
 
-## Store results
-cors <- unlist(lapply(nns.mc, "[[", 1))
-deps <- unlist(lapply(nns.mc, "[[", 2))
+# Determine dependence structure
+dep.structure <- apply(original.data, 2, function(x) LPM.ratio(1, x, x))
+  
+# Generate new data of equal dimensions to original data with different mean and sd (or distribution)
+new.data <- sapply(1:ncol(original.data), function(x) rnorm(dim(original.data)[1], mean = 10, sd = 20))
 
-## View results
-hist(cors)
-abline(v = LPM.VaR(.025,0, cors), col = 'red')
-abline(v = UPM.VaR(.025,0, cors), col = 'red')
+# Apply dependence structure to new data
+new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 1, new.data[,x]))
 
-
-## Left tailed correlation p-value
-cor_p_value <- LPM(0, nns_cor_dep$Correlation, cors)
-cor_p_value
-
-## Right tailed correlation p-value
-cor_p_value <- UPM(0, nns_cor_dep$Correlation, cors)
-cor_p_value
-
-## Confidence Intervals
-## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
-## Lower CI
-LPM.VaR(.025, 0, cors)
-## Upper CI
-UPM.VaR(.025, 0, cors)
-
-
-hist(deps)
-abline(v = LPM.VaR(.025,0, deps), col = 'red')
-abline(v = UPM.VaR(.025,0, deps), col = 'red')
-
-
-## Left tailed dependence p-value
-dep_p_value <- LPM(0, nns_cor_dep$Dependence, deps)
-dep_p_value
-
-## Right tailed dependence p-value
-dep_p_value <- UPM(0, nns_cor_dep$Dependence, deps)
-dep_p_value
-
-## Confidence Intervals
-## For 95th percentile VaR (both-tails) see [LPM.VaR] and [UPM.VaR]
-## Lower CI
-LPM.VaR(.025, 0, deps)
-## Upper CI
-UPM.VaR(.025, 0, deps)
+## ----comparison---------------------------------------------------------------
+NNS.copula(original.data)
+NNS.copula(new.dep.data)
 

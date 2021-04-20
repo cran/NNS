@@ -1,7 +1,7 @@
 ### Continuous Mode of a distribution
 mode <- function(x) {
-      d <-tryCatch(density(na.omit(as.numeric(x))), error = function(e) { median(x)})
-      tryCatch(d$x[which.max(d$y)], error = function(e) {d})
+      d <-tryCatch(density(as.numeric(x), na.rm = TRUE, n = 100), error = function(e) (mean(x) + median(x))/2)
+      tryCatch(d$x[which.max(d$y)], error = function(e) d)
   }
 
 ### Classification Mode of a distribution
@@ -11,9 +11,11 @@ mode_class <- function(x){
   ux[which.max(tabulate(match(x, ux)))]
 }
 
+
+
 ### Central Tendency
 gravity <- function(x){
-  (mean(x) + median(x) + mode(x)) / 3
+  (mean(x) + median(x) + mode(x))/3
 }
 
 
@@ -36,8 +38,10 @@ alt_cbind <- function(x, y, first = FALSE) {
 ### Factor to dummy variable
 factor_2_dummy <- function(x){
   if(class(x) == "factor" & length(unique(x)) > 1){
+    x <- unlist(x)
     output <- model.matrix(~(x) -1, x)[,-1]
   } else {
+    x <- unlist(x)
     output <- as.numeric(x)
   }
   output
@@ -46,8 +50,10 @@ factor_2_dummy <- function(x){
 ### Factor to dummy variable FULL RANK
 factor_2_dummy_FR <- function(x){
   if(class(x) == "factor" & length(unique(x)) > 1){
+    x <- unlist(x)
     output <- model.matrix(~(x) -1, x)
   } else {
+    x <- unlist(x)
     output <- as.numeric(x)
   }
   output

@@ -138,14 +138,14 @@ NNS.reg = function (x, y,
   oldw <- getOption("warn")
   options(warn = -1)
 
-  if(plot.regions && !is.null(order) && order == 'max') stop('Please reduce the "order" or set "plot.regions = FALSE".')
+  if(plot.regions && !is.null(order) && order == "max") stop('Please reduce the "order" or set "plot.regions = FALSE".')
 
   if(!is.null(confidence.interval) && std.errors == FALSE) std.errors <- TRUE
 
   if(any(class(x)=="tbl") && dim(x)[2]==1) x <- as.vector(unlist(x))
   if(any(class(x)=="tbl")) x <- as.data.frame(x)
 
-
+  if(length(y) < 2000) ncores <- 1
 
   if(!is.null(dim.red.method)){
     if(is.null(dim(x)) || dim(x)[1]==1){
@@ -177,14 +177,8 @@ NNS.reg = function (x, y,
   if(!is.null(original.columns) & is.null(colnames(x))) x <- data.frame(x)
 
   y.label <- deparse(substitute(y))
-
   if(is.null(y.label)) y.label <- "y"
 
-
-  if(is.null(original.columns)){
-    x.label <- deparse(substitute(x))
-    if(is.null(x.label)) x.label <- "x"
-  }
 
   if(factor.2.dummy){
     if(is.list(x) & !is.data.frame(x)) x <- do.call(cbind, x)
@@ -229,10 +223,6 @@ NNS.reg = function (x, y,
   # Variable names
   original.names <- colnames(x)
   original.columns <- ncol(x)
-
-  y.label <- deparse(substitute(y))
-  if(is.null(y.label)) y.label <- "y"
-
 
   y <- as.numeric(y)
   original.y <- y
@@ -334,9 +324,7 @@ NNS.reg = function (x, y,
           }
 
           if(!is.numeric(dim.red.method) && dim.red.method == "all"){
-            if(is.null(tau)){
-              tau <- "cs"
-            }
+            if(is.null(tau)) tau <- "cs"
 
             x.star.coef.1 <- numeric()
 
@@ -414,15 +402,18 @@ NNS.reg = function (x, y,
   } # Multivariate
 
 
+  x.label <- names(x)
+  if(is.null(x.label)) x.label <- "x"
+
+
   dependence <- NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence
-  if(dependence < .25) dependence <- min(.25, dependence + .1)
-  dependence[is.na(dependence)] <- .1
+  dependence <- (dependence^2 + sqrt(dependence))/2
 
-  dependence <- min(1, dependence)
-
-  dep.reduced.order <- ifelse((dependence*10)%%1<.5, floor(dependence*10), ceiling(dependence*10))
+  dep.reduced.order <- max(1, ifelse(multivariate.call, ceiling(dependence*10)+1, floor(dependence*10)))
 
   if(!is.null(order)) dep.reduced.order <- order
+
+  if(multivariate.call) stn <- 0
 
   if(dependence > stn){
     part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
@@ -460,6 +451,7 @@ NNS.reg = function (x, y,
 
   regression.points <- part.map$regression.points[,.(x,y)]
   regression.points$x <- pmin(max(x), pmax(regression.points$x, min(x)))
+
   data.table::setkey(regression.points,x)
 
   if(dependence < 1){
@@ -565,14 +557,14 @@ NNS.reg = function (x, y,
   }
 
   if(type!="class" || is.null(type)){
-      central_rows <- c(floor(median(1:nrow(regression.points))), ceiling(median(1:nrow(regression.points))))
-      central_x <- regression.points[central_rows,]$x
+    central_rows <- c(floor(median(1:nrow(regression.points))), ceiling(median(1:nrow(regression.points))))
+    central_x <- regression.points[central_rows,]$x
 
-      central_y <- gravity(y[x>=central_x[1] & x<=central_x[2]])
-      central_x <- mean(central_x)
-      med.rps <- data.table::data.table(t(c(central_x, central_y)))
+    central_y <- gravity(y[x>=central_x[1] & x<=central_x[2]])
+    central_x <- mean(central_x)
+    med.rps <- data.table::data.table(t(c(central_x, central_y)))
   } else {
-      med.rps <- data.table::data.table(t(c(NA, NA)))
+    med.rps <- data.table::data.table(t(c(NA, NA)))
   }
 
   regression.points <- data.table::rbindlist(list(regression.points, min.rps, max.rps, med.rps ), use.names = FALSE)
@@ -601,6 +593,7 @@ NNS.reg = function (x, y,
       regression.points <- regression.points[, lapply(.SD, mode), .SDcols = 2, by = .(x)]
     }
   }
+
 
   if(dim(regression.points)[1] > 1){
     rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
@@ -635,6 +628,8 @@ NNS.reg = function (x, y,
 
   ### Fitted Values
   p <- length(regression.points[ , x])
+
+
 
   if(is.na(Regression.Coefficients[1, Coefficient])){
     Regression.Coefficients[1, Coefficient := Regression.Coefficients[2, Coefficient] ]
@@ -796,7 +791,7 @@ NNS.reg = function (x, y,
 
   colnames(estimate) <- NULL
   if(!is.null(type)){
-      if(type=="class") estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
+    if(type=="class") estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
   }
 
   fitted <- data.table::data.table(x = part.map$dt$x,

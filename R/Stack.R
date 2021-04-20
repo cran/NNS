@@ -5,7 +5,7 @@
 #' @param IVs.train a vector, matrix or data frame of variables of numeric or factor data types.
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
 #' @param IVs.test a vector, matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
-#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)}, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.   Like a logistic regression, this setting is not necessary for target variable of two classes e.g. [0, 1].
+#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.   Like a logistic regression, this setting is not necessary for target variable of two classes e.g. [0, 1].
 #' @param obj.fn expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param optimize.threshold logical; \code{TRUE} (default) Will optimize the probability threshold value for rounding in classification problems.  If \code{FALSE}, returns 0.5.
@@ -18,7 +18,7 @@
 #' @param norm options: ("std", "NNS", NULL); \code{NULL} (default) 3 settings offered: \code{NULL}, \code{"std"}, and \code{"NNS"}.  Selects the \code{norm} parameter in \link{NNS.reg}.
 #' @param method numeric options: (1, 2); Select the NNS method to include in stack.  \code{(method = 1)} selects \link{NNS.reg}; \code{(method = 2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method = c(1, 2)}, which will reduce the dimension first, then find the optimal \code{n.best}.
 #' @param stack logical; \code{TRUE} (default) Uses dimension reduction output in \code{n.best} optimization, otherwise performs both analyses independently.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for weights.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "equal", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for weights.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #'
@@ -40,7 +40,7 @@
 #'
 #' @note
 #' \itemize{
-#' \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].
+#' \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for multiple class problems.
 #'
 #' \item Missing data should be handled prior as well using \link{na.omit} or \link{complete.cases} on the full dataset.
 #' }
@@ -89,6 +89,8 @@ NNS.stack <- function(IVs.train,
 
   if(is.null(obj.fn)) stop("Please provide an objective function")
 
+  if(tolower(type) == "class" && min(as.numeric(DV.train))==0) warning("Base response variable category should be 1, not 0.")
+
   if(any(class(IVs.train)=="tbl")) IVs.train <- as.data.frame(IVs.train)
   if(any(class(DV.train)=="tbl")) DV.train <- as.vector(unlist(DV.train))
 
@@ -97,7 +99,6 @@ NNS.stack <- function(IVs.train,
     method <- 1
     order <- NULL
   }
-
 
 
   if(!is.null(type)){
@@ -138,6 +139,14 @@ NNS.stack <- function(IVs.train,
   best.nns.cv <- list(folds)
   best.nns.ord <- list(folds)
 
+  if(is.null(colnames(IVs.train))){
+    colnames.list <- list()
+    for(i in 1 : n){
+      colnames.list[i] <- paste0("X", i)
+    }
+    colnames(IVs.train) <- as.character(colnames.list)
+    colnames(IVs.test) <- colnames(IVs.train)
+  }
 
   for(b in 1 : folds){
     if(status) message("Folds Remaining = " , folds-b," ","\r",appendLF=TRUE)
@@ -150,13 +159,13 @@ NNS.stack <- function(IVs.train,
       mins <- as.vector(apply(IVs.train, 2, which.min))
 
       if(identical(sort(method),c(1,2))){
-        test.set_half <- unique(c(rbind(test.set.1[1:(length(test.set.1)/2)], test.set.2[1:(length(test.set.2)/2)])))[1:(length(test.set)/2)]
+        test.set_half <- unique(c(rbind(test.set.1[1:(length(test.set.1)*min(.5, max(.01,CV.size)))], test.set.2[1:(length(test.set.2)/2)])))[1:(length(test.set)*min(.5, max(.01,CV.size)))]
       } else {
         if(method==1){
-          test.set_half <- (test.set.1)[1:(length(test.set)/2)]
+          test.set_half <- (test.set.1)[1:(length(test.set)*min(.5, max(.01,CV.size)))]
         } else {
           if(method==2) {
-            test.set_half <- (test.set.2)[1:(length(test.set)/2)]
+            test.set_half <- (test.set.2)[1:(length(test.set)*min(.5, max(.01,CV.size)))]
           }
         }
       }
@@ -239,9 +248,9 @@ NNS.stack <- function(IVs.train,
 
       if(n == 2) var.cutoffs <- c(var.cutoffs, 0)
 
-      if(dist=="FACTOR"){
-        var.cutoffs <- var.cutoffs[-1]
-      }
+      if(dist=="FACTOR") var.cutoffs <- var.cutoffs[-1]
+      if(dim.red.method=="equal") var.cutoffs <- 0
+
       nns.ord <- numeric()
 
       for(i in 1:length(var.cutoffs)){
@@ -263,16 +272,19 @@ NNS.stack <- function(IVs.train,
 
         nns.ord[i] <- eval(obj.fn)
 
+
         if(objective=="min"){
           best.threshold <- var.cutoffs[which.min(na.omit(nns.ord))]
           THRESHOLDS[[b]] <- best.threshold
           best.nns.ord[[b]] <- min(na.omit(nns.ord))
+          if(is.na(nns.ord[1])) nns.ord[1] <- Inf
           if(i > 2 && is.na(nns.ord[i])) break
           if(i > 2 && (nns.ord[i] >= nns.ord[i-1]) && (nns.ord[i] >= nns.ord[i-2])) break
         } else {
           best.threshold <- var.cutoffs[which.max(na.omit(nns.ord))]
           THRESHOLDS[[b]] <- best.threshold
           best.nns.ord[[b]] <- max(na.omit(nns.ord))
+          if(is.na(nns.ord[1])) nns.ord[1] <- -Inf
           if(i > 2 && is.na(nns.ord[i])) break
           if(i > 2 && (nns.ord[i] <= nns.ord[i-1]) && (nns.ord[i] <= nns.ord[i-2])) break
         }
@@ -281,28 +293,30 @@ NNS.stack <- function(IVs.train,
       test.set.2 <- test.set[rev(order(abs(predicted - actual)))]
 
       relevant_vars <- colnames(IVs.train)
+      if(is.null(relevant_vars)) relevant_vars <- 1:dim(IVs.train)[2]
 
       if(b==folds){
         nns.ord.threshold <- as.numeric(names(sort(table(unlist(THRESHOLDS)), decreasing = TRUE)[1]))
 
-        if(!is.null(type)) best.nns.ord <- min(1, mode(na.omit(unlist(best.nns.ord)))) else best.nns.ord <- mode(na.omit(unlist(best.nns.ord)))
-
         nns.method.2 <- suppressWarnings(NNS.reg(IVs.train, DV.train, point.est = IVs.test, dim.red.method = dim.red.method, plot = FALSE, order = order, threshold = nns.ord.threshold, ncores = 1,
                                 type = NULL, point.only = TRUE))
 
+        actual <- DV.train
+        predicted <- nns.method.2$Fitted.xy$y.hat
+
+        best.nns.ord <- eval(obj.fn)
+
         rel_vars <- nns.method.2$equation
 
-        rel_vars <- rel_vars[rel_vars$Coefficient>0,1][-.N]
+        rel_vars <- which(rel_vars$Coefficient>0)
+        rel_vars <- rel_vars[rel_vars <= dim(IVs.train)[2]]
 
+        if(is.null(rel_vars) || length(rel_vars)==0) rel_vars <- 1:dim(IVs.train)[2]
 
-        if(stack){
-          relevant_vars <- colnames(IVs.train)%in%unlist(rel_vars)
-        } else {
-          relevant_vars <- colnames(IVs.train)%in%colnames(IVs.train)
-        }
+        if(!stack) relevant_vars <- 1:dim(IVs.train)[2]
 
         if(all(relevant_vars=="FALSE")){
-          relevant_vars <- colnames(IVs.train)%in%colnames(IVs.train)
+          relevant_vars <- 1:dim(IVs.train)[2]
         }
 
         if(!is.null(type) && !is.null(nns.method.2$Point.est)){
@@ -325,7 +339,7 @@ NNS.stack <- function(IVs.train,
       if(objective=='min'){best.nns.ord <- Inf} else {best.nns.ord <- -Inf}
       nns.ord.threshold <- NA
       threshold_results_2 <- NA
-      relevant_vars <- colnames(IVs.train)%in%colnames(IVs.train)
+      relevant_vars <- 1:dim(IVs.train)[2]
     } # 2 %in% method
 
 
@@ -335,12 +349,7 @@ NNS.stack <- function(IVs.train,
       actual <- CV.DV.test
       nns.cv.1 <- numeric()
 
-      if(is.character(relevant_vars)){
-          if(length(relevant_vars)<dim(IVs.train)[1]){
-              CV.IVs.train <- data.frame(CV.IVs.train[, relevant_vars])
-              CV.IVs.test <- data.frame(CV.IVs.test[, relevant_vars])
-          }
-      }
+      if(is.character(relevant_vars)) relevant_vars <- relevant_vars!=""
 
       if(is.logical(relevant_vars)){
         if(sum(relevant_vars)<dim(IVs.train)[1]){
@@ -348,6 +357,7 @@ NNS.stack <- function(IVs.train,
           CV.IVs.test <- data.frame(CV.IVs.test[, relevant_vars])
         }
       }
+
 
 
       if(dim(CV.IVs.train)[2]!=dim(IVs.train)[2]) CV.IVs.train <- t(CV.IVs.train)
@@ -363,7 +373,7 @@ NNS.stack <- function(IVs.train,
         }
 
         if(index==1){
-          setup <- suppressWarnings(NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test, plot = FALSE, residual.plot = FALSE, n.best = i, order = order,
+          setup <- suppressWarnings(NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test, plot = FALSE, residual.plot = FALSE, n.best = 1, order = order,
                            type = type, factor.2.dummy = TRUE, dist = dist, ncores = 1, point.only = TRUE))
           predicted <- setup$Point.est
           predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
@@ -414,32 +424,38 @@ NNS.stack <- function(IVs.train,
         }
       }
 
-      if(length(predicted > 0)){
-        test.set.1 <- test.set[rev(order(abs(predicted - actual)))]
-      } else {
-        test.set.1 <- test.set
-      }
+      if(length(predicted > 0)) test.set.1 <- test.set[rev(order(abs(predicted - actual)))] else test.set.1 <- test.set
+
+
+      ks <- c(1:l, length(IVs.train[ , 1]))[!is.na(nns.cv.1)]
 
       if(objective=='min'){
-        ks <- c(1:l, length(IVs.train[ , 1]))[!is.na(nns.cv.1)]
         k <- ks[which.min(na.omit(nns.cv.1))]
         nns.cv.1 <- min(na.omit(nns.cv.1))
       } else {
-        ks <- c(1:l, length(IVs.train[ , 1]))[!is.na(nns.cv.1)]
         k <- ks[which.max(na.omit(nns.cv.1))]
         nns.cv.1 <- max(na.omit(nns.cv.1))
       }
 
 
       best.k[[b]] <- k
-      best.nns.cv[[b]] <- if(!is.null(type)){min(max(nns.cv.1,0),1)} else {nns.cv.1}
+      best.nns.cv[[b]] <- if(!is.null(type)) min(max(nns.cv.1,0),1) else nns.cv.1
 
       if(b==folds){
-        if(!is.null(type))  best.nns.cv <- min(1, mode(na.omit(unlist(best.nns.cv))))   else best.nns.cv <- mode(na.omit(unlist(best.nns.cv)))
+        ks <- table(unlist(best.k))
+        ks.mode <-  mode(as.numeric(rep(names(ks), as.numeric(unlist(ks)))))
+        best.k <- ifelse(ks.mode%%1 < .5, floor(ks.mode), ceiling(ks.mode))
 
-        best.k <- ceiling(LPM.VaR(.625, 0, as.numeric(rep(names(table(unlist(best.k))), table(unlist(best.k))))))
         nns.method.1 <- suppressWarnings(NNS.reg(IVs.train[ , relevant_vars], DV.train, point.est = IVs.test[, relevant_vars], plot = FALSE, n.best = best.k, order = order, ncores = ncores,
-                                type = NULL, point.only = TRUE)$Point.est)
+                                type = NULL, point.only = FALSE))
+
+        actual <- DV.train
+        predicted <- nns.method.1$Fitted.xy$y.hat
+
+        best.nns.cv <- eval(obj.fn)
+
+        nns.method.1 <- nns.method.1$Point.est
+
         if(!is.null(type) && !is.null(nns.method.1)){
           threshold_results_1 <- mean(unlist(threshold_results_1))
           nns.method.1 <- ifelse(nns.method.1%%1 < threshold_results_1, floor(nns.method.1), ceiling(nns.method.1))
@@ -505,6 +521,8 @@ NNS.stack <- function(IVs.train,
   }
 
   gc()
+
+  if(is.null(probability.threshold)) probability.threshold <- .5
 
   return(list(OBJfn.reg = best.nns.cv,
               NNS.reg.n.best = best.k,
