@@ -61,7 +61,12 @@
 #'  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
 #' }
 #'
-#' @note Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
+#' @note
+#' \itemize{
+#'  \item Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
+#'
+#'  \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for classification problems.
+#' }
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
@@ -140,6 +145,8 @@ NNS.reg = function (x, y,
 
   if(plot.regions && !is.null(order) && order == "max") stop('Please reduce the "order" or set "plot.regions = FALSE".')
 
+  dist <- tolower(dist)
+
   if(!is.null(confidence.interval) && std.errors == FALSE) std.errors <- TRUE
 
   if(any(class(x)=="tbl") && dim(x)[2]==1) x <- as.vector(unlist(x))
@@ -158,12 +165,12 @@ NNS.reg = function (x, y,
 
   if(!is.null(type)){
     type <- tolower(type)
-    noise.reduction <- "mode"
+    noise.reduction <- "mode_class"
   }
 
-  if(plyr::is.discrete(y)){
+  if(plyr::is.discrete(y) || (sum(as.numeric(y)%%1)==0 && length(unique(y)) < sqrt(length(y)))){
     type <- "class"
-    noise.reduction <- "mode"
+    noise.reduction <- "mode_class"
   }
 
   if(any(class(y)=="tbl")) y <- as.vector(unlist(y))
@@ -257,10 +264,9 @@ NNS.reg = function (x, y,
   np <- nrow(point.est)
 
   if(!is.null(type) && type == "class" ){
-    if(is.null(n.best)){
-      n.best <- 1
-    }
+    if(is.null(n.best)) n.best <- 1
   }
+
 
 
   if(!is.null(ncol(original.variable))){
@@ -416,15 +422,13 @@ NNS.reg = function (x, y,
   if(multivariate.call) stn <- 0
 
   if(dependence > stn){
-    part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
+    part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0)
     if(length(part.map$regression.points$x) == 0){
-      part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), obs.req = 0, min.obs.stop = FALSE)
+      part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), obs.req = 0)
     }
     if(dependence == 1){
-      if(is.null(order)) {
-        dep.reduced.order <- "max"
-      }
-      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0, min.obs.stop = FALSE)
+      if(is.null(order)) dep.reduced.order <- "max"
+      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
     }
   } else {
     if(is.null(type)){
@@ -433,16 +437,16 @@ NNS.reg = function (x, y,
     } else {
       if(type == "class"){
         type2 = "XONLY"
-        noise.reduction2 <- "mode"
+        noise.reduction2 <- "mode_class"
       } else {
         noise.reduction2 <- noise.reduction
         type2 <- "XONLY"
       }
     }
 
-    part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = type2, min.obs.stop = FALSE, obs.req = 0)
+    part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = type2, obs.req = 0)
     if(length(part.map$regression.points$x) == 0){
-      part.map <- NNS.part(x, y, type =  type2, noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), obs.req = 0, min.obs.stop = FALSE)
+      part.map <- NNS.part(x, y, type =  type2, noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), obs.req = 0)
     }
   } # Dependence < stn
 
@@ -589,7 +593,7 @@ NNS.reg = function (x, y,
       regression.points <- regression.points[, lapply(.SD, median), .SDcols = 2, by = .(x)]
     }
 
-    if(noise.reduction == "mode"){
+    if(noise.reduction == "mode" || noise.reduction == "mode_class"){
       regression.points <- regression.points[, lapply(.SD, mode), .SDcols = 2, by = .(x)]
     }
   }

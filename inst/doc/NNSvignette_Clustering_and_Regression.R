@@ -14,7 +14,7 @@ require(dtw)
 ## ----linear-------------------------------------------------------------------
 x = seq(-5, 5, .05); y = x ^ 3
 
-for(i in 1 : 4){NNS.part(x, y, order = i, min.obs.stop = FALSE, Voronoi = TRUE, obs.req = 0)}
+for(i in 1 : 4){NNS.part(x, y, order = i, Voronoi = TRUE, obs.req = 0)}
 
 ## ----x part,results='hide'----------------------------------------------------
 for(i in 1 : 4){NNS.part(x, y, order = i, type = "XONLY", Voronoi = TRUE)}
@@ -57,6 +57,6 @@ NNS.stack(IVs.train = iris[ , 1 : 4],
           DV.train = iris[ , 5], 
           IVs.test = iris[1 : 10, 1 : 4],
           obj.fn = expression( mean(round(predicted) == actual) ),
-          objective = "max", order = "max",
-          type = "CLASS", folds = 1, ncores = 1)
+          objective = "max", type = "CLASS", 
+          folds = 1, ncores = 1)
 

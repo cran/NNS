@@ -22,7 +22,7 @@ a = NNS.boost(IVs.train = iris[-test.set, 1:4],
               DV.train = iris[-test.set, 5],
               IVs.test = iris[test.set, 1:4],
               epochs = 100, learner.trials = 100, 
-              status = FALSE,
+              status = FALSE, balance = TRUE,
               type = "CLASS")
 
 a$results
@@ -32,10 +32,10 @@ a$feature.weights
 mean( a$results == as.numeric(iris[test.set, 5]) )
 
 ## ----NNSstack,fig.align = "center", fig.height = 8,fig.width=6.5,message=FALSE----
-b = NNS.stack(IVs.train = iris[-test.set, names(a$feature.weights)], 
+b = NNS.stack(IVs.train = iris[-test.set, 1:4], 
               DV.train = iris[-test.set, 5],
-              IVs.test = iris[test.set, names(a$feature.weights)],
-              type = "CLASS", stack = FALSE,
+              IVs.test = iris[test.set, 1:4],
+              type = "CLASS", balance = TRUE,
               ncores = 1)
 
 b

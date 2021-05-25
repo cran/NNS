@@ -21,6 +21,7 @@ NNS.boost(
   obj.fn = expression(sum((predicted - actual)^2)),
   objective = "min",
   extreme = FALSE,
+  features.only = FALSE,
   feature.importance = TRUE,
   status = TRUE
 )
@@ -59,6 +60,8 @@ NNS.boost(
 
 \item{extreme}{logical; \code{FALSE} (default) Uses the maximum (minimum) \code{threshold} obtained from the \code{learner.trials}, rather than the upper (lower) quintile level for maximization (minimization) \code{objective}.}
 
+\item{features.only}{logical; \code{FALSE} (default) Returns only the final feature loadings along with the final feature frequencies.}
+
 \item{feature.importance}{logical; \code{TRUE} (default) Plots the frequency of features used in the final estimate.}
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
@@ -70,7 +73,7 @@ Returns a vector of fitted values for the dependent variable test set \code{$res
 Ensemble method for classification using the predictions of the NNS multivariate regression \link{NNS.reg} collected from uncorrelated feature combinations.
 }
 \note{
-Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for multiple class problems.
+Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for classification problems.
 }
 \examples{
  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.

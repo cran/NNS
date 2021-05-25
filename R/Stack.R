@@ -89,6 +89,9 @@ NNS.stack <- function(IVs.train,
 
   if(is.null(obj.fn)) stop("Please provide an objective function")
 
+  if(balance && is.null(type)) warning("type = 'CLASS' selected due to balance = TRUE.")
+  if(balance) type <- "CLASS"
+
   if(!is.null(type) && min(as.numeric(DV.train))==0) warning("Base response variable category should be 1, not 0.")
 
   if(any(class(IVs.train)=="tbl")) IVs.train <- as.data.frame(IVs.train)
@@ -125,6 +128,7 @@ NNS.stack <- function(IVs.train,
 
   if(is.null(dim(IVs.test))) IVs.test <- data.frame(t(IVs.test)) else IVs.test <- data.frame(IVs.test)
 
+  dist <- tolower(dist)
 
   if(is.null(CV.size)){
     if(is.null(IVs.test)){
@@ -176,7 +180,7 @@ NNS.stack <- function(IVs.train,
 
     if(!is.null(ts.test)){
       test.set <- 1:(length(DV.train) - ts.test)
-      dist <- "DTW"
+      dist <- "dtw"
     }
 
     test.set <- unlist(test.set)
@@ -382,6 +386,8 @@ NNS.stack <- function(IVs.train,
           threshold_results_1[index] <- seq(.01,.99, .01)[which.max(apply(pred_matrix, 2, function(z) mean(z == as.numeric(actual))))]
 
           predicted <- ifelse(predicted%%1 < threshold_results_1[index], floor(predicted), ceiling(predicted))
+
+          RPM_CLASS <- apply(do.call(cbind, lapply(setup$RPM[,1:(dim(setup$RPM)[2]-1)], FUN = function(z) ifelse(z%%1 < .5, floor(z), ceiling(z)))), 2, as.integer)
         } else {
 
           predicted <- list()
@@ -391,7 +397,7 @@ NNS.stack <- function(IVs.train,
             if(dim(CV.IVs.train)[2]>1){
               CV.IVs.test.new <- data.table::data.table(do.call(cbind, lapply(data.frame(CV.IVs.test), factor_2_dummy_FR)))
 
-              CV.IVs.test.new <- CV.IVs.test.new[, DISTANCES :=  NNS.distance(setup$RPM, dist.estimate = .SD, type = dist, k = i)[1], by = 1:nrow(CV.IVs.test)]
+              CV.IVs.test.new <- CV.IVs.test.new[, DISTANCES :=  NNS::NNS.distance(rpm = setup$RPM, rpm_class = RPM_CLASS, dist.estimate = .SD, type = dist, k = i)[1], by = 1:nrow(CV.IVs.test)]
 
               predicted <- as.numeric(unlist(CV.IVs.test.new$DISTANCES))
             } else {
@@ -418,7 +424,8 @@ NNS.stack <- function(IVs.train,
 
         nns.cv.1[index] <- eval(obj.fn)
 
-        if(length(na.omit(nns.cv.1)) > 2){
+        if(length(na.omit(nns.cv.1)) > 3){
+          if(objective=="min") nns.cv.1[is.na(nns.cv.1)] <- max(na.omit(nns.cv.1)) else nns.cv.1[is.na(nns.cv.1)] <- min(na.omit(nns.cv.1))
           if(objective=='min' && nns.cv.1[index]>=nns.cv.1[index-1] && nns.cv.1[index]>=nns.cv.1[index-2]){ break }
           if(objective=='max' && nns.cv.1[index]<=nns.cv.1[index-1] && nns.cv.1[index]<=nns.cv.1[index-2]){ break }
         }
@@ -443,6 +450,7 @@ NNS.stack <- function(IVs.train,
 
       if(b==folds){
         ks <- table(unlist(best.k))
+
         ks.mode <-  mode(as.numeric(rep(names(ks), as.numeric(unlist(ks)))))
         best.k <- ifelse(ks.mode%%1 < .5, floor(ks.mode), ceiling(ks.mode))
 
@@ -489,6 +497,7 @@ NNS.stack <- function(IVs.train,
   } else {
     weights <- c(max(1e-10, best.nns.cv), max(1e-10, best.nns.ord))
   }
+
 
   weights <- pmax(weights, c(0, 0))
   weights[!(c(1, 2) %in% method)] <- 0

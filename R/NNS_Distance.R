@@ -2,6 +2,7 @@
 #'
 #' Internal kernel function for NNS multivariate regression \link{NNS.reg} parallel instances.
 #' @param rpm REGRESSION.POINT.MATRIX from \link{NNS.reg}
+#' @param rpm_class integer \code{rpm}.
 #' @param dist.estimate Vector to generate distances from.
 #' @param type "L1", "L2", "DTW" or "FACTOR"
 #' @param k \code{n.best} from \link{NNS.reg}
@@ -12,11 +13,12 @@
 #'
 #' @export
 
-NNS.distance <- function(rpm, dist.estimate, type, k, n){
+NNS.distance <- function(rpm, rpm_class, dist.estimate, type, k, n){
   type <- toupper(type)
   n <- length(dist.estimate)
   l <- nrow(rpm)
   y.hat <- rpm$y.hat
+  raw.dist.estimate <- unlist(dist.estimate)
 
   if(type!="FACTOR"){
     rpm <- rbind(as.list(t(dist.estimate)), rpm[, .SD, .SDcols = 1:n])
@@ -29,13 +31,12 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
 
   rpm_mat <- t(rpm[, 1:n])
 
-
   if(type=="L2"){
-    rpm$Sum <- Rfast::rowsums(t(rpm_mat - dist.estimate)^2 + 1/(1/l + t(ifelse(rpm_mat%%1 < .5, floor(rpm_mat), ceiling(rpm_mat)) == dist.estimate)), parallel = TRUE)
+    rpm$Sum <- Rfast::rowsums(t(rpm_mat - dist.estimate)^2 + (1/l + (rpm_class == raw.dist.estimate))^-1, parallel = TRUE)
   }
 
   if(type=="L1"){
-    rpm$Sum <- Rfast::rowsums(abs(t(rpm_mat - dist.estimate)) + 1/(1/l + t(ifelse(rpm_mat%%1 < .5, floor(rpm_mat), ceiling(rpm_mat))  == dist.estimate)), parallel = TRUE)
+    rpm$Sum <- Rfast::rowsums(abs(t(rpm_mat - dist.estimate)) + (1/l + (rpm_class == raw.dist.estimate))^-1, parallel = TRUE)
   }
 
   if(type=="DTW"){
@@ -43,7 +44,7 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
   }
 
   if(type=="FACTOR"){
-    rpm$Sum <- 1/(1/l + ( Rfast::rowsums(t(ifelse(rpm_mat%%1 < .5, floor(rpm_mat), ceiling(rpm_mat)) == dist.estimate), parallel = TRUE)))
+    rpm$Sum <- (1/l + ( Rfast::rowsums((rpm_class == raw.dist.estimate), parallel = TRUE)))^-1
   }
 
   rpm$Sum[rpm$Sum == 0] <- 1e-10
@@ -70,7 +71,7 @@ NNS.distance <- function(rpm, dist.estimate, type, k, n){
   t_weights <- pmin(max(rpm$Sum), dt(x = rpm$y.hat, df = min(k,l)))
   t_weights <- t_weights/sum(t_weights)
 
-  weights <- (emp_weights + norm_weights + t_weights)/3
+  weights <- (emp_weights + norm_weights + t_weights)/sum(emp_weights + norm_weights + t_weights)
 
   single.estimate <- weights%*%rpm$y.hat
 
