@@ -66,6 +66,8 @@
 #'  \item Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
 #'
 #'  \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for classification problems.
+#'
+#'  \item For low signal:noise instances, increasing the dimension may yield better results using \code{NNS.stack(cbind(x,x), y, method = 1, ...)}.
 #' }
 #'
 #' @author Fred Viole, OVVO Financial Systems
@@ -412,7 +414,7 @@ NNS.reg = function (x, y,
   if(is.null(x.label)) x.label <- "x"
 
 
-  dependence <- NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence
+  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) 0)
   dependence <- (dependence^2 + sqrt(dependence))/2
 
   dep.reduced.order <- max(1, ifelse(multivariate.call, ceiling(dependence*10)+1, floor(dependence*10)))
@@ -564,7 +566,7 @@ NNS.reg = function (x, y,
     central_rows <- c(floor(median(1:nrow(regression.points))), ceiling(median(1:nrow(regression.points))))
     central_x <- regression.points[central_rows,]$x
 
-    central_y <- gravity(y[x>=central_x[1] & x<=central_x[2]])
+    ifelse(length(unique(central_rows))>1, central_y <- gravity(y[x>=central_x[1] & x<=central_x[2]]), central_y <- regression.points[central_rows[1],]$y)
     central_x <- mean(central_x)
     med.rps <- data.table::data.table(t(c(central_x, central_y)))
   } else {

@@ -11,6 +11,7 @@
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
+#' @param nowcast logical; \code{FALSE} (default) internal call for \link{NNS.nowcast}.
 #'
 #' @return Returns the following matrices of forecasted variables:
 #' \itemize{
@@ -112,10 +113,13 @@ NNS.VAR <- function(variables,
                     obj.fn = expression( sum((predicted - actual)^2) ),
                     objective = "min",
                     status = TRUE,
-                    ncores = NULL){
+                    ncores = NULL,
+                    nowcast = FALSE){
 
   oldw <- getOption("warn")
   options(warn = -1)
+
+  if(nowcast) dates <- zoo::as.yearmon(zoo::as.yearmon(rownames(variables)[1]) + seq(0, (dim(variables)[1] + (h-1)))/12)
 
   if(any(class(variables)=="tbl")) variables <- as.data.frame(variables)
 
@@ -172,30 +176,30 @@ NNS.VAR <- function(variables,
 
     na_s[i] <- tail(index, 1) - interpolation_point
     if(na_s[i] > 0){
-        periods <- NNS.seas(new_variable, modulo = min(tau[[min(i, length(tau))]]),
-                            mod.only = FALSE, plot = FALSE)$periods
+      periods <- NNS.seas(new_variable, modulo = min(tau[[min(i, length(tau))]]),
+                          mod.only = FALSE, plot = FALSE)$periods
 
-        ts <- interpolation_point - 2*(h + na_s[i])
-        if(ts < 100) ts <- interpolation_point - (h + na_s[i])
+      ts <- interpolation_point - 2*(h + na_s[i])
+      if(ts < 100) ts <- interpolation_point - (h + na_s[i])
 
-        b <- NNS.ARMA.optim(new_variable, seasonal.factor = periods,
-                            training.set = ts,
-                            obj.fn = obj.fn,
-                            objective = objective,
-                            print.trace = status,
-                            ncores = 1)
+      b <- NNS.ARMA.optim(new_variable, seasonal.factor = periods,
+                          training.set = ts,
+                          obj.fn = obj.fn,
+                          objective = objective,
+                          print.trace = status,
+                          ncores = 1)
 
-        nns_IVs$results <- NNS.ARMA(new_variable, h = (h + na_s[i]), seasonal.factor = b$periods, weights = b$weights,
-                                    method = b$method, ncores = 1, plot = FALSE) + b$bias.shift
+      nns_IVs$results <- NNS.ARMA(new_variable, h = (h + na_s[i]), seasonal.factor = b$periods, weights = b$weights,
+                                  method = b$method, ncores = 1, plot = FALSE) + b$bias.shift
 
 
 
-        na_s_extrapolation <- rowMeans(cbind(tail(nns_IVs$interpolation, na_s[i]), head(nns_IVs$results, na_s[i])))
-        nns_IVs$interpolation <- c(nns_IVs$interpolation, na_s_extrapolation)
+      na_s_extrapolation <- rowMeans(cbind(tail(nns_IVs$interpolation, na_s[i]), head(nns_IVs$results, na_s[i])))
+      nns_IVs$interpolation <- c(nns_IVs$interpolation, na_s_extrapolation)
 
-        nns_IVs$obj_fn <- b$obj.fn
+      nns_IVs$obj_fn <- b$obj.fn
     } else {
-        nns_IVs$results <- nns_IVs$interpolation
+      nns_IVs$results <- nns_IVs$interpolation
     }
 
     return(list(nns_IVs, na.omit(na_s[i]), head(nns_IVs$results, na_s[i])))
@@ -376,11 +380,11 @@ NNS.VAR <- function(variables,
   colnames(nns_IVs_interpolated_extrapolated) <- colnames(variables)
 
   colnames(nns_IVs_results) <- colnames(variables)
-  rownames(nns_IVs_results) <- NULL
+  rownames(nns_IVs_results) <- tail(dates, h)
   colnames(nns_DVs) <- colnames(variables)
-  rownames(nns_DVs) <- NULL
+  rownames(nns_DVs) <- tail(dates, h)
   colnames(forecasts) <- colnames(variables)
-  rownames(forecasts) <- NULL
+  rownames(forecasts) <- tail(dates, h)
 
   options(warn = oldw)
 

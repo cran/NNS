@@ -6,7 +6,6 @@
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
 #' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
 #' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
-#' @param representative.sample logical; \code{FALSE} (default) Reduces observations of \code{IVs.train} to a set of representative observations per regressor.
 #' @param depth options: (integer, NULL, "max"); \code{(depth = NULL)}(default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors, analogous to tree depth.
 #' @param learner.trials integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
@@ -49,7 +48,6 @@ NNS.boost <- function(IVs.train,
                       DV.train,
                       IVs.test = NULL,
                       type = NULL,
-                      representative.sample = FALSE,
                       depth = NULL,
                       learner.trials = 100,
                       epochs = NULL,
@@ -96,6 +94,7 @@ NNS.boost <- function(IVs.train,
 
   DV.train <- transform[,1]
 
+  original.par <- par(no.readonly = TRUE)
 
   if(is.null(IVs.test)){
     IVs.test <- IVs.train
@@ -136,18 +135,19 @@ NNS.boost <- function(IVs.train,
 
 
   ### Representative samples
-  rep.x <- data.table::data.table(x)
+  if(plyr::is.discrete(y) || (sum(as.numeric(y)%%1)==0 && length(unique(y)) < sqrt(length(y)))){
+      rep.x <- data.table::data.table(x)
 
-  fivenum.x <- rep.x[,lapply(.SD, function(z) fivenum(as.numeric(z))), by = .(y)]
-  mode.x <- rep.x[,lapply(.SD, function(z) mode(as.numeric(z))), by = .(y)]
-  mean.x <- rep.x[,lapply(.SD, function(z) mean(as.numeric(z))), by = .(y)]
+      rep.x <- rep.x[,lapply(.SD, function(z) fivenum(as.numeric(z))), by = .(y)]
 
-  rep.x <- data.table::rbindlist(list(fivenum.x, mode.x, mean.x), use.names = FALSE)
+      rep.y <- unlist(rep.x[,1])
+      rep.x <- rep.x[,-1]
 
-  rep.y <- unlist(rep.x[,1])
-  rep.x <- rep.x[,-1]
-
-  rep.x <- as.data.frame(rep.x)
+      rep.x <- as.data.frame(rep.x)
+  } else {
+      rep.x <- x
+      rep.y <- NULL
+  }
 
   n <- ncol(x)
 
@@ -162,9 +162,8 @@ NNS.boost <- function(IVs.train,
 
   # Add test loop for highest threshold ...
   if(is.null(threshold)){
-    if(!extreme){
-      epochs <- NULL
-    }
+    if(!extreme) epochs <- NULL
+
     old.threshold <- 1
 
     if(is.null(learner.trials)){learner.trials <- length(y)}
@@ -185,26 +184,24 @@ NNS.boost <- function(IVs.train,
         new.index <- na.omit(unique(c(mins, maxes, new.index_half, new.index))[1:as.integer(CV.size*length(y))])
       }
 
-      if(!is.null(ts.test)){
-        new.index <- 1:(length(y) - ts.test)
-      }
+      if(!is.null(ts.test)) new.index <- 1:(length(y) - ts.test)
 
       new.index <- unlist(new.index)
-      new.iv.train <- data.table::data.table(x[-new.index,])
-      new.iv.train <- new.iv.train[,lapply(.SD, as.double)]
 
-      fivenum.new.iv.train <- new.iv.train[,lapply(.SD,function(z) fivenum(as.numeric(z))), by = .(y[-new.index])]
-      mode.new.iv.train <- new.iv.train[,lapply(.SD,function(z) mode(as.numeric(z))), by = .(y[-new.index])]
-      mean.new.iv.train <- new.iv.train[,lapply(.SD,function(z) mean(as.numeric(z))), by = .(y[-new.index])]
+      if(plyr::is.discrete(y) || (sum(as.numeric(y)%%1)==0 && length(unique(y)) < sqrt(length(y)))){
+          new.iv.train <- data.table::data.table(x[-new.index,])
+          new.iv.train <- new.iv.train[,lapply(.SD, as.double)]
 
-      new.iv.train <- data.table::rbindlist(list(fivenum.new.iv.train,mode.new.iv.train,mean.new.iv.train), use.names = FALSE)
+          new.iv.train <- new.iv.train[,lapply(.SD,function(z) fivenum(as.numeric(z))), by = .(y[-new.index])]
 
-      new.iv.train <- as.data.frame(new.iv.train[,-1])
-      new.dv.train <- unlist(new.iv.train[,1])
+          new.dv.train <- unlist(new.iv.train[,1])
+          new.iv.train <- as.data.frame(new.iv.train[,-1])
 
-      if(!representative.sample){
-        new.iv.train <- rbind(new.iv.train, data.matrix(x[-new.index,]))
-        new.dv.train <- c(new.dv.train, y[-new.index])
+          new.iv.train <- rbind(new.iv.train, data.matrix(x[-new.index,]))
+          new.dv.train <- c(new.dv.train, y[-new.index])
+      } else {
+          new.iv.train <- data.matrix(x[-new.index,])
+          new.dv.train <- y[-new.index]
       }
 
       colnames(new.iv.train) <- features
@@ -212,12 +209,11 @@ NNS.boost <- function(IVs.train,
       actual <- as.numeric(y[new.index])
       new.iv.test <- x[new.index,]
 
-
       if(status){
         message("Current Threshold Iterations Remaining = " ,learner.trials+1-i," ","\r",appendLF=FALSE)
       }
 
-      test.features[[i]] <- sort(sample(n, sample(2:n,1), replace = FALSE))
+      test.features[[i]] <- sort(sample(n, sample(2:n, 1), replace = FALSE))
 
       #If estimate is > threshold, store 'features'
       predicted <- NNS.reg(new.iv.train[,test.features[[i]]],
@@ -229,6 +225,7 @@ NNS.boost <- function(IVs.train,
                            ncores = 1, type = type)$Point.est
 
       predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
+
       # Do not predict a new unseen class
       if(!is.null(type)){
         predicted <- pmin(predicted, max(as.numeric(y)))
@@ -252,7 +249,6 @@ NNS.boost <- function(IVs.train,
   }
 
   if(feature.importance){
-    original.par <- par(no.readonly = TRUE)
     par(mfrow = c(2,1))
     par(mai = c(1.0,.5,0.8,0.5))
     hist(results, main = "Distribution of Learner Trials Objective Function",
@@ -275,8 +271,20 @@ NNS.boost <- function(IVs.train,
     message("                                       ", "\r", appendLF = FALSE)
   }
 
-  if(objective=="max") reduced.test.features <- test.features[which(results>=threshold)] else reduced.test.features <- test.features[which(results<=threshold)]
+  if(extreme){
+      if(objective=="max") reduced.test.features <- test.features[which.max(results)] else reduced.test.features <- test.features[which.min(results)]
+  } else {
+      if(objective=="max") reduced.test.features <- test.features[which(results>=threshold)] else reduced.test.features <- test.features[which(results<=threshold)]
+  }
 
+  rf <- data.table::data.table(table(as.character(reduced.test.features)))
+  rf$N <- rf$N / sum(rf$N)
+
+  rf_reduced <- apply(rf, 1, function(x) eval(parse(text=x[1])))
+
+  scale_factor_rf <- table(unlist(rf_reduced))/min(table(unlist(rf_reduced)))
+
+  reduced.test.features <- as.numeric(rep(names(scale_factor_rf), ifelse(scale_factor_rf%%1 < .5, floor(scale_factor_rf), ceiling(scale_factor_rf))))
 
   keeper.features <- list()
 
@@ -295,29 +303,22 @@ NNS.boost <- function(IVs.train,
       if(!is.null(ts.test)) new.index <- length(y) - (2*ts.test):0
 
       new.index <- unlist(new.index)
-      new.iv.train <- data.table::data.table(x[-new.index, ])
-      new.iv.train <- new.iv.train[, lapply(.SD,as.double)]
 
-      fivenum.new.iv.train <- new.iv.train[,lapply(.SD,fivenum), by = .(y[-new.index])]
-      mode.new.iv.train <- new.iv.train[,lapply(.SD,function(z) mode(as.numeric(z))), by = .(y[-new.index])]
-      mean.new.iv.train <- new.iv.train[,lapply(.SD,function(z) mean(as.numeric(z))), by = .(y[-new.index])]
+      if(plyr::is.discrete(y) || (sum(as.numeric(y)%%1)==0 && length(unique(y)) < sqrt(length(y)))){
+          new.iv.train <- data.table::data.table(x[-new.index, ])
+          new.iv.train <- new.iv.train[, lapply(.SD,as.double)]
 
+          new.iv.train <- new.iv.train[,lapply(.SD,fivenum), by = .(y[-new.index])]
 
-      names(fivenum.new.iv.train) <- c("y", colnames(new.iv.train))
-      names(mean.new.iv.train) <- c("y", colnames(new.iv.train))
-      names(mode.new.iv.train) <- c("y", colnames(new.iv.train))
+          new.dv.train <- unlist(new.iv.train[, 1])
+          new.iv.train <- as.data.frame(new.iv.train[, -1])
 
-
-      new.iv.train <- data.table::rbindlist(list(fivenum.new.iv.train, mode.new.iv.train, mean.new.iv.train), use.names = FALSE)
-
-      new.iv.train <- as.data.frame(new.iv.train[, -1])
-      new.dv.train <- unlist(new.iv.train[, 1])
-
-      if(!representative.sample){
-        new.iv.train <- rbind(new.iv.train, data.matrix(x[-new.index,]))
-        new.dv.train <- c(new.dv.train, y[-new.index])
+          new.iv.train <- rbind(new.iv.train, data.matrix(x[-new.index,]))
+          new.dv.train <- c(new.dv.train, y[-new.index])
+      } else {
+          new.iv.train <- data.matrix(x[-new.index,])
+          new.dv.train <- y[-new.index]
       }
-
 
       actual <- as.numeric(y[new.index])
       new.iv.test <- x[new.index,]
@@ -331,7 +332,7 @@ NNS.boost <- function(IVs.train,
         }
       }
 
-      features <- sort(sample(unlist(reduced.test.features), sample(2:length(unlist(reduced.test.features)),1), replace = TRUE))
+      features <- sort(c(unlist(reduced.test.features), sample(c(1:n), sample(1:n, 1), replace = FALSE)))
 
       #If estimate is > threshold, store 'features'
       predicted <- NNS.reg(new.iv.train[, features],
@@ -352,8 +353,10 @@ NNS.boost <- function(IVs.train,
       new.results <- eval(obj.fn)
 
       if(objective=="max"){
+        if(is.na(new.results)) new.results <- .99*threshold
         if(new.results>=threshold) keeper.features[[j]] <- features else keeper.features[[j]] <- NULL
       } else {
+        if(is.na(new.results)) new.results <- 1.01*threshold
         if(new.results<=threshold) keeper.features[[j]] <- features else keeper.features[[j]] <- NULL
       }
     }
@@ -385,8 +388,12 @@ NNS.boost <- function(IVs.train,
   }
 
 
-  x <- rbind(rep.x, data.matrix(x))
-  y <- c(rep.y, y)
+  if(!is.null(rep.y)){
+      x <- rbind(rep.x, data.matrix(x))
+      y <- c(rep.y, y)
+  } else {
+      x <- data.matrix(x)
+  }
 
   kf <- data.table::data.table(table(as.character(keeper.features)))
   kf$N <- kf$N / sum(kf$N)
@@ -439,7 +446,7 @@ NNS.boost <- function(IVs.train,
   }
 
   gc()
-  if(is.null(type)) estimates <- ifelse(estimates%%1 < .5, floor(estimates), ceiling(estimates))
+  if(!is.null(type)) estimates <- ifelse(estimates%%1 < .5, floor(estimates), ceiling(estimates))
 
   return(list("results" = estimates,
               "feature.weights" = plot.table/sum(plot.table),

@@ -60,3 +60,15 @@ NNS.stack(IVs.train = iris[ , 1 : 4],
           objective = "max", type = "CLASS", 
           folds = 1, ncores = 1)
 
+## ----stack2, message = FALSE,fig.width=5,fig.height=3,fig.align = "center",results='hide'----
+set.seed(123)
+x <- rnorm(100); y <- rnorm(100)
+
+nns.params <- NNS.stack(IVs.train = cbind(x, x),
+                        DV.train = y,
+                        method = 1)
+
+NNS.reg(cbind(x, x), y, 
+        n.best = nns.params$NNS.reg.n.best,
+        point.est = cbind(x, x))
+

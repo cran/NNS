@@ -7,7 +7,7 @@
 #' @param chart.type  options: ("l", "b"); \code{NULL} (default).  Set \code{(chart.type = "l")} for line,
 #' \code{(chart.type = "b")} for boxplot.
 #' @param location Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.
-#' @return Returns a \link{data.frame} of normalized values.
+#' @return Returns a \link{data.table} of normalized values.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
 #' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
@@ -25,7 +25,7 @@ NNS.norm <- function(A,
 
   if(any(class(A)=="tbl")) A <- as.data.frame(A)
 
-  m  <- Rfast::colmeans(A)
+  m  <- colMeans(A)
   m[m==0] <- 1e-10
   RG <- m %o% (1 / m)
 
@@ -94,6 +94,6 @@ if(!is.null(chart.type)){
 
 
 
-  return(A_Normalized)
+  return(data.table::data.table(A_Normalized))
 
 }
