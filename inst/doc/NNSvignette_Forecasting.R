@@ -9,7 +9,6 @@ require(rgl)
 require(tdigest)
 require(dtw)
 require(meboot)
-require(plyr)
 
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center", warning=FALSE------
 nns = NNS.ARMA(AirPassengers, 

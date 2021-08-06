@@ -7,7 +7,6 @@ library(data.table)
 require(knitr)
 require(rgl)
 require(meboot)
-require(plyr)
 require(tdigest)
 require(dtw)
 
@@ -22,12 +21,22 @@ cor(x, y)
 NNS.dep(x, y)
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center", results='hide'----
-x=seq(0, 3, .01) ; y = x ^ 10
+x = seq(0, 3, .01) ; y = x ^ 10
 
 ## ----nonlinear1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
 NNS.part(x, y, Voronoi = TRUE, order = 3)
 
-## ----res2---------------------------------------------------------------------
+## ----res2a--------------------------------------------------------------------
+cor(x, y)
+NNS.dep(x, y)
+
+## ----nonlinear_sin,fig.width=5,fig.height=3,fig.align = "center", results='hide'----
+x = seq(0, 12*pi, pi/100) ; y = sin(x)
+
+## ----nonlinear1_sin,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
+NNS.part(x, y, Voronoi = TRUE, order = 3, obs.req = 0)
+
+## ----res2_sin-----------------------------------------------------------------
 cor(x, y)
 NNS.dep(x, y)
 

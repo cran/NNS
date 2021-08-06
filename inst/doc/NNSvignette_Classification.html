@@ -148,9 +148,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(knitr)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(rgl)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(meboot)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(plyr)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(tdigest)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(dtw)</span></code></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(tdigest)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(dtw)</span></code></pre></div>
 <div id="classification" class="section level1">
 <h1>Classification</h1>
 <p><strong><code>NNS.reg</code></strong> is a very robust regression technique capable of nonlinear regressions of continuous variables and classification tasks in machine learning problems.</p>
@@ -165,30 +164,23 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Higher dependence between a regressor and the dependent variable will allow for a larger number of partitions. This is determined internally with the <strong><code>NNS.dep</code></strong> measure.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">NNS.reg</span>(iris[,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>], iris[,<span class="dv">5</span>], <span class="at">residual.plot =</span> <span class="cn">FALSE</span>, <span class="at">ncores =</span> <span class="dv">1</span>)<span class="sc">$</span>rhs.partitions</span></code></pre></div>
 <pre><code>##     Sepal.Length Sepal.Width Petal.Length Petal.Width
-##  1:     4.300000    2.000000     1.000000    0.100000
-##  2:     4.530303    2.466667     1.129167    0.200000
-##  3:     4.900000    2.581818     1.300000    0.300000
-##  4:     4.908824    2.600000     1.400000    0.400000
-##  5:     5.036667    2.904762     1.500000    0.550000
-##  6:     5.121970    2.925758     1.600000    1.000000
-##  7:     5.483333    3.000000     1.766667    1.100000
-##  8:     5.491667    3.160000     3.000000    1.269444
-##  9:     5.600000    3.332051     3.300000    1.400000
-## 10:     5.650000    3.446667     3.500000    1.500000
-## 11:     5.735417    3.833333     3.600000    1.620833
-## 12:     5.800000    4.400000     3.700000    1.650000
-## 13:     6.062281          NA     3.983333    1.800000
-## 14:     6.373810          NA     4.300000    1.960606
-## 15:     6.766667          NA     4.531667    2.133333
-## 16:     7.470833          NA     4.725000    2.348810
-## 17:     7.900000          NA     4.786667    2.500000
-## 18:           NA          NA     4.950000          NA
-## 19:           NA          NA     5.141667          NA
-## 20:           NA          NA     5.551515          NA
-## 21:           NA          NA     5.815000          NA
-## 22:           NA          NA     6.416667          NA
-## 23:           NA          NA     6.900000          NA
-##     Sepal.Length Sepal.Width Petal.Length Petal.Width</code></pre>
+##  1:     4.300000    2.000000     1.000000   0.1000000
+##  2:     4.530303    2.466667     1.251515   0.2000000
+##  3:     4.900000    2.581818     1.400000   0.3000000
+##  4:     4.908824    2.600000     1.500000   0.4166667
+##  5:     5.036667    2.904762     1.655128   1.0000000
+##  6:     5.121970    2.925758     3.000000   1.1000000
+##  7:     5.483333    3.000000     3.300000   1.3206667
+##  8:     5.491667    3.160000     3.500000   1.4000000
+##  9:     5.600000    3.332051     3.650000   1.5345238
+## 10:     5.650000    3.446667     4.130303   1.5708333
+## 11:     5.735417    3.833333     4.646667   1.8619565
+## 12:     5.800000    4.400000     4.883333   2.2702899
+## 13:     6.062281          NA     5.325725   2.5000000
+## 14:     6.373810          NA     6.082895          NA
+## 15:     6.766667          NA     6.900000          NA
+## 16:     7.470833          NA           NA          NA
+## 17:     7.900000          NA           NA          NA</code></pre>
 </div>
 </div>
 </div>
@@ -230,13 +222,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>b</span></code></pre></div>
 <pre><code>## $OBJfn.reg
-## [1] 0.9642857
+## [1] 0.9928571
 ## 
 ## $NNS.reg.n.best
 ## [1] 4
 ## 
 ## $probability.threshold
-## [1] 0.2075
+## [1] 0.14875
 ## 
 ## $OBJfn.dim.red
 ## [1] 0.9428571
