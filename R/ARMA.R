@@ -77,34 +77,31 @@ NNS.ARMA <- function(variable,
                      ncores = NULL){
 
 
-  if(is.numeric(seasonal.factor) && dynamic){
-      stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
-  }
+  if(is.numeric(seasonal.factor) && dynamic) stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
 
-  if(any(class(variable)=="tbl")) variable <- as.vector(unlist(variable))
+
+  if(any(class(variable)==c("tbl", "data.table"))) variable <- as.vector(unlist(variable))
+
+  if(sum(is.na(variable)) > 0) stop("You have some missing values, please address.")
+
 
   oldw <- getOption("warn")
   options(warn = -1)
 
 
-  if (is.null(ncores)) {
-      num_cores <- as.integer(parallel::detectCores()  - 1)
-  } else {
-      num_cores <- ncores
-  }
+  if (is.null(ncores)) num_cores <- as.integer(parallel::detectCores()  - 1) else num_cores <- ncores
 
   if(num_cores>1) doParallel::registerDoParallel(num_cores)
 
 
-  if(!is.null(best.periods) && !is.numeric(seasonal.factor)){
-      seasonal.factor <- FALSE
-  }
+  if(!is.null(best.periods) && !is.numeric(seasonal.factor)) seasonal.factor <- FALSE
+
 
   label <- deparse(substitute(variable))
   variable <- as.numeric(variable)
   OV <- variable
 
-  if(min(variable)<0) negative.values <- TRUE
+  if(min(variable) < 0) negative.values <- TRUE
 
   if(!is.null(training.set)){
       variable <- variable[1 : training.set]
@@ -205,7 +202,7 @@ NNS.ARMA <- function(variable,
         last.y <- tail(y, 1)
 
         ## Skeleton NNS regression for NNS.ARMA
-        reg.points <- NNS.reg(x, y, return.values = FALSE , plot = FALSE, multivariate.call = TRUE)
+        reg.points <- NNS.reg(x, y, inference = FALSE, return.values = FALSE , plot = FALSE, multivariate.call = TRUE)
         reg.points <- reg.points[complete.cases(reg.points),]
 
         xs <- (tail(reg.points$x, 1) - reg.points$x)

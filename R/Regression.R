@@ -10,6 +10,7 @@
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", \code{numeric vector}, NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  Alternatively, user can specify a numeric vector of coefficients.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
+#' @param inference logical; \code{FALSE} (default) For inferential tasks, otherwise \code{inference = FALSE} is faster for predictive tasks.
 #' @param point.est a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.
 #' @param location Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.
 #' @param return.values logical; \code{TRUE} (default), set to \code{FALSE} in order to only display a regression plot and call values as needed.
@@ -130,6 +131,7 @@ NNS.reg = function (x, y,
                     stn = .95,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
+                    inference = FALSE,
                     point.est = NULL,
                     location = "top",
                     return.values = TRUE,
@@ -145,14 +147,16 @@ NNS.reg = function (x, y,
   oldw <- getOption("warn")
   options(warn = -1)
 
+  if(sum(is.na(cbind(x,y))) > 0) stop("You have some missing values, please address.")
+
   if(plot.regions && !is.null(order) && order == "max") stop('Please reduce the "order" or set "plot.regions = FALSE".')
 
   dist <- tolower(dist)
 
   if(!is.null(confidence.interval) && std.errors == FALSE) std.errors <- TRUE
 
-  if(any(class(x)=="tbl") && dim(x)[2]==1) x <- as.vector(unlist(x))
-  if(any(class(x)=="tbl")) x <- as.data.frame(x)
+  if(any(class(x)==c("tbl", "data.table")) && dim(x)[2]==1) x <- as.vector(unlist(x))
+  if(any(class(x)==c("tbl", "data.table"))) x <- as.data.frame(x)
 
   n <- length(y)
 
@@ -177,7 +181,7 @@ NNS.reg = function (x, y,
     noise.reduction <- "mode_class"
   }
 
-  if(any(class(y)=="tbl")) y <- as.vector(unlist(y))
+  if(any(class(y)==c("tbl", "data.table"))) y <- as.vector(unlist(y))
 
   if(!plot) residual.plot <- FALSE
 
@@ -418,41 +422,79 @@ NNS.reg = function (x, y,
 
 
   dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) 0)
-  dependence <- (dependence^2 + sqrt(dependence))/2
+  dependence <- (dependence^2 + dependence^(.5))/2
 
   dep.reduced.order <- max(1, ifelse(multivariate.call,
-                                     ceiling(max(1, (order * dependence * 10))) + 1,
+                                     ceiling(max(1, (dependence * 10))) + 1,
                                      floor(dependence*10)))
 
   if(!multivariate.call) {if(!is.null(order)) dep.reduced.order <- order} else stn <- 0
 
-
   if(dependence > stn){
-    part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = dep.reduced.order, obs.req = 0)
-    if(length(part.map$regression.points$x) == 0){
-      part.map <- NNS.part(x, y, type = NULL, noise.reduction = noise.reduction, order = min(nchar(part.map$dt$quadrant)), obs.req = 0)
-    }
-    if(dependence == 1){
+    if(dependence == 1 || dep.reduced.order == "max"){
       if(is.null(order)) dep.reduced.order <- "max"
       part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      part.map1 <- part.map
+    } else if(dep.reduced.order!= "max" && inference){
+      part.map1 <- NNS.part(x, y, noise.reduction = noise.reduction, order = dep.reduced.order, type = type, obs.req = 0)
+      part.map <- NNS.part(c(x, part.map1$regression.points$x), c(y, part.map1$regression.points$y), noise.reduction = noise.reduction, order = dep.reduced.order, type = type, obs.req = 0)
+      part.map2 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y), noise.reduction = noise.reduction, order =  dep.reduced.order, type = type, obs.req = 0)
+      part.map3 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y), noise.reduction = noise.reduction, order = dep.reduced.order, type = type, obs.req = 0)
+      part.map4 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y), noise.reduction = noise.reduction, order = dep.reduced.order, type = type, obs.req = 0)
+
+      part.map <- NNS.part(c(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x),
+                           c(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y),
+                           noise.reduction = noise.reduction, order = dep.reduced.order, type = type, obs.req = 0)
+      i <- 1
+      while(length(part.map$regression.points$x) > length(x)){
+        part.map <- NNS.part(c(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x),
+                             c(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y),
+                             noise.reduction = noise.reduction, order =  max(1, dep.reduced.order - i), type = type, obs.req = 0)
+        i <- i + 1
+      }
+      if(length(part.map1$regression.points$x) == 0){
+        part.map <- NNS.part(x, y, type = "XONLY", noise.reduction = noise.reduction, order = min(nchar(part.map1$dt$quadrant)), obs.req = 0)
+        part.map1 <- part.map
+      }
+    } else {
+      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      part.map1 <- part.map
     }
   } else {
     if(is.null(type)){
       noise.reduction2 <- ifelse(noise.reduction=="mean", "off", noise.reduction)
-      type2 <- "XONLY"
     } else {
-      if(type == "class"){
-        type2 = "XONLY"
-        noise.reduction2 <- "mode_class"
-      } else {
-        noise.reduction2 <- noise.reduction
-        type2 <- "XONLY"
-      }
+      if(type == "class") noise.reduction2 <- "mode_class" else noise.reduction2 <- noise.reduction
     }
 
-    part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = type2, obs.req = 0)
-    if(length(part.map$regression.points$x) == 0){
-      part.map <- NNS.part(x, y, type =  type2, noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), obs.req = 0)
+    if(dep.reduced.order == "max"){
+      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      part.map1 <- part.map
+    } else if(!inference) {
+        part.map1 <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
+        part.map <- NNS.part(c(x, part.map1$regression.points$x), c(y, part.map1$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
+        part.map2 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
+        part.map3 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y), noise.reduction = noise.reduction2, order =  dep.reduced.order, type =  "XONLY", obs.req = 0)
+        part.map4 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y), noise.reduction = noise.reduction2, order =  dep.reduced.order, type =  "XONLY", obs.req = 0)
+
+        part.map <- NNS.part(c(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x),
+                            c(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y),
+                            noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
+
+        i <- 1
+        while(length(part.map$regression.points$x) > length(x)){
+          part.map <- NNS.part(c(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x),
+                              c(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y),
+                               noise.reduction = noise.reduction2, order =  max(1, dep.reduced.order - i), type = "XONLY", obs.req = 0)
+          i <- i + 1
+        }
+        if(length(part.map1$regression.points$x) == 0){
+          part.map <- NNS.part(x, y, type =  "XONLY", noise.reduction = noise.reduction2, order = min( nchar(part.map1$dt$quadrant)), obs.req = 0)
+          part.map1 <- part.map
+        }
+    } else {
+      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      part.map1 <- part.map
     }
   } # Dependence < stn
 
@@ -605,6 +647,7 @@ NNS.reg = function (x, y,
   }
 
 
+
   if(dim(regression.points)[1] > 1){
     rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
     run <- regression.points[ , 'run' := x - data.table::shift(x)]
@@ -637,8 +680,7 @@ NNS.reg = function (x, y,
   Regression.Coefficients[is.na(Regression.Coefficients)] <- 0
 
   ### Fitted Values
-  p <- length(regression.points[ , x])
-
+  p <- length(unlist(regression.points[ , 1]))
 
 
   if(is.na(Regression.Coefficients[1, Coefficient])){
@@ -684,16 +726,16 @@ NNS.reg = function (x, y,
     if(type=="class") estimate <- ifelse(estimate%%1 < .5, floor(estimate), ceiling(estimate))
   }
 
-  fitted <- data.table::data.table(x = part.map$dt$x,
-                                   y = part.map$dt$y,
+  fitted <- data.table::data.table(x = part.map1$dt$x,
+                                   y = part.map1$dt$y,
                                    y.hat = estimate,
-                                   NNS.ID = part.map$dt$quadrant)
+                                   NNS.ID = part.map1$dt$quadrant)
 
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
 
   fitted$y.hat[is.na(fitted$y.hat)] <- mode(na.omit(fitted$y.hat))
 
-  Values <- cbind(x, Fitted = fitted[ , y.hat], Actual = fitted[ , y], Difference = fitted[ , y.hat] - fitted[ , y],  Accuracy = abs(round(fitted[ , y.hat]) - fitted[ , y]))
+  Values <- cbind(x, Fitted = fitted[ , y.hat], Actual = original.y, Difference = fitted[ , y.hat] - original.y,  Accuracy = abs(round(fitted[ , y.hat]) - original.y))
 
   deg.fr <- length(y) - 2
 
@@ -704,7 +746,7 @@ NNS.reg = function (x, y,
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
 
   fitted <- cbind(fitted, gradient)
-  fitted$residuals <- fitted$y.hat - fitted$y
+  fitted$residuals <- fitted$y.hat - original.y
 
   if(dependence < stn && mean(c(length(unique(diff(x))), length(unique(x)))) > .33*length(x)){
     bias <- fitted
@@ -737,9 +779,7 @@ NNS.reg = function (x, y,
   }
 
   ### Regression Equation
-  if(multivariate.call){
-    return(regression.points)
-  }
+  if(multivariate.call)  return(regression.points)
 
 
   rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
@@ -763,7 +803,7 @@ NNS.reg = function (x, y,
 
 
   ### Fitted Values
-  p <- length(regression.points[ , x])
+  p <- length(unlist(regression.points[ , 1]))
 
   if(is.na(Regression.Coefficients[1, Coefficient])){
     Regression.Coefficients[1, Coefficient := Regression.Coefficients[2, Coefficient] ]
@@ -806,10 +846,10 @@ NNS.reg = function (x, y,
     if(type=="class") estimate <- ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))
   }
 
-  fitted <- data.table::data.table(x = part.map$dt$x,
-                                   y = part.map$dt$y,
+  fitted <- data.table::data.table(x = part.map1$dt$x,
+                                   y = part.map1$dt$y,
                                    y.hat = estimate,
-                                   NNS.ID = part.map$dt$quadrant)
+                                   NNS.ID = part.map1$dt$quadrant)
 
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
 
@@ -826,7 +866,7 @@ NNS.reg = function (x, y,
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
 
   fitted <- cbind(fitted, gradient)
-  fitted$residuals <- fitted$y.hat - fitted$y
+  fitted$residuals <- fitted$y.hat - original.y
 
 
   if(!is.null(type)){
@@ -845,7 +885,6 @@ NNS.reg = function (x, y,
 
   ###Standard errors estimation
   if(std.errors){
-
     fitted[, `:=`
            ( 'standard.errors' = sqrt( sum((y.hat - y) ^ 2) / ( max(1,(.N - 2))) ) ), by = gradient]
 
@@ -923,6 +962,7 @@ NNS.reg = function (x, y,
   }# plot TRUE bracket
 
   options(warn = oldw)
+
 
   ### Return Values
   if(return.values){

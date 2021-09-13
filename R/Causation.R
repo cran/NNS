@@ -32,12 +32,14 @@ NNS.caus <- function(x, y = NULL,
                      tau = 0,
                      plot = FALSE){
 
+  if(sum(is.na(cbind(x,y))) > 0) stop("You have some missing values, please address.")
+
   orig.tau <- tau
   orig.plot <- plot
 
-  if(any(class(x)=="tbl") && dim(x)[2]==1) x <- as.vector(unlist(x))
-  if(any(class(x)=="tbl")) x <- as.data.frame(x)
-  if(!is.null(y) && any(class(y)=="tbl")) y <- as.vector(unlist(y))
+  if(any(class(x)==c("tbl", "data.table")) && dim(x)[2]==1) x <- as.vector(unlist(x))
+  if(any(class(x)==c("tbl", "data.table"))) x <- as.data.frame(x)
+  if(!is.null(y) && any(class(y)==c("tbl", "data.table"))) y <- as.vector(unlist(y))
 
 
   if(factor.2.dummy){

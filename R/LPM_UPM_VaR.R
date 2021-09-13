@@ -19,7 +19,7 @@
 
 LPM.VaR <- function(percentile, degree, x){
 
-    if(any(class(x)=="tbl")) x <- as.vector(unlist(x))
+    if(any(class(x)==c("tbl", "data.table"))) x <- as.vector(unlist(x))
 
     percentile <- pmax(pmin(percentile, 1), 0)
 
@@ -34,7 +34,7 @@ LPM.VaR <- function(percentile, degree, x){
         func <- function(b){
             abs(LPM.ratio(degree, b, x) - percentile)
         }
-        return(optimize(func, c(min(x),max(x)))$minimum)
+        if(min(x)!=max(x)) return(optimize(func, c(min(x),max(x)))$minimum) else return(min(x))
     }
 }
 
@@ -58,7 +58,7 @@ LPM.VaR <- Vectorize(LPM.VaR, vectorize.args = "percentile")
 
 UPM.VaR <- function(percentile, degree, x){
 
-    if(any(class(x)=="tbl")) x <- as.vector(unlist(x))
+    if(any(class(x)==c("tbl", "data.table"))) x <- as.vector(unlist(x))
 
     percentile <- pmax(pmin(percentile, 1), 0)
 
@@ -72,7 +72,7 @@ UPM.VaR <- function(percentile, degree, x){
         func <- function(b){
             abs(LPM.ratio(degree, b, x) - (1 - percentile))
         }
-        return(optimize(func, c(min(x),max(x)))$minimum)
+        if(min(x)!=max(x)) return(optimize(func, c(min(x),max(x)))$minimum) else return(min(x))
     }
 
 }

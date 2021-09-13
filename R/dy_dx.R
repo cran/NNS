@@ -31,8 +31,10 @@
 
 dy.dx <- function(x, y, eval.point = median(x), deriv.method = "FD"){
 
-  if(any(class(x)=="tbl")) x <- as.vector(unlist(x))
-  if(any(class(y)=="tbl")) y <- as.vector(unlist(y))
+  if(any(class(x)==c("tbl", "data.table"))) x <- as.vector(unlist(x))
+  if(any(class(y)==c("tbl", "data.table"))) y <- as.vector(unlist(y))
+
+  if(sum(is.na(cbind(x,y))) > 0) stop("You have some missing values, please address.")
 
   order <- NULL
 
@@ -86,7 +88,7 @@ dy.dx <- function(x, y, eval.point = median(x), deriv.method = "FD"){
       run[z] <- eval.point.max[z] - eval.point.min[z]
     }
 
-    reg.output <- NNS.reg(x, y, plot = FALSE, point.est = as.vector(deriv.points), type = "XONLY", point.only = TRUE)
+    reg.output <- NNS.reg(x, y, plot = FALSE, point.est = as.vector(deriv.points), type = NULL, inference = TRUE, point.only = TRUE)
 
     estimates.min <- reg.output$Point.est[1:n]
     estimates.max <- reg.output$Point.est[(2*n+1):(3*n)]
@@ -100,7 +102,7 @@ dy.dx <- function(x, y, eval.point = median(x), deriv.method = "FD"){
         output <- reg.output$derivative
         if(length(output[ , Coefficient]) == 1) first.deriv.coef <- output[ , Coefficient]
 
-        if((output[ , X.Upper.Range][which(eval.point < output[ , X.Upper.Range]) - 1][1]) < eval.point){
+        if((output[ , X.Upper.Range][which(eval.point < output[ , X.Upper.Range]) - ifelse(length(output[, X.Upper.Range])==1,0,1)][1]) < eval.point){
           first.deriv <-  output[ , Coefficient][which(eval.point < output[ , X.Upper.Range])][1]
         } else {
           first.deriv <-  mean(c(output[ , Coefficient][which(eval.point < output[ , X.Upper.Range])][1], output[ , X.Lower.Range][which(eval.point < output[ , X.Upper.Range]) - 1][1]))
