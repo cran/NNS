@@ -108,7 +108,7 @@ NNS.stack <- function(IVs.train,
 
   if(!is.null(type)){
     type <- tolower(type)
-    if(type == "class"){
+    if(type == "class" && identical(obj.fn,expression( sum((predicted - actual)^2) ))){
       obj.fn <- expression(mean( predicted == as.numeric(actual)))
       objective <- "max"
     }
@@ -279,7 +279,6 @@ NNS.stack <- function(IVs.train,
         }
 
         nns.ord[i] <- eval(obj.fn)
-
 
         if(objective=="min"){
           best.threshold <- var.cutoffs[which.min(na.omit(nns.ord))]

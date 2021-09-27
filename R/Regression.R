@@ -282,6 +282,7 @@ NNS.reg = function (x, y,
       x <- original.variable
     } else {
       if(is.null(dim.red.method)){
+
         colnames(x) <- make.unique(colnames(x), sep = "_")
 
         return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot,
@@ -425,10 +426,9 @@ NNS.reg = function (x, y,
   dependence <- (dependence^2 + dependence^(.5))/2
 
   dep.reduced.order <- max(1, ifelse(multivariate.call,
-                                     ceiling(max(1, (dependence * 10))) + 1,
+                                     ifelse(is.null(order), floor(dependence*10), order),
                                      floor(dependence*10)))
 
-  if(multivariate.call) stn <- 0
   if(!is.null(order)) dep.reduced.order <- order
 
   if(dependence > stn){
@@ -471,7 +471,7 @@ NNS.reg = function (x, y,
     if(dep.reduced.order == "max"){
       part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
       part.map1 <- part.map
-    } else if(!inference) {
+    } else if(inference){
         part.map1 <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
         part.map <- NNS.part(c(x, part.map1$regression.points$x), c(y, part.map1$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
         part.map2 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
@@ -494,7 +494,7 @@ NNS.reg = function (x, y,
           part.map1 <- part.map
         }
     } else {
-      part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      part.map <- NNS.part(x, y, type =  "XONLY", order = dep.reduced.order, obs.req = 0)
       part.map1 <- part.map
     }
   } # Dependence < stn
