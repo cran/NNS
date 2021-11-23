@@ -7,7 +7,7 @@
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
 #' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", \code{numeric vector}, NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  Alternatively, user can specify a numeric vector of coefficients.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", "equal", \code{numeric vector}, NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  \code{(dim.red.method = "equal")} uses unit weights.  Alternatively, user can specify a numeric vector of coefficients.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
 #' @param inference logical; \code{FALSE} (default) For inferential tasks, otherwise \code{inference = FALSE} is faster for predictive tasks.
@@ -311,20 +311,22 @@ NNS.reg = function (x, y,
 
           if(!is.numeric(dim.red.method) && dim.red.method!="cor" && dim.red.method!="equal"){
             if(!is.null(type)) fact <- TRUE else fact <- FALSE
-            x.star.dep <- NNS.dep(cbind(x, y), print.map = FALSE, asym = TRUE)$Dependence
+            x.star.dep <- numeric()
+            for(i in 1:dim(x)[2]) x.star.dep[i] <- NNS.dep(x[,i], y, print.map = FALSE, asym = TRUE)$Dependence
             x.star.dep[is.na(x.star.dep)] <- 0
           }
 
-          x.star.cor <- cor(cbind(x, y), method = "spearman")
+          x.star.cor <- numeric()
+          for(i in 1:dim(x)[2]) x.star.cor[i] <- cor(x[,i],y, method = "spearman")
           x.star.cor[is.na(x.star.cor)] <- 0
 
           if(!is.numeric(dim.red.method) && dim.red.method == "nns.dep"){
-            x.star.coef <- x.star.dep[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef <- x.star.dep
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
           if(!is.numeric(dim.red.method) && dim.red.method == "cor"){
-            x.star.coef <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef <- x.star.cor
             x.star.coef[is.na(x.star.coef)] <- 0
           }
 
@@ -334,9 +336,10 @@ NNS.reg = function (x, y,
             }
             x.star.coef <- numeric()
 
-            cause <- NNS.caus(cbind(x, y), tau = tau, plot = FALSE)
+            cause <- numeric()
+            for(i in 1:dim(x)[2]) cause[i] <- Uni.caus(y - x[,i])
             cause[is.na(cause)] <- 0
-            x.star.coef <- (cause[(ncol(x) + 1), ] - cause[ ,(ncol(x) + 1)])[-(ncol(x) + 1)]
+            x.star.coef <- cause
           }
 
           if(!is.numeric(dim.red.method) && dim.red.method == "all"){
@@ -345,14 +348,14 @@ NNS.reg = function (x, y,
             x.star.coef.1 <- numeric()
 
 
-            cause <- NNS.caus(cbind(x, y), tau = tau, plot = FALSE)
+            cause <- numeric()
+            for(i in 1:dim(x)[2]) cause[i] <- Uni.caus(y - x[,i])
             cause[is.na(cause)] <- 0
-            x.star.coef.1 <- (cause[(ncol(x) + 1), ] - cause[ , (ncol(x) + 1)])[-(ncol(x) + 1)]
+            x.star.coef.1 <- cause
 
-
-            x.star.coef.3 <- x.star.cor[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef.3 <- x.star.cor
             x.star.coef.3[is.na(x.star.coef.3)] <- 0
-            x.star.coef.2 <- x.star.dep[- (ncol(x) + 1), (ncol(x) + 1)]
+            x.star.coef.2 <- x.star.dep
             x.star.coef.2[is.na(x.star.coef.2)] <- 0
             x.star.coef <- Rfast::rowmeans(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3))
             x.star.coef[is.na(x.star.coef)] <- 0
@@ -422,7 +425,7 @@ NNS.reg = function (x, y,
   if(is.null(x.label)) x.label <- "x"
 
 
-  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) NNS.copula(cbind(x,y)))
+  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
   dependence <- (dependence^2 + dependence^(.5))/2
 
   dep.reduced.order <- max(1, ifelse(multivariate.call,
@@ -747,7 +750,7 @@ NNS.reg = function (x, y,
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
 
   fitted <- cbind(fitted, gradient)
-  fitted$residuals <- fitted$y.hat - original.y
+  fitted$residuals <- original.y - fitted$y.hat
 
   if(dependence < stn && mean(c(length(unique(diff(x))), length(unique(x)))) > .33*length(x)){
     bias <- fitted
@@ -867,7 +870,7 @@ NNS.reg = function (x, y,
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
 
   fitted <- cbind(fitted, gradient)
-  fitted$residuals <- fitted$y.hat - original.y
+  fitted$residuals <-  original.y - fitted$y.hat
 
 
   if(!is.null(type)){

@@ -14,13 +14,13 @@ NNS.nowcast(
 )
 }
 \arguments{
-\item{h}{integer; 1 (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.}
+\item{h}{integer; \code{(h = 12)} (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.}
 
 \item{additional.regressors}{character; \code{NULL} (default) add more regressors to the base model.  The format must utilize the Quandl exchange format as described in \url{https://docs.data.nasdaq.com/docs/data-organization}.  For example, the 10-year US Treasury yield using the St. Louis Federal Reserve data is \code{"FRED/DGS10"}.}
 
 \item{start.date}{character; \code{"2000-01-03"} (default) Starting date for all data series download.}
 
-\item{Quandl.key}{character; \code{NULL} (default) User provided \link{Quandl} API key WITH QUOTES.}
+\item{Quandl.key}{character; \code{NULL} (default) User provided \link{Quandl} API key WITH QUOTES.  If previously entered in the current environment via \code{Quandl::Quandl.api_key}, no further action required.}
 
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 

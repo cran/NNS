@@ -10,12 +10,13 @@ NNS.ARMA(
   training.set = NULL,
   seasonal.factor = TRUE,
   weights = NULL,
-  best.periods = 2,
+  best.periods = 1,
   modulo = NULL,
   mod.only = TRUE,
   negative.values = FALSE,
   method = "nonlin",
   dynamic = FALSE,
+  shrink = FALSE,
   plot = TRUE,
   seasonal.plot = TRUE,
   conf.intervals = NULL,
@@ -40,15 +41,17 @@ NNS.ARMA(
 
 \item{modulo}{integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.}
 
-\item{mod.only}{logical; code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.}
+\item{mod.only}{logical; \code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.}
 
 \item{negative.values}{logical; \code{FALSE} (default) If the variable can be negative, set to
 \code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.}
 
-\item{method}{options: ("lin", "nonlin", "both"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
-\code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.}
+\item{method}{options: ("lin", "nonlin", "both", "means"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
+\code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.  Means for each subset are returned with \code{(method = "means")}.}
 
 \item{dynamic}{logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(dynamic = TRUE)}.  The default is \code{(dynamic = FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.}
+
+\item{shrink}{logical; \code{FALSE} (default) Ensembles forecasts with \code{method = "means"}.}
 
 \item{plot}{logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.}
 

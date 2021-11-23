@@ -2,10 +2,10 @@
 #'
 #' Wrapper function for NNS nowcasting method using \link{NNS.VAR} as detailed in Viole (2020), \url{https://www.ssrn.com/abstract=3586658}.
 #'
-#' @param h integer; 1 (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.
+#' @param h integer; \code{(h = 12)} (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.
 #' @param additional.regressors character; \code{NULL} (default) add more regressors to the base model.  The format must utilize the Quandl exchange format as described in \url{https://docs.data.nasdaq.com/docs/data-organization}.  For example, the 10-year US Treasury yield using the St. Louis Federal Reserve data is \code{"FRED/DGS10"}.
 #' @param start.date character; \code{"2000-01-03"} (default) Starting date for all data series download.
-#' @param Quandl.key character; \code{NULL} (default) User provided \link{Quandl} API key WITH QUOTES.
+#' @param Quandl.key character; \code{NULL} (default) User provided \link{Quandl} API key WITH QUOTES.  If previously entered in the current environment via \code{Quandl::Quandl.api_key}, no further action required.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #'
@@ -54,20 +54,22 @@ NNS.nowcast <- function(h = 12,
                         ncores = NULL){
 
 
-  if(is.null(Quandl.key)){
-    message("Please enter your Quandl API key WITHOUT QUOTES and press enter:")
+  if(getOption("Quandl.api_key")=="" || is.null(getOption("Quandl.api_key"))){
+      if(is.null(Quandl.key)){
+          message("Please enter your Quandl API key WITHOUT QUOTES and press enter:")
 
-    key <- readline(": ")
-    Quandl::Quandl.api_key(key)
+          key <- readline(": ")
+          Quandl::Quandl.api_key(key)
 
-  } else { Quandl::Quandl.api_key(Quandl.key) }
+        } else Quandl::Quandl.api_key(Quandl.key)
+  } else Quandl::Quandl.api_key(getOption("Quandl.api_key"))
 
   variables <- c("PAYEMS", "JTSJOL",  "CPIAUCSL", "DGORDER", "RSAFS",
                  "UNRATE", "HOUST", "INDPRO", "DSPIC96", "BOPTEXP",
                  "BOPTIMP", "TTLCONS", "IR", "CPILFESL", "PCEPILFE",
                  "PCEPI", "PERMIT", "TCU", "BUSINV", "ULCNFB",
                  "IQ", "GACDISA066MSFRBNY", "GACDFSA066MSFRBPHI", "PCEC96", "GDPC1",
-                 "DGS10", "T10Y2Y", "ICSA", "DGS10", "T10Y2Y", "ICSA")
+                 "ICSA", "DGS10", "T10Y2Y", "ICSA", "WALCL")
 
   variable_list <- character()
 

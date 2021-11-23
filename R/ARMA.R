@@ -9,15 +9,16 @@
 #'  \code{(variable[1 : training.set])} to monitor performance of forecast over in-sample range.
 #' @param seasonal.factor logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}
 #' @param modulo integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.
-#' @param mod.only logical; code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.
+#' @param mod.only logical; \code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.
 #' @param weights numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.
 #' @param best.periods integer; [2] (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
 #' \code{(seasonal.factor = FALSE, best.periods = NULL)}.
 #' @param negative.values logical; \code{FALSE} (default) If the variable can be negative, set to
 #' \code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.
-#' @param method options: ("lin", "nonlin", "both"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
-#' \code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.
+#' @param method options: ("lin", "nonlin", "both", "means"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
+#' \code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.  Means for each subset are returned with \code{(method = "means")}.
 #' @param dynamic logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(dynamic = TRUE)}.  The default is \code{(dynamic = FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.
+#' @param shrink logical; \code{FALSE} (default) Ensembles forecasts with \code{method = "means"}.
 #' @param plot logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.
 #' @param seasonal.plot logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.
 #' @param conf.intervals numeric [0, 1]; \code{NULL} (default) Plots and returns the associated confidence intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{meboot} on the final estimates.
@@ -65,12 +66,13 @@ NNS.ARMA <- function(variable,
                      training.set = NULL,
                      seasonal.factor = TRUE,
                      weights = NULL,
-                     best.periods = 2,
+                     best.periods = 1,
                      modulo = NULL,
                      mod.only = TRUE,
                      negative.values = FALSE,
                      method = "nonlin",
                      dynamic = FALSE,
+                     shrink = FALSE,
                      plot = TRUE,
                      seasonal.plot = TRUE,
                      conf.intervals = NULL,
@@ -79,11 +81,12 @@ NNS.ARMA <- function(variable,
 
   if(is.numeric(seasonal.factor) && dynamic) stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
 
-
   if(any(class(variable)==c("tbl", "data.table"))) variable <- as.vector(unlist(variable))
 
   if(sum(is.na(variable)) > 0) stop("You have some missing values, please address.")
 
+  method <- tolower(method)
+  if(method == "means") shrink <- FALSE
 
   oldw <- getOption("warn")
   options(warn = -1)
@@ -104,52 +107,52 @@ NNS.ARMA <- function(variable,
   if(min(variable) < 0) negative.values <- TRUE
 
   if(!is.null(training.set)){
-      variable <- variable[1 : training.set]
-      FV <- variable[1 : training.set]
+    variable <- variable[1 : training.set]
+    FV <- variable[1 : training.set]
   } else {
-      training.set <- length(variable)
-      variable <- variable
-      FV <- variable
+    training.set <- length(variable)
+    variable <- variable
+    FV <- variable
   }
 
   Estimates <- numeric()
 
 
   if(is.numeric(seasonal.factor)){
-      seasonal.plot = FALSE
-      M <- matrix(seasonal.factor, ncol=1)
-      colnames(M) <- "Period"
-      lag <- seasonal.factor
-      output <- numeric(length(seasonal.factor))
-      for(i in 1 : length(seasonal.factor)){
-          rev.var <- variable[seq(length(variable), 1, -i)]
-          output[i] <- abs(sd(rev.var) / mean(rev.var))
-      }
+    seasonal.plot = FALSE
+    M <- matrix(seasonal.factor, ncol=1)
+    colnames(M) <- "Period"
+    lag <- seasonal.factor
+    output <- numeric(length(seasonal.factor))
+    for(i in 1 : length(seasonal.factor)){
+      rev.var <- variable[seq(length(variable), 1, -i)]
+      output[i] <- abs(sd(rev.var) / mean(rev.var))
+    }
 
-      if(is.null(weights)){
-          Relative.seasonal <- output / abs(sd(variable)/mean(variable))
-          Seasonal.weighting <- 1 / Relative.seasonal
-          Observation.weighting <- 1 / sqrt(seasonal.factor)
-          Weights <- (Seasonal.weighting * Observation.weighting) / sum(Observation.weighting * Seasonal.weighting)
-          seasonal.plot <- FALSE
-      } else {
-          Weights <- weights
-      }
+    if(is.null(weights)){
+      Relative.seasonal <- output / abs(sd(variable)/mean(variable))
+      Seasonal.weighting <- 1 / Relative.seasonal
+      Observation.weighting <- 1 / sqrt(seasonal.factor)
+      Weights <- (Seasonal.weighting * Observation.weighting) / sum(Observation.weighting * Seasonal.weighting)
+      seasonal.plot <- FALSE
+    } else {
+      Weights <- weights
+    }
 
   } else {
     M <- NNS.seas(variable, plot=FALSE, modulo = modulo, mod.only = mod.only)
     if(!is.list(M)){
-        M <- t(1)
+      M <- t(1)
     } else {
-        if(is.null(best.periods)){
-            M <- M$all.periods
-        } else {
-            if(!seasonal.factor && is.numeric(best.periods) && (length(M$all.periods$Period) < best.periods)){
-                best.periods <- length(M$all.periods$Period)
-            }
-            if(!seasonal.factor && is.null(best.periods)){
-                best.periods <- length(M$all.periods$Period)
-            }
+      if(is.null(best.periods)){
+        M <- M$all.periods
+      } else {
+        if(!seasonal.factor && is.numeric(best.periods) && (length(M$all.periods$Period) < best.periods)){
+          best.periods <- length(M$all.periods$Period)
+        }
+        if(!seasonal.factor && is.null(best.periods)){
+          best.periods <- length(M$all.periods$Period)
+        }
         M <- M$all.periods[1 : best.periods, ]
       }
     }
@@ -166,22 +169,22 @@ NNS.ARMA <- function(variable,
 
   # Regression for each estimate in h
   for (j in 1 : h){
-      ## Regenerate seasonal.factor if dynamic
-      if(dynamic){
-          seas.matrix <- NNS.seas(variable, plot = FALSE)
-          if(!is.list(seas.matrix)){
-              M <- t(1)
-          } else {
-              if(is.null(best.periods)){
-                  M <- seas.matrix$all.periods
-                  best.periods <- length(M$all.periods$Period)
-              } else {
-                  if(length(M$all.periods$Period) < best.periods){
-                      best.periods <- length(M$all.periods$Period)
-                  }
-                  M <- seas.matrix$all.periods[1 : best.periods, ]
-              }
+    ## Regenerate seasonal.factor if dynamic
+    if(dynamic){
+      seas.matrix <- NNS.seas(variable, plot = FALSE)
+      if(!is.list(seas.matrix)){
+        M <- t(1)
+      } else {
+        if(is.null(best.periods)){
+          M <- seas.matrix$all.periods
+          best.periods <- length(M$all.periods$Period)
+        } else {
+          if(length(M$all.periods$Period) < best.periods){
+            best.periods <- length(M$all.periods$Period)
           }
+          M <- seas.matrix$all.periods[1 : best.periods, ]
+        }
+      }
 
       ASW <- ARMA.seas.weighting(seasonal.factor, M)
       lag <- ASW$lag
@@ -194,10 +197,12 @@ NNS.ARMA <- function(variable,
     Component.series <- GV$Component.series
 
     ## Regression on Component Series
-    if(method == 'nonlin' | method == 'both'){
-      Regression.Estimates <- list(length(lag))
+    for(i in 1:length(lag)){
+      if(method == 'nonlin' || method == 'both'){
+        Regression.Estimates <- list(length(lag))
 
-      for(i in 1:length(lag)){
+
+
         x <- Component.index[[i]] ; y <- Component.series[[i]]
         last.y <- tail(y, 1)
 
@@ -216,46 +221,53 @@ NNS.ARMA <- function(variable,
 
 
         Regression.Estimates[[i]] <- last.y + (rise / run)
-      }
-
-      Regression.Estimates <- unlist(Regression.Estimates)
-
-      NL.Regression.Estimates <- Regression.Estimates
-      Nonlin.estimates <- sum(Regression.Estimates * Weights)
-
-    }#Linear == F
-
-    if(method == 'lin' | method == 'both'){
-
-      Regression.Estimates <- list(length(lag))
-
-      Regression.Estimates <- foreach(i = 1 : length(lag))%dopar%{
-          last.x <- tail(Component.index[[i]], 1)
-          coefs <- coef(lm(Component.series[[i]] ~ Component.index[[i]]))
-
-          coefs[1] + (coefs[2] * (last.x + 1))
-      }
-
-      Regression.Estimates <- unlist(Regression.Estimates)
-
-      L.Regression.Estimates <- Regression.Estimates
-      Lin.estimates <- sum(Regression.Estimates * Weights)
-
-    }#Linear == T
 
 
-    if(!negative.values) Regression.Estimates <- pmax(0, Regression.Estimates)
+        Regression.Estimates <- unlist(Regression.Estimates)
+
+        NL.Regression.Estimates <- Regression.Estimates
+        Nonlin.estimates <- sum(Regression.Estimates * Weights)
+
+      }#Linear == F
+
+      if(method == "lin" || method == "both" || method == "means") {
+
+        Regression.Estimates <- list(length(lag))
+
+        if(method != "means"){
+          Regression.Estimates <- foreach(i = 1 : length(lag))%dopar%{
+            last.x <- tail(Component.index[[i]], 1)
+            coefs <- coef(lm(Component.series[[i]] ~ Component.index[[i]]))
+
+            coefs[1] + (coefs[2] * (last.x + 1))
+          }
+          Regression.Estimates <- unlist(Regression.Estimates)
+        }
+
+        if(method == "means" || shrink){
+          Regression.Estimates_means <- list(length(lag))
+          Regression.Estimates_means[[i]] <- mean(Component.series[[i]])
+          if(shrink) Regression.Estimates <- (Regression.Estimates + unlist(Regression.Estimates_means)) / 2 else Regression.Estimates <- unlist(Regression.Estimates_means)
+        }
+
+        L.Regression.Estimates <- Regression.Estimates
+        Lin.estimates <- sum(Regression.Estimates * Weights)
+
+      }#Linear == T
 
 
-    if(method == 'both'){
+      if(!negative.values) Regression.Estimates <- pmax(0, Regression.Estimates)
+
+
+      if(method == 'both'){
         Estimates[j] <- mean(c(Lin.estimates, Nonlin.estimates))
-    } else {
+      } else {
         Estimates[j] <- sum(Regression.Estimates * Weights)
-    }
+      }
 
-    variable <- c(variable, Estimates[j])
-    FV <- variable
-
+      variable <- c(variable, Estimates[j])
+      FV <- variable
+    } # i loop
   } # j loop
 
   if(num_cores>1) registerDoSEQ()
@@ -323,14 +335,14 @@ NNS.ARMA <- function(variable,
 
   options(warn = oldw)
   if(!is.null(conf.intervals)){
-      upper_CIs <- apply(CIs, 1, function(z) UPM.VaR(1-conf.intervals, 0, z))
-      lower_CIs <- apply(CIs, 1, function(z) LPM.VaR(1-conf.intervals, 0, z))
-      results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_CIs),  pmax(Estimates, upper_CIs))
-      colnames(results) = c("Estimates",
-                            paste0("Lower ", round(conf.intervals*100,2), "% CI"),
-                            paste0("Upper ", round(conf.intervals*100,2), "% CI"))
-      return(data.table::data.table(results))
+    upper_CIs <- apply(CIs, 1, function(z) UPM.VaR(1-conf.intervals, 0, z))
+    lower_CIs <- apply(CIs, 1, function(z) LPM.VaR(1-conf.intervals, 0, z))
+    results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_CIs),  pmax(Estimates, upper_CIs))
+    colnames(results) = c("Estimates",
+                          paste0("Lower ", round(conf.intervals*100,2), "% CI"),
+                          paste0("Upper ", round(conf.intervals*100,2), "% CI"))
+    return(data.table::data.table(results))
   } else {
-      return(Estimates)
+    return(Estimates)
   }
 }

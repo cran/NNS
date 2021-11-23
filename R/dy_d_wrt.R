@@ -76,7 +76,7 @@ dy.d_ <- function(x, y, wrt,
   l <- dim(x)[2]
 
   if(is.null(l)) stop("Please ensure (x) is a matrix or data.frame type object.")
-  if(l < 2) stop("Please use dy.dx(...) for univariate partial derivatives.")
+  if(l < 2) stop("Please use NNS::dy.dx(...) for univariate partial derivatives.")
 
   results <- list()
 
@@ -122,14 +122,7 @@ dy.d_ <- function(x, y, wrt,
   original.eval.points.max <- eval.points
   original.eval.points <- eval.points
 
-  h_s <- abs(scale(LPM.VaR(seq(0, 1, .05), 1, x[,wrt]))+.5)
-
-  if(NNS.dep(x[,wrt],y)$Dependence < .5) h_s <- 2*h_s
-
-  if(all(h_s>1)) h_s <- c(.2, .4, .5, .6, .8)
-  h_s <- h_s[h_s > 0 & h_s < 1]
-
-  h_s <- fivenum(h_s[h_s < 1])
+  h_s <- c(.25, .4, .6, .75, 1)
 
   for(h in h_s){
     index <- which(h == h_s)
@@ -266,7 +259,7 @@ dy.d_ <- function(x, y, wrt,
       mixed.estimates <- NNS.reg(x, y, point.est = mixed.deriv.points, dim.red.method = "equal", plot = FALSE, threshold = 0, order = NULL, inference = TRUE, point.only = TRUE, ncores = ncores)$Point.est
 
 
-      if(messages) message("Done :-)","\r",appendLF=TRUE)
+
 
       z <- matrix(mixed.estimates, ncol=4, byrow=TRUE)
       z <- z[,1] + z[,4] - z[,2] - z[,3]
@@ -293,7 +286,7 @@ dy.d_ <- function(x, y, wrt,
                           "Second" = rowMeans(do.call(cbind, lapply(results, `[[`, 2)), na.rm = TRUE))
 
   }
-
+  if(messages) message("Done :-)","\r",appendLF=TRUE)
   return(final_results)
 
 }
