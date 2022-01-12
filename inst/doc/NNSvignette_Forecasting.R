@@ -55,8 +55,8 @@ sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
 NNS.seas(AirPassengers, modulo = 12, plot = FALSE)
 
 ## ----best optim,fig.width=5,fig.height=3,fig.align = "center"-----------------
-nns.optimal = NNS.ARMA.optim(AirPassengers[1:100], 
-                             training.set = 88, 
+nns.optimal = NNS.ARMA.optim(AirPassengers, 
+                             training.set = 100, 
                              seasonal.factor = seq(12, 24, 6),
                              obj.fn = expression( sqrt(mean((predicted - actual)^2)) ), 
                              objective = "min",

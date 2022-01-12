@@ -5,6 +5,7 @@
 #' @param x a numeric vector.
 #' @param y a numeric vector.
 #' @param type options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.
+#' @param plot logical; \code{TRUE} (default) plots the FSD test.
 #' @return Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{https://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
@@ -18,7 +19,7 @@
 
 
 
-NNS.FSD <- function(x, y, type = "discrete"){
+NNS.FSD <- function(x, y, type = "discrete", plot = TRUE){
   type <- tolower(type)
 
   if(!any(type%in%c("discrete", "continuous"))) warning("type needs to be either 'discrete' or 'continuous'")
@@ -29,12 +30,7 @@ NNS.FSD <- function(x, y, type = "discrete"){
 
   if(sum(is.na(cbind(x,y))) > 0) stop("You have some missing values, please address.")
 
-
-  x_sort <- sort(x, decreasing = FALSE)
-  y_sort <- sort(y, decreasing = FALSE)
-
-  Combined <- c(x_sort, y_sort)
-  Combined_sort <- sort(Combined, decreasing = FALSE)
+  Combined_sort <- sort(c(x, y), decreasing = FALSE)
 
   ## Indicator function ***for all values of x and y*** as the continuous CDF target
   if(type == "discrete"){

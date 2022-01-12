@@ -153,7 +153,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="forecasting" class="section level1">
 <h1>Forecasting</h1>
 <p>The underlying assumptions of traditional autoregressive models are well known. The resulting complexity with these models leads to observations such as,</p>
-<p><em>``We have found that choosing the wrong model or parameters can often yield poor results, and it is unlikely that even experienced analysts can choose the correct model and parameters efficiently given this array of choices.’’</em> <a href="https://research.fb.com/prophet-forecasting-at-scale/">Source</a></p>
+<p><em>``We have found that choosing the wrong model or parameters can often yield poor results, and it is unlikely that even experienced analysts can choose the correct model and parameters efficiently given this array of choices.’’</em></p>
 <p><code>NNS</code> simplifies the forecasting process. Below are some examples demonstrating <strong><code>NNS.ARMA</code></strong> and its <strong>assumption free, minimal parameter</strong> forecasting method.</p>
 <div id="linear-regression" class="section level2">
 <h2>Linear Regression</h2>
@@ -252,8 +252,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2>Cross-Validating All Combinations of <code>seasonal.factor</code></h2>
 <p>NNS also offers a wrapper function <strong><code>NNS.ARMA.optim()</code></strong> to test a given vector of <code>seasonal.factor</code> and returns the optimized objective function (in this case RMSE written as <code>obj.fn = expression( sqrt(mean((predicted - actual)^2)) )</code>) and the corrsponding periods, as well as the <strong><code>NNS.ARMA</code></strong> regression method used.</p>
 <p>Given our monthly dataset, we will try multiple years by setting <code>seasonal.factor = seq(12, 24, 6)</code> every 6 months.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>nns.optimal <span class="ot">=</span> <span class="fu">NNS.ARMA.optim</span>(AirPassengers[<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>], </span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">training.set =</span> <span class="dv">88</span>, </span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>nns.optimal <span class="ot">=</span> <span class="fu">NNS.ARMA.optim</span>(AirPassengers, </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                             <span class="at">training.set =</span> <span class="dv">100</span>, </span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">seasonal.factor =</span> <span class="fu">seq</span>(<span class="dv">12</span>, <span class="dv">24</span>, <span class="dv">6</span>),</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                             <span class="at">obj.fn =</span> <span class="fu">expression</span>( <span class="fu">sqrt</span>(<span class="fu">mean</span>((predicted <span class="sc">-</span> actual)<span class="sc">^</span><span class="dv">2</span>)) ), </span>
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                             <span class="at">objective =</span> <span class="st">&quot;min&quot;</span>,</span>
@@ -261,21 +261,21 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre><code>## [1] &quot;CURRNET METHOD: lin&quot;
 ## [1] &quot;COPY LATEST PARAMETERS DIRECTLY FOR NNS.ARMA() IF ERROR:&quot;
 ## [1] &quot;NNS.ARMA(... method =  &#39;lin&#39; , seasonal.factor =  c( 12 ) ...)&quot;
-## [1] &quot;CURRENT lin OBJECTIVE FUNCTION = 27.0536971551377&quot;
+## [1] &quot;CURRENT lin OBJECTIVE FUNCTION = 35.3996540135277&quot;
 ## [1] &quot;BEST method = &#39;lin&#39;, seasonal.factor = c( 12 )&quot;
-## [1] &quot;BEST lin OBJECTIVE FUNCTION = 27.0536971551377&quot;
+## [1] &quot;BEST lin OBJECTIVE FUNCTION = 35.3996540135277&quot;
 ## [1] &quot;CURRNET METHOD: nonlin&quot;
 ## [1] &quot;COPY LATEST PARAMETERS DIRECTLY FOR NNS.ARMA() IF ERROR:&quot;
 ## [1] &quot;NNS.ARMA(... method =  &#39;nonlin&#39; , seasonal.factor =  c( 12 ) ...)&quot;
-## [1] &quot;CURRENT nonlin OBJECTIVE FUNCTION = 10.7788001997002&quot;
+## [1] &quot;CURRENT nonlin OBJECTIVE FUNCTION = 19.4976178189546&quot;
 ## [1] &quot;BEST method = &#39;nonlin&#39; PATH MEMBER = c( 12 )&quot;
-## [1] &quot;BEST nonlin OBJECTIVE FUNCTION = 10.7788001997002&quot;
+## [1] &quot;BEST nonlin OBJECTIVE FUNCTION = 19.4976178189546&quot;
 ## [1] &quot;CURRNET METHOD: both&quot;
 ## [1] &quot;COPY LATEST PARAMETERS DIRECTLY FOR NNS.ARMA() IF ERROR:&quot;
 ## [1] &quot;NNS.ARMA(... method =  &#39;both&#39; , seasonal.factor =  c( 12 ) ...)&quot;
-## [1] &quot;CURRENT both OBJECTIVE FUNCTION = 17.0549270896279&quot;
+## [1] &quot;CURRENT both OBJECTIVE FUNCTION = 26.6112299452096&quot;
 ## [1] &quot;BEST method = &#39;both&#39; PATH MEMBER = c( 12 )&quot;
-## [1] &quot;BEST both OBJECTIVE FUNCTION = 17.0549270896279&quot;</code></pre>
+## [1] &quot;BEST both OBJECTIVE FUNCTION = 26.6112299452096&quot;</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>nns.optimal</span></code></pre></div>
 <pre><code>## $periods
 ## [1] 12
@@ -284,7 +284,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 ## NULL
 ## 
 ## $obj.fn
-## [1] 10.7788
+## [1] 19.49762
 ## 
 ## $method
 ## [1] &quot;nonlin&quot;
@@ -293,7 +293,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 ## [1] FALSE
 ## 
 ## $bias.shift
-## [1] 13.89197</code></pre>
+## [1] 0</code></pre>
 <p>Using our new parameters yields the same results:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>nns <span class="ot">=</span> <span class="fu">NNS.ARMA</span>(AirPassengers, </span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">training.set =</span> <span class="dv">100</span>, </span>
@@ -310,13 +310,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2><code>$bias.shift</code></h2>
 <p><strong><code>NNS.ARMA.optim</code></strong> will return a <code>$bias.shift</code>, which is to be added to the ultimate <strong><code>NNS.ARMA</code></strong> forecast when using the optimum parameters from the <strong><code>NNS.ARMA.optim</code></strong> call.</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">mean</span>((nns<span class="sc">+</span>nns.optimal<span class="sc">$</span>bias.shift <span class="sc">-</span> <span class="fu">tail</span>(AirPassengers, <span class="dv">44</span>)) <span class="sc">^</span> <span class="dv">2</span>))</span></code></pre></div>
-<pre><code>## [1] 28.95147</code></pre>
+<pre><code>## [1] 19.49762</code></pre>
 <div id="negative-values-and-bias.shift" class="section level3">
 <h3>Negative values and <code>$bias.shift</code></h3>
 <p>If the variable cannot logically assume negative values, then simply limit the <code>NNS</code> estimates.</p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>nns <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="dv">0</span>, nns<span class="sc">+</span>nns.optimal<span class="sc">$</span>bias.shift)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">mean</span>((nns <span class="sc">-</span> <span class="fu">tail</span>(AirPassengers, <span class="dv">44</span>)) <span class="sc">^</span> <span class="dv">2</span>))</span></code></pre></div>
-<pre><code>## [1] 28.95147</code></pre>
+<pre><code>## [1] 19.49762</code></pre>
 </div>
 </div>
 <div id="extension-of-estimates" class="section level2">

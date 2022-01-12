@@ -4,6 +4,7 @@
 #'
 #' @param x a numeric vector.
 #' @param y a numeric vector.
+#' @param plot logical; \code{TRUE} (default) plots the SSD test.
 #' @return Returns one of the following SSD results: \code{"X SSD Y"}, \code{"Y SSD X"}, or \code{"NO SSD EXISTS"}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126. \url{https://www.scirp.org/Journal/PaperInformation.aspx?PaperID=63817}.
@@ -14,18 +15,14 @@
 #' @export
 
 
-NNS.SSD <- function(x, y){
+NNS.SSD <- function(x, y, plot = TRUE){
 
     if(any(class(x)==c("tbl", "data.table"))) x <- as.vector(unlist(x))
     if(any(class(y)==c("tbl", "data.table"))) y <- as.vector(unlist(y))
 
     if(sum(is.na(cbind(x,y))) > 0) stop("You have some missing values, please address.")
 
-    x_sort <- sort(x, decreasing = FALSE)
-    y_sort <- sort(y, decreasing = FALSE)
-
-    Combined <- c(x_sort, y_sort)
-    Combined_sort <- sort(Combined, decreasing = FALSE)
+    Combined_sort <- sort(c(x, y), decreasing = FALSE)
 
     LPM_x_sort <- LPM(1, Combined_sort,x)
     LPM_y_sort <- LPM(1, Combined_sort,y)
