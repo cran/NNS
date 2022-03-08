@@ -3,7 +3,8 @@
 #' Wrapper function for optimizing any combination of a given \code{seasonal.factor} vector in \link{NNS.ARMA}.  Minimum sum of squared errors (forecast-actual) is used to determine optimum across all \link{NNS.ARMA} methods.
 #'
 #' @param variable a numeric vector.
-#' @param training.set integer; Sets the number of variable observations as the training set.  See \code{Note} below for recommended uses.
+#' @param h integer; \code{NULL} (default) Number of periods to forecast out of sample.  If \code{NULL}, \code{h = length(variable) - training.set}.
+#' @param training.set integer; \code{NULL} (default) Sets the number of variable observations as the training set.  See \code{Note} below for recommended uses.
 #' @param seasonal.factor integers; Multiple frequency integers considered for \link{NNS.ARMA} model, i.e. \code{(seasonal.factor = c(12, 24, 36))}
 #' @param negative.values logical; \code{FALSE} (default) If the variable can be negative, set to
 #' \code{(negative.values = TRUE)}.  It will automatically select \code{(negative.values = TRUE)} if the minimum value of the \code{variable} is negative.
@@ -23,6 +24,8 @@
 #' \item{\code{$method}} the method identifying which \link{NNS.ARMA} method was used.
 #' \item{\code{$shrink}} whether to use the \code{shrink} parameter in \link{NNS.ARMA}.
 #' \item{\code{$bias.shift}} a numerical result of the overall bias of the optimum objective function result.  To be added to the final result when using the \link{NNS.ARMA} with the derived parameters.
+#' \item{\code{$errors}} a vector of model errors from internal calibration.
+#' \item{\code{$results}} a vector of length \code{h}.
 #'}
 #' @note
 #' \itemize{
@@ -52,11 +55,17 @@
 #'
 #' ## If variable cannot logically assume negative values
 #' nns.estimates <- pmax(0, nns.estimates)
+#'
+#'
+#' ## To predict out of sample using best parameters:
+#' NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6))
 #' }
 #'
 #' @export
 
-NNS.ARMA.optim <- function(variable, training.set,
+NNS.ARMA.optim <- function(variable,
+                           h = NULL,
+                           training.set = NULL,
                            seasonal.factor,
                            negative.values = FALSE,
                            obj.fn = expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2)),
@@ -66,7 +75,7 @@ NNS.ARMA.optim <- function(variable, training.set,
                            print.trace = TRUE,
                            ncores = NULL){
 
-  if(any(class(variable)==c("tbl", "data.table"))) variable <- as.vector(unlist(variable))
+  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
 
   if(sum(is.na(variable)) > 0) stop("You have some missing values, please address.")
 
@@ -81,18 +90,19 @@ NNS.ARMA.optim <- function(variable, training.set,
     num_cores <- ncores
   }
 
-  if(is.null(training.set)){stop("Please use the length of the variable less the forecast period as the training.set value.")}
-
-  training.set <- floor(training.set)
-
-  variable <- as.numeric(variable)
+  if(is.null(training.set) && is.null(h)){stop("Please use the length of the variable less the desired forecast period as the training.set value, or provide a value for h.")}
 
   if(min(variable)<0) negative.values <- TRUE
 
-  h <- length(variable) - training.set
+  variable <- as.numeric(variable)
+
+  if(!is.null(h)) h_final <- h else h_final <- h <- length(variable) - training.set
+
+
   actual <- tail(variable, h)
 
-  if(is.null(training.set)) l <- length(variable) else l <- training.set
+  if(is.null(training.set)) l <- length(variable) - h else l <- training.set
+
 
   denominator <- min(5, max(2, ifelse((l/100)%%1 < .5, floor(l/100), ceiling(l/100))))
 
@@ -279,7 +289,8 @@ NNS.ARMA.optim <- function(variable, training.set,
       if(weight.SSE<nns.SSE){
         nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
 
-        bias <- gravity(predicted - actual)
+        errors <- (predicted - actual)
+        bias <- gravity(errors)
         predicted <- predicted-bias
         bias.SSE <- eval(obj.fn)
 
@@ -288,7 +299,8 @@ NNS.ARMA.optim <- function(variable, training.set,
       } else {
         nns.weights <- NULL
 
-        bias <- gravity(predicted - actual)
+        errors <- (predicted - actual)
+        bias <- gravity(errors)
         predicted <- predicted-bias
         bias.SSE <- eval(obj.fn)
 
@@ -297,7 +309,8 @@ NNS.ARMA.optim <- function(variable, training.set,
     } else {
       nns.weights <- NULL
 
-      bias <- gravity(predicted - actual)
+      errors <- (predicted - actual)
+      bias <- gravity(errors)
       predicted <- predicted-bias
       bias.SSE <- eval(obj.fn)
 
@@ -317,7 +330,8 @@ NNS.ARMA.optim <- function(variable, training.set,
       if(weight.SSE>nns.SSE){
         nns.weights <- rep((1/length(nns.periods)),length(nns.periods))
 
-        bias <- gravity(predicted - actual)
+        errors <- (predicted - actual)
+        bias <- gravity(errors)
         predicted <- predicted-bias
         bias.SSE <- eval(obj.fn)
 
@@ -326,7 +340,8 @@ NNS.ARMA.optim <- function(variable, training.set,
       } else {
         nns.weights <- NULL
 
-        bias <- gravity(predicted - actual)
+        errors <- (predicted - actual)
+        bias <- gravity(errors)
         predicted <- predicted-bias
         bias.SSE <- eval(obj.fn)
 
@@ -336,8 +351,8 @@ NNS.ARMA.optim <- function(variable, training.set,
       nns.weights <- NULL
       predicted <- NNS.ARMA(variable, training.set = training.set, h = h, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = 1)
 
-
-      bias <- gravity(predicted - actual)
+      errors <- (predicted - actual)
+      bias <- gravity(errors)
       predicted <- predicted-bias
       bias.SSE <- eval(obj.fn)
       if(objective=="min"){
@@ -362,10 +377,16 @@ NNS.ARMA.optim <- function(variable, training.set,
   if(!negative.values) bias <- min(c(bias, variable))
 
 
+
+  model.results <- NNS.ARMA(variable, h = h_final, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, ncores = 1, weights = nns.weights, shrink = nns.shrink) - bias
+  if(!negative.values) model.results <- pmax(0, model.results)
+
   return(list(periods = nns.periods,
               weights = nns.weights,
               obj.fn = nns.SSE,
               method = nns.method,
               shrink = nns.shrink,
-              bias.shift = -bias))
+              bias.shift = -bias,
+              errors = errors,
+              results = model.results))
 }
