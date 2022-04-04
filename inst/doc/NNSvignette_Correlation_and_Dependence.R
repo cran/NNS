@@ -61,10 +61,10 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 ## ----permutattions_res,fig.width=5,fig.height=3,fig.align = "center"----------
 NNS.dep(x, y, p.value = TRUE, print.map = TRUE)
 
-## ----multi--------------------------------------------------------------------
+## ----multi, warning=FALSE-----------------------------------------------------
 set.seed(123)
 x <- rnorm(1000); y <- rnorm(1000); z <- rnorm(1000)
-NNS.copula(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
+NNS.copula(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE, ncores = 1)
 
 ## ----multisim-----------------------------------------------------------------
 # Add variable x to original data to avoid total independence (example only)
@@ -79,7 +79,7 @@ new.data <- sapply(1:ncol(original.data), function(x) rnorm(dim(original.data)[1
 # Apply dependence structure to new data
 new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 1, new.data[,x]))
 
-## ----comparison---------------------------------------------------------------
-NNS.copula(original.data)
-NNS.copula(new.dep.data)
+## ----comparison, warning=FALSE------------------------------------------------
+NNS.copula(original.data, ncores = 1)
+NNS.copula(new.dep.data, ncores = 1)
 

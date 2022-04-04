@@ -28,8 +28,11 @@ sd(x)
 cov(x, y)
 (Co.LPM(1, 1, x, y, mean(x), mean(y)) + Co.UPM(1, 1, x, y, mean(x), mean(y)) - D.LPM(1, 1, x, y, mean(x), mean(y)) - D.UPM(1, 1, x, y, mean(x), mean(y))) * (length(x) / (length(x) - 1))
 
-## ----cov_dec------------------------------------------------------------------
-PM.matrix(LPM.degree = 1, UPM.degree = 1,target = 'mean', variable = cbind(x, y), pop.adj = TRUE)
+## ----cov_dec, warning=FALSE---------------------------------------------------
+PM.matrix(LPM.degree = 1, UPM.degree = 1,target = 'mean', variable = cbind(x, y), pop.adj = TRUE, ncores = 1)
+
+# Standard Covariance Matrix
+cov(cbind(x, y))
 
 ## ----pearson------------------------------------------------------------------
 cor(x, y)

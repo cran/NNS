@@ -4,16 +4,27 @@
 \alias{NNS.copula}
 \title{NNS Co-Partial Moments Higher Dimension Dependence}
 \usage{
-NNS.copula(X, continuous = TRUE, plot = FALSE, independence.overlay = FALSE)
+NNS.copula(
+  X,
+  target = NULL,
+  continuous = TRUE,
+  plot = FALSE,
+  independence.overlay = FALSE,
+  ncores = NULL
+)
 }
 \arguments{
 \item{X}{a numeric matrix or data frame.}
+
+\item{target}{numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)  \code{(target = NULL)} (default) will set the target as the mean of every variable.}
 
 \item{continuous}{logical; \code{TRUE} (default) Generates a continuous measure using degree 1 \link{PM.matrix}, while discrete \code{FALSE} uses degree 0 \link{PM.matrix}.}
 
 \item{plot}{logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points using \link{plot3d}.}
 
 \item{independence.overlay}{logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.}
+
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 }
 \value{
 Returns a multivariate dependence value [0,1].
@@ -25,7 +36,10 @@ Determines higher dimension dependence coefficients based on co-partial moment m
 set.seed(123)
 x <- rnorm(1000) ; y <- rnorm(1000) ; z <- rnorm(1000)
 A <- data.frame(x, y, z)
-NNS.copula(A, plot = TRUE, independence.overlay = TRUE)
+NNS.copula(A, plot = TRUE, independence.overlay = TRUE, ncores = 1)
+
+### Target 0
+NNS.copula(A, target = rep(0, ncol(A)), plot = TRUE, independence.overlay = TRUE, ncores = 1)
 }
 \references{
 Viole, F. (2016) "Beyond Correlation: Using the Elements of Variance for Conditional Means and Probabilities"  \url{https://www.ssrn.com/abstract=2745308}.

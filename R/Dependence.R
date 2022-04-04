@@ -39,9 +39,9 @@ NNS.dep = function(x,
   if(sum(is.na(x)) > 0) stop("You have some missing values, please address.")
 
   if(p.value){
-      y_p <- replicate(100, sample.int(length(y)))
-      x <- cbind(x, y, matrix(y[y_p], ncol = dim(y_p)[2], byrow = F))
-      y <- NULL
+    y_p <- replicate(100, sample.int(length(y)))
+    x <- cbind(x, y, matrix(y[y_p], ncol = dim(y_p)[2], byrow = F))
+    y <- NULL
   }
 
   if(!is.null(y)){
@@ -64,18 +64,18 @@ NNS.dep = function(x,
 
     ll <- expression(max(min(100, .N), 8))
     res <- suppressWarnings(tryCatch(PART[,  sign(cor(x[1:eval(ll)],y[1:eval(ll)]))*summary(lm(y[1:eval(ll)]~poly(x[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant],
-                                     error = function(e) PART[, NNS.copula(cbind(x,y)), by = prior.quadrant]))
+                                     error = function(e) PART[, NNS.copula(cbind(x,y), ncores = 1), by = prior.quadrant]))
 
-    if(sum(is.na(res))>0) res[is.na(res)] <- NNS.copula(cbind(x,y))
+    if(sum(is.na(res))>0) res[is.na(res)] <- NNS.copula(cbind(x,y), ncores = 1)
 
     # Compare each asymmetry
     res_xy <- suppressWarnings(tryCatch(PART[,  sign(cor(x[1:eval(ll)],(y[1:eval(ll)])))*summary(lm(abs(y[1:eval(ll)])~poly(x[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant],
-                                        error = function(e) PART[, NNS.copula(cbind(x,y)), by = prior.quadrant]))
+                                        error = function(e) PART[, NNS.copula(cbind(x,y), ncores = 1), by = prior.quadrant]))
     res_yx <- suppressWarnings(tryCatch(PART[,  sign(cor(y[1:eval(ll)],(x[1:eval(ll)])))*summary(lm(abs(x[1:eval(ll)])~poly(y[1:eval(ll)], max(1, min(10, as.integer(sqrt(.N))-1)), raw = TRUE)))$r.squared, by = prior.quadrant],
-                                        error = function(e) PART[, NNS.copula(cbind(x,y)), by = prior.quadrant]))
+                                        error = function(e) PART[, NNS.copula(cbind(x,y), ncores = 1), by = prior.quadrant]))
 
-    if(sum(is.na(res_xy))>0) res_xy[is.na(res_xy)] <- NNS.copula(cbind(x,y))
-    if(sum(is.na(res_yx))>0) res_yx[is.na(res_yx)] <- NNS.copula(cbind(x,y))
+    if(sum(is.na(res_xy))>0) res_xy[is.na(res_xy)] <- NNS.copula(cbind(x,y), ncores = 1)
+    if(sum(is.na(res_yx))>0) res_yx[is.na(res_yx)] <- NNS.copula(cbind(x,y), ncores = 1)
 
 
     if(asym) dependence <- sum(abs(res_xy$V1) * weights) else dependence <- max(sum(abs(res$V1) * weights),
@@ -117,23 +117,23 @@ NNS.dep = function(x,
       deps <- unlist(lapply(nns.mc, "[[", 2))
 
 
-          cor_lower_CI <- LPM.VaR(.025, 0, cors[-c(1,2)])
-          cor_upper_CI <- UPM.VaR(.025, 0, cors[-c(1,2)])
-          dep_lower_CI <- LPM.VaR(.025, 0, deps[-c(1,2)])
-          dep_upper_CI <- UPM.VaR(.025, 0, deps[-c(1,2)])
+      cor_lower_CI <- LPM.VaR(.025, 0, cors[-c(1,2)])
+      cor_upper_CI <- UPM.VaR(.025, 0, cors[-c(1,2)])
+      dep_lower_CI <- LPM.VaR(.025, 0, deps[-c(1,2)])
+      dep_upper_CI <- UPM.VaR(.025, 0, deps[-c(1,2)])
       if(print.map){
-          par(mfrow = c(1, 2))
-          hist(cors[-c(1,2)], main = "NNS Correlation", xlab = NULL, xlim = c(min(cors), max(cors[-1])))
-          abline(v = cors[2], col = "red", lwd = 2)
-          mtext("Result", side = 3, col = "red", at = cors[2])
-          abline(v =  cor_lower_CI, col = "red", lwd = 2, lty = 3)
-          abline(v =  cor_upper_CI , col = "red", lwd = 2, lty = 3)
-          hist(deps[-c(1,2)], main = "NNS Dependence", xlab = NULL, xlim = c(min(deps), max(deps[-1])))
-          abline(v = deps[2], col = "red", lwd = 2)
-          mtext("Result", side = 3, col = "red", at = deps[2])
-          abline(v =  dep_lower_CI , col = "red", lwd = 2, lty = 3)
-          abline(v =  dep_upper_CI , col = "red", lwd = 2, lty = 3)
-          par(mfrow = original.par)
+        par(mfrow = c(1, 2))
+        hist(cors[-c(1,2)], main = "NNS Correlation", xlab = NULL, xlim = c(min(cors), max(cors[-1])))
+        abline(v = cors[2], col = "red", lwd = 2)
+        mtext("Result", side = 3, col = "red", at = cors[2])
+        abline(v =  cor_lower_CI, col = "red", lwd = 2, lty = 3)
+        abline(v =  cor_upper_CI , col = "red", lwd = 2, lty = 3)
+        hist(deps[-c(1,2)], main = "NNS Dependence", xlab = NULL, xlim = c(min(deps), max(deps[-1])))
+        abline(v = deps[2], col = "red", lwd = 2)
+        mtext("Result", side = 3, col = "red", at = deps[2])
+        abline(v =  dep_lower_CI , col = "red", lwd = 2, lty = 3)
+        abline(v =  dep_upper_CI , col = "red", lwd = 2, lty = 3)
+        par(mfrow = original.par)
       }
 
       return(list("Correlation" = as.numeric((cors)[2]),
