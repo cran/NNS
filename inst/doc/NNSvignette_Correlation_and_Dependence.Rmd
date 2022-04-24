@@ -39,7 +39,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 
 ```{r res1}
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 ```
 
 ## Nonlinear Relationship
@@ -54,7 +54,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 
 ```{r res2a}
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 ```
 
 
@@ -70,7 +70,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3, obs.req = 0)
 
 ```{r res2_sin}
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 ```
 
 ## Dependence
@@ -86,7 +86,7 @@ NNS.part(df$x, df$y, Voronoi = TRUE, order = 3, obs.req = 0)
 ```
 
 ```{r res3}
-NNS.dep(df$x, df$y)
+NNS.dep(df$x, df$y, ncores = 1)
 ```
 
 
@@ -107,7 +107,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 ```
 
 ```{r permutattions_res,fig.width=5,fig.height=3,fig.align = "center"}
-NNS.dep(x, y, p.value = TRUE, print.map = TRUE)
+NNS.dep(x, y, p.value = TRUE, print.map = TRUE, ncores = 1)
 ```
 
 # Multivariate Dependence `NNS.copula()`
@@ -143,13 +143,13 @@ We then utilize **`LPM.VaR(...)`** to ascertain `new data` values corresponding 
 original.data <- cbind(x, y, z, x)
 
 # Determine dependence structure
-dep.structure <- apply(original.data, 2, function(x) LPM.ratio(1, x, x))
+dep.structure <- apply(original.data, 2, function(x) LPM.ratio(0, x, x))
   
 # Generate new data of equal dimensions to original data with different mean and sd (or distribution)
 new.data <- sapply(1:ncol(original.data), function(x) rnorm(dim(original.data)[1], mean = 10, sd = 20))
 
 # Apply dependence structure to new data
-new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 1, new.data[,x]))
+new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 0, new.data[,x]))
 ```
 
 ## Compare Multivariate Dependence Structures

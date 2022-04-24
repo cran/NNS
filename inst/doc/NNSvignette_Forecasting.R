@@ -65,16 +65,7 @@ nns.optimal = NNS.ARMA.optim(AirPassengers,
 nns.optimal
 
 ## ----best optim2,fig.width=5,fig.height=3,fig.align = "center"----------------
-nns = NNS.ARMA(AirPassengers, 
-               training.set = 100, 
-               h = 44, 
-               seasonal.factor = nns.optimal$periods, 
-               weights = nns.optimal$weights, 
-               method = nns.optimal$method,
-               shrink = nns.optimal$shrink,
-               plot = TRUE, seasonal.plot = FALSE, ncores = 1)
-
-sqrt(mean((nns - tail(AirPassengers, 44)) ^ 2))
+sqrt(mean((nns.optimal$results - tail(AirPassengers, 44)) ^ 2))
 
 ## ----best optim3,fig.width=5,fig.height=3,fig.align = "center"----------------
 sqrt(mean((nns+nns.optimal$bias.shift - tail(AirPassengers, 44)) ^ 2))

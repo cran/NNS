@@ -18,7 +18,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 
 ## ----res1---------------------------------------------------------------------
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 
 ## ----nonlinear,fig.width=5,fig.height=3,fig.align = "center", results='hide'----
 x = seq(0, 3, .01) ; y = x ^ 10
@@ -28,7 +28,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3)
 
 ## ----res2a--------------------------------------------------------------------
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 
 ## ----nonlinear_sin,fig.width=5,fig.height=3,fig.align = "center", results='hide'----
 x = seq(0, 12*pi, pi/100) ; y = sin(x)
@@ -38,7 +38,7 @@ NNS.part(x, y, Voronoi = TRUE, order = 3, obs.req = 0)
 
 ## ----res2_sin-----------------------------------------------------------------
 cor(x, y)
-NNS.dep(x, y)
+NNS.dep(x, y, ncores = 1)
 
 ## ----dependence,fig.width=5,fig.height=3,fig.align = "center"-----------------
 set.seed(123)
@@ -49,7 +49,7 @@ df <- subset(df, (x ^ 2 + y ^ 2 <= 1 & x ^ 2 + y ^ 2 >= 0.95))
 NNS.part(df$x, df$y, Voronoi = TRUE, order = 3, obs.req = 0)
 
 ## ----res3---------------------------------------------------------------------
-NNS.dep(df$x, df$y)
+NNS.dep(df$x, df$y, ncores = 1)
 
 ## ----permutations-------------------------------------------------------------
 ## p-values for [NNS.dep]
@@ -59,7 +59,7 @@ x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 NNS.part(x, y, Voronoi = TRUE, order = 3)
 
 ## ----permutattions_res,fig.width=5,fig.height=3,fig.align = "center"----------
-NNS.dep(x, y, p.value = TRUE, print.map = TRUE)
+NNS.dep(x, y, p.value = TRUE, print.map = TRUE, ncores = 1)
 
 ## ----multi, warning=FALSE-----------------------------------------------------
 set.seed(123)
@@ -71,13 +71,13 @@ NNS.copula(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE, ncores = 1)
 original.data <- cbind(x, y, z, x)
 
 # Determine dependence structure
-dep.structure <- apply(original.data, 2, function(x) LPM.ratio(1, x, x))
+dep.structure <- apply(original.data, 2, function(x) LPM.ratio(0, x, x))
   
 # Generate new data of equal dimensions to original data with different mean and sd (or distribution)
 new.data <- sapply(1:ncol(original.data), function(x) rnorm(dim(original.data)[1], mean = 10, sd = 20))
 
 # Apply dependence structure to new data
-new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 1, new.data[,x]))
+new.dep.data <- sapply(1:ncol(original.data), function(x) LPM.VaR(dep.structure[,x], 0, new.data[,x]))
 
 ## ----comparison, warning=FALSE------------------------------------------------
 NNS.copula(original.data, ncores = 1)
