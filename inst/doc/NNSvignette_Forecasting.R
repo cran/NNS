@@ -6,7 +6,6 @@ library(NNS)
 library(data.table)
 require(knitr)
 require(rgl)
-require(tdigest)
 require(dtw)
 require(meboot)
 

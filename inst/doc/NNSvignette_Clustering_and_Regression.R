@@ -7,7 +7,6 @@ library(data.table)
 require(knitr)
 require(rgl)
 require(meboot)
-require(tdigest)
 require(dtw)
 
 ## ----linear-------------------------------------------------------------------

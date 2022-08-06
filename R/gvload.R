@@ -7,7 +7,6 @@
 #' @importFrom data.table data.table %chin% .I .N .SD := as.data.table fwrite is.data.table rbindlist set setcolorder setnames setorder as.IDate as.ITime setkey frollmean shift transpose
 #' @importFrom dtw dtw
 #' @importFrom meboot meboot
-#' @importFrom tdigest tdigest tquantile
 #' @importFrom Rfast colsums colmeans rowsums rowmeans
 #' @importFrom caret upSample downSample
 #' @importFrom zoo as.yearmon
@@ -16,11 +15,13 @@
 #' @import rgl
 #' @import stringr
 #' @import meboot
-#' @import tdigest
 #' @import data.table
 #' @import dynlm
 #' @import Quandl
-
+#' @import MESS
+#' @rawNamespace import(Rcpp, except = LdFlags)
+#' @import RcppParallel
+#' @useDynLib NNS, .registration = TRUE
 
 
 
@@ -39,7 +40,7 @@
       "detectCores","makeCluster","registerDoSEQ","clusterExport", "frollmean", "shift",
       "%dopar%","foreach","stopCluster",
       "%do%", "k", "V1", "residuals", "nns_results", "bias_l", "bias_r",
-      "tdigest", "tquantile", "bias"
+      "tdigest", "tquantile", "bias", "conf.int.neg", "conf.int.pos"
     ))
 
   requireNamespace("data.table")
@@ -47,12 +48,16 @@
   requireNamespace("doParallel")
   requireNamespace("stringr")
   requireNamespace("meboot")
-  requireNamespace("tdigest")
+  requireNamespace("MESS")
   requireNamespace("Rfast")
   requireNamespace("dynlm")
   requireNamespace("Quandl")
 
+
+
   .datatable.aware = TRUE
+  
+  options(datatable.verbose=FALSE)
 
   invisible(data.table::setDTthreads(1))
 

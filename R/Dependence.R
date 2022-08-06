@@ -7,7 +7,7 @@
 #' @param asym logical; \code{FALSE} (default) Allows for asymmetrical dependencies.
 #' @param p.value logical; \code{FALSE} (default) Generates 100 independent random permutations to test results against and plots 95 percent confidence intervals along with all results.
 #' @param print.map logical; \code{FALSE} (default) Plots quadrant means, or p-value replicates.
-#' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
+#' @param ncores integer 1 (default); value specifying the number of cores to be used in the parallelized  procedure. If NULL, the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @return Returns the bi-variate \code{"Correlation"} and \code{"Dependence"} or correlation / dependence matrix for matrix input.
 #'
 #' @note
@@ -34,7 +34,7 @@ NNS.dep = function(x,
                    asym = FALSE,
                    p.value = FALSE,
                    print.map = FALSE,
-                   ncores = NULL){
+                   ncores = 1){
 
 
 
@@ -68,10 +68,11 @@ NNS.dep = function(x,
     weights <- PART[, weights[1], by = prior.quadrant]$V1
 
     error_fn = function(x, y){
-      max(0, min(1, (Co.UPM(1, 1, x, y, target.x = mean(x), target.y = mean(y)) +
-                                 Co.UPM(1, 1, x, y, target.x = mean(x), target.y = mean(y))) /
-                             (D.UPM(1, 1, x, y, target.x = mean(x), target.y = mean(y)) +
-                                D.LPM(1, 1, x, y, target.x = mean(x), target.y = mean(y)))))
+      max(0, min(1, (Co.UPM(1, x, y, target_x = mean(x), target_y = mean(y)) +
+                     Co.LPM(1, x, y, target_x = mean(x), target_y = mean(y))) /
+                    ( D.UPM(1, 1, x, y, target_x = mean(x), target_y = mean(y)) +
+                      D.LPM(1, 1, x, y, target_x = mean(x), target_y = mean(y)))))
+
     }
 
     ll <- expression(max(min(100, .N), 8))
@@ -121,7 +122,7 @@ NNS.dep = function(x,
     if(p.value){
       original.par <- par(no.readonly = TRUE)
 
-      nns.mc <- apply(x, 2, function(g) NNS.dep(x[,1], g, ncores = ncores))
+      nns.mc <- apply(x, 2, function(g) NNS.dep(x[,1], g, ncores = 1))
 
       ## Store results
       cors <- unlist(lapply(nns.mc, "[[", 1))

@@ -1,417 +1,3 @@
-#' Lower Partial Moment
-#'
-#' This function generates a univariate lower partial moment for any degree or target.
-#'
-#' @param degree integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
-#' @param variable a numeric vector.
-#' @return LPM of variable
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100)
-#' LPM(0, mean(x), x)
-#' @export
-
-LPM <-  function(degree, target, variable){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  if(degree == 0) return(mean(variable <= target))
-
-  sum((target - (variable[variable <= target])) ^ degree) / length(variable)
-}
-LPM <- Vectorize(LPM, vectorize.args = 'target')
-
-
-#' Upper Partial Moment
-#'
-#' This function generates a univariate upper partial moment for any degree or target.
-#' @param degree integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
-#' @param variable a numeric vector.
-#' @return UPM of variable
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100)
-#' UPM(0, mean(x), x)
-#' @export
-
-
-UPM <-  function(degree, target, variable){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  if(degree == 0) return(mean(variable > target))
-
-  sum(((variable[variable > target]) - target) ^ degree) / length(variable)
-}
-UPM <- Vectorize(UPM, vectorize.args = 'target')
-
-#' Co-Upper Partial Moment
-#' (Upper Right Quadrant 1)
-#'
-#' This function generates a co-upper partial moment between two equal length variables for any degree or target.
-#' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
-#' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
-#' @param x a numeric vector.
-#' @param y a numeric vector of equal length to \code{x}.
-#' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @return Co-UPM of two variables
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100) ; y <- rnorm(100)
-#' Co.UPM(0, 0, x, y, mean(x), mean(y))
-#' @export
-
-
-Co.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-
-  if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))
-  if(any(class(y)%in%c("tbl","data.table"))) y <- as.vector(unlist(y))
-
-  z <- cbind(x, y)
-  z <- t(t(z) - c(target.x, target.y))
-  z[z<=0] <- NA
-  z <- z[complete.cases(z), , drop = FALSE]
-  return(z[,1]^degree.x %*% z[,2]^degree.y / length(x))
-}
-Co.UPM <- Vectorize(Co.UPM, vectorize.args = c('target.x', 'target.y'))
-
-#' Co-Lower Partial Moment
-#' (Lower Left Quadrant 4)
-#'
-#' This function generates a co-lower partial moment for between two equal length variables for any degree or target.
-#' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
-#' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
-#' @param x a numeric vector.
-#' @param y a numeric vector of equal length to \code{x}.
-#' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @return Co-LPM of two variables
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100) ; y <- rnorm(100)
-#' Co.LPM(0, 0, x, y, mean(x), mean(y))
-#' @export
-
-Co.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-
-  if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))
-  if(any(class(y)%in%c("tbl","data.table"))) y <- as.vector(unlist(y))
-
-  z <- cbind(x,y)
-  z <- t(c(target.x, target.y) - t(z))
-  z[z<=0] <- NA
-  z <- z[complete.cases(z), , drop = FALSE]
-  return(z[,1]^degree.x %*% z[,2]^degree.y / length(x))
-}
-Co.LPM <- Vectorize(Co.LPM, vectorize.args = c('target.x', 'target.y'))
-
-#' Divergent-Lower Partial Moment
-#' (Lower Right Quadrant 3)
-#'
-#' This function generates a divergent lower partial moment between two equal length variables for any degree or target.
-#' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
-#' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
-#' @param x a numeric vector.
-#' @param y a numeric vector of equal length to \code{x}.
-#' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @return Divergent LPM of two variables
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100) ; y <- rnorm(100)
-#' D.LPM(0, 0, x, y, mean(x), mean(y))
-#' @export
-
-D.LPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-
-  if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))
-  if(any(class(y)%in%c("tbl","data.table"))) y <- as.vector(unlist(y))
-
-  z <- cbind(x,y)
-  z[,1] <- z[,1] - target.x
-  z[,2] <- target.y - z[,2]
-  z[z<=0] <- NA
-  z <- z[complete.cases(z), , drop = FALSE]
-  return(z[,1]^degree.x %*% z[,2]^degree.y / length(x))
-}
-D.LPM <- Vectorize(D.LPM, vectorize.args = c('target.x', 'target.y'))
-
-#' Divergent-Upper Partial Moment
-#' (Upper Left Quadrant 2)
-#'
-#' This function generates a divergent upper partial moment between two equal length variables for any degree or target.
-#' @param degree.x integer; Degree for variable X.  \code{(degree.x = 0)} is frequency, \code{(degree.x = 1)} is area.
-#' @param degree.y integer; Degree for variable Y.  \code{(degree.y = 0)} is frequency, \code{(degree.y = 1)} is area.
-#' @param x a numeric vector.
-#' @param y a numeric vector of equal length to \code{x}.
-#' @param target.x numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @param target.y numeric; Typically the mean of Variable Y for classical statistics equivalences, but does not have to be. (Vectorized)
-#' @return Divergent UPM of two variables
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100) ; y <- rnorm(100)
-#' D.UPM(0, 0, x, y, mean(x), mean(y))
-#' @export
-
-D.UPM <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-
-  if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))
-  if(any(class(y)%in%c("tbl","data.table"))) y <- as.vector(unlist(y))
-
-  z <- cbind(x,y)
-  z[,1] <- target.x - z[,1]
-  z[,2] <- z[,2] - target.y
-  z[z<=0] <- NA
-  z <- z[complete.cases(z), , drop = FALSE]
-  return(z[,1]^degree.x %*% z[,2]^degree.y / length(x))
-}
-D.UPM <- Vectorize(D.UPM, vectorize.args = c('target.x', 'target.y'))
-
-
-#' Partial Moment Matrix
-#'
-#'
-#' This function generates a co-partial moment matrix for the specified co-partial moment.
-#' @param LPM.degree integer; Degree for \code{variable} below \code{target} deviations.  \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param UPM.degree integer; Degree for \code{variable} above \code{target} deviations.  \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)  \code{(target = NULL)} (default) will set the target as the mean of every variable.
-#' @param variable a numeric matrix or data.frame.
-#' @param pop.adj logical; \code{FALSE} (default) Adjusts the sample co-partial moment matrices for population statistics.
-#' @return Matrix of partial moment quadrant values (CUPM, DUPM, DLPM, CLPM), and overall covariance matrix.  Uncalled quadrants will return a matrix of zeros.
-#' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
-#' @note For divergent asymmetical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @references Viole, F. (2017) "Bayes' Theorem From Partial Moments"
-#' \url{https://www.ssrn.com/abstract=3457377}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
-#' A <- cbind(x,y,z)
-#' PM.matrix(LPM.degree = 1, UPM.degree = 1, variable = A, ncores = 1)
-#'
-#' ## Use of vectorized numeric targets (target_x, target_y, target_z)
-#' PM.matrix(LPM.degree = 1, UPM.degree = 1, target = c(0, 0.15, .25), variable = A, ncores = 1)
-#'
-#' ## Calling Individual Partial Moment Quadrants
-#' cov.mtx <- PM.matrix(LPM.degree = 1, UPM.degree = 1, variable = A, ncores = 1)
-#' cov.mtx$cupm
-#'
-#' ## Full covariance matrix
-#' cov.mtx$cov.matrix
-#' @export
-
-
-PM.matrix <- function(LPM.degree, UPM.degree, target = NULL, variable, pop.adj = FALSE, ncores = NULL){
-
-  if(is.null(target)) target <- "mean"
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.data.frame(variable)
-
-  n <- ncol(variable)
-  if(is.null(n)){stop("supply a matrix-like 'variable'")}
-
-  clpms <- list()
-  cupms <- list()
-  dlpms <- list()
-  dupms <- list()
-
-  if(is.null(ncores)) {
-    num_cores <- as.integer(parallel::detectCores()) - 1
-  } else {
-    num_cores <- ncores
-  }
-
-  if(num_cores > 1){
-    cl <- parallel::makeCluster(num_cores)
-    doParallel::registerDoParallel(cl)
-  }
-
-  matrices <- list()
-
-  i <- 1:n
-
-  all_quadrants <- function(degree.x, degree.y, x, y, target.x = mean(x), target.y = mean(y)){
-    return(list(Co.LPM(degree.x, degree.y, x, y, target.x, target.y),
-                Co.UPM(degree.x, degree.y, x, y, target.x, target.y),
-                D.LPM(degree.x, degree.y, x, y, target.x, target.y),
-                D.UPM(degree.x, degree.y, x, y, target.x, target.y)))
-  }
-
-  matrices <- foreach(i = 1 : n, .packages = c("NNS", "data.table"))%dopar%{
-    if(is.numeric(target)){
-      all_pms <- lapply(1 : n, function(b) all_quadrants(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = target[i], target.y = target[b]) )
-
-      clpms <- lapply(all_pms, `[[`, 1)
-      cupms <- lapply(all_pms, `[[`, 2)
-      dlpms <- lapply(all_pms, `[[`, 3)
-      dupms <- lapply(all_pms, `[[`, 4)
-    } else {
-      all_pms <- lapply(1 : n, function(b) all_quadrants(x = variable[ , i], y = variable[ , b], degree.x = LPM.degree, degree.y = LPM.degree, target.x = mean(variable[ , i]), target.y = mean(variable[ , b])))
-
-      clpms <- lapply(all_pms, `[[`, 1)
-      cupms <- lapply(all_pms, `[[`, 2)
-      dlpms <- lapply(all_pms, `[[`, 3)
-      dupms <- lapply(all_pms, `[[`, 4)
-    }
-
-    matrices$clpm <- unlist(clpms)
-    matrices$cupm <- unlist(cupms)
-    matrices$dlpm <- unlist(dlpms)
-    matrices$dupm <- unlist(dupms)
-    return(matrices)
-  }
-
-  if(num_cores > 1){
-    parallel::stopCluster(cl)
-    registerDoSEQ()
-  }
-
-
-  clpm.matrix <- do.call(rbind,lapply(matrices, `[[`, 1))
-  cupm.matrix <- do.call(rbind,lapply(matrices, `[[`, 2))
-  dlpm.matrix <- do.call(rbind,lapply(matrices, `[[`, 3))
-  dupm.matrix <- do.call(rbind,lapply(matrices, `[[`, 4))
-
-  colnames(clpm.matrix) <- colnames(variable)
-  rownames(clpm.matrix) <- colnames(variable)
-
-  colnames(cupm.matrix) <- colnames(variable)
-  rownames(cupm.matrix) <- colnames(variable)
-
-  diag(dlpm.matrix) <- 0
-  colnames(dlpm.matrix) <- colnames(variable)
-  rownames(dlpm.matrix) <- colnames(variable)
-
-  diag(dupm.matrix) <- 0
-  colnames(dupm.matrix) <- colnames(variable)
-  rownames(dupm.matrix) <- colnames(variable)
-
-
-  if(pop.adj){
-    adjustment <- length(variable[ , 1]) / (length(variable[ , 1]) - 1)
-    clpm.matrix <- clpm.matrix*adjustment
-    cupm.matrix <- cupm.matrix*adjustment
-    dlpm.matrix <- dlpm.matrix*adjustment
-    dupm.matrix <- dupm.matrix*adjustment
-  }
-
-  cov.matrix <- cupm.matrix + clpm.matrix - dupm.matrix - dlpm.matrix
-
-  return(list(cupm = cupm.matrix,
-              dupm = dupm.matrix,
-              dlpm = dlpm.matrix,
-              clpm = clpm.matrix,
-              cov.matrix = cov.matrix
-  ))
-}
-
-
-#' Lower Partial Moment RATIO
-#'
-#' This function generates a standardized univariate lower partial moment for any degree or target.
-#' @param degree integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
-#' @param variable a numeric vector.
-#' @return Standardized LPM of variable
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @references Viole, F. (2017) "Continuous CDFs and ANOVA with NNS"
-#' \url{https://www.ssrn.com/abstract=3007373}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100)
-#' LPM.ratio(0, mean(x), x)
-#'
-#' \dontrun{
-#' ## Empirical CDF (degree = 0)
-#' lpm_cdf <- LPM.ratio(0, sort(x), x)
-#' plot(sort(x), lpm_cdf)
-#'
-#' ## Continuous CDF (degree = 1)
-#' lpm_cdf_1 <- LPM.ratio(1, sort(x), x)
-#' plot(sort(x), lpm_cdf_1)
-#'
-#' ## Joint CDF
-#' x <- rnorm(5000) ; y <- rnorm(5000)
-#' plot3d(x, y, Co.LPM(0, 0, sort(x), sort(y), x, y), col = "blue", xlab = "X", ylab = "Y",
-#' zlab = "Probability", box = FALSE)
-#' }
-#' @export
-
-LPM.ratio <- function(degree, target, variable){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  lpm <- LPM(degree, target, variable)
-
-  if(degree>0) area <- lpm + UPM(degree, target, variable) else area <- 1
-
-  return(lpm / area)
-}
-
-
-
-#' Upper Partial Moment RATIO
-#'
-#' This function generates a standardized univariate upper partial moment for any degree or target.
-#' @param degree integer; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; Typically set to mean, but does not have to be. (Vectorized)
-#' @param variable a numeric vector.
-#' @return Standardized UPM of variable
-#' @author Fred Viole, OVVO Financial Systems
-#' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments"
-#' \url{https://www.amazon.com/dp/1490523995/ref=cm_sw_su_dp}
-#' @examples
-#' set.seed(123)
-#' x <- rnorm(100)
-#' UPM.ratio(0, mean(x), x)
-#'
-#' ## Joint Upper CDF
-#' \dontrun{
-#' x <- rnorm(5000) ; y <- rnorm(5000)
-#' plot3d(x, y, Co.UPM(0, 0, sort(x), sort(y), x, y), col = "blue", xlab = "X", ylab = "Y",
-#' zlab = "Probability", box = FALSE)
-#' }
-#' @export
-
-
-UPM.ratio <- function(degree, target, variable){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  upm <- UPM(degree, target, variable)
-
-  if(degree>0) area <- LPM(degree, target, variable) + upm else area <- 1
-
-  return(upm / area)
-}
-
-
-
 #' NNS PDF
 #'
 #' This function generates an empirical PDF using \link{dy.dx} on \link{NNS.CDF}.
@@ -438,11 +24,13 @@ UPM.ratio <- function(degree, target, variable){
 
 
 NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL , plot = TRUE){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  if(is.null(target)) target <- sort(variable)
-
+  if(any(class(variable)%in%c("tbl","data.table"))){
+    variable <- as.vector(unlist(variable))
+  }
+  if(is.null(target)){
+    target <- sort(variable)
+  }
+  
   # d/dx approximation
   if(is.null(bins)){
     bins <- density(variable)$bw
@@ -451,14 +39,11 @@ NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL , plot = TR
     d.dx <- (abs(max(target)) + abs(min(target))) / bins
     tgt <- seq(min(target), max(target), d.dx)
   }
-
-
-
   CDF <- NNS.CDF(variable, plot = FALSE, degree = degree)$Function
   PDF <- pmax(dy.dx(unlist(CDF[,1]), unlist(CDF[,2]), eval.point = tgt, deriv.method = "FD")$First, 0)
-
-  if(plot){plot(tgt, PDF, col = 'steelblue', type = 'l', lwd = 3, xlab = "X", ylab = "Density")}
-
+  if(plot){
+    plot(tgt, PDF, col = 'steelblue', type = 'l', lwd = 3, xlab = "X", ylab = "Density")
+  }
   return(data.table::data.table(cbind("Intervals" = tgt, PDF)))
 }
 
@@ -509,79 +94,69 @@ NNS.PDF <- function(variable, degree = 1, target = NULL, bins = NULL , plot = TR
 
 
 NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TRUE){
-
-  if(any(class(variable)%in%c("tbl","data.table")) && dim(variable)[2]==1) variable <- as.vector(unlist(variable))
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.data.frame(variable)
-
+  
+  if(any(class(variable)%in%c("tbl","data.table")) && dim(variable)[2]==1){ 
+    variable <- as.vector(unlist(variable))
+  }
+  if(any(class(variable)%in%c("tbl","data.table"))){
+    variable <- as.data.frame(variable)
+  }
+  
   if(!is.null(target)){
     if(is.null(dim(variable)) || dim(variable)[2]==1){
-      if(target<min(variable) || target>max(variable))   stop("Please make sure target is within the observed values of variable.")
+      if(target<min(variable) || target>max(variable)){
+        stop("Please make sure target is within the observed values of variable.")
+      }
     } else {
-      if(target[1]<min(variable[,1]) || target[1]>max(variable[,1])) stop("Please make sure target 1 is within the observed values of variable 1.")
-      if(target[2]<min(variable[,2]) || target[2]>max(variable[,2])) stop("Please make sure target 2 is within the observed values of variable 2.")
+      if(target[1]<min(variable[,1]) || target[1]>max(variable[,1])){
+        stop("Please make sure target 1 is within the observed values of variable 1.")
+      }
+      if(target[2]<min(variable[,2]) || target[2]>max(variable[,2])){
+        stop("Please make sure target 2 is within the observed values of variable 2.")
+      }
     }
   }
-
   type <- tolower(type)
-
-  if(!(type%in%c("cdf","survival", "hazard", "cumulative hazard"))) stop(paste("Please select a type from: ", "`CDF`, ", "`survival`, ",  "`hazard`, ", "`cumulative hazard`"))
-
+  if(!(type%in%c("cdf","survival", "hazard", "cumulative hazard"))){
+    stop(paste("Please select a type from: ", "`CDF`, ", "`survival`, ",  "`hazard`, ", "`cumulative hazard`"))
+  }
   if(is.null(dim(variable)) || dim(variable)[2] == 1){
-
     overall_target <- sort(variable)
     x <- overall_target
-
     if(degree > 0){
       CDF <- LPM.ratio(degree, overall_target, variable)
     } else {
       cdf_fun <- ecdf(x)
       CDF <- cdf_fun(overall_target)
     }
-
-
     values <- cbind.data.frame(sort(variable), CDF)
     colnames(values) <- c(deparse(substitute(variable)), "CDF")
-
     if(!is.null(target)){
       P <- LPM.ratio(degree, target, variable)
     } else {
       P <- NULL
     }
-
     ylabel <- "Probability"
-
     if(type == "survival"){
       CDF <- 1 - CDF
       P <- 1 - P
-    }
-
-
-    if(type == "hazard"){
+    }else if(type == "hazard"){
       CDF <- exp(log(density(x, n = length(x))$y)-log(1-CDF))
-
       ylabel <- "h(x)"
       P <- NNS.reg(x[-length(x)], CDF[-length(x)], order = "max", point.est = c(x[length(x)], target), plot = FALSE)$Point.est
       CDF[is.infinite(CDF)] <- P[1]
       P <- P[-1]
-    }
-
-
-    if(type == "cumulative hazard"){
+    }else if(type == "cumulative hazard"){
       CDF <- -log((1 - CDF))
-
       ylabel <- "H(x)"
       P <- NNS.reg(x[-length(x)], CDF[-length(x)], order = "max", point.est = c(x[length(x)], target), plot = FALSE)$Point.est
-
       CDF[is.infinite(CDF)] <- P[1]
       P <- P[-1]
     }
-
-
     if(plot){
       plot(x, CDF, pch = 19, col = 'steelblue', xlab = deparse(substitute(variable)), ylab = ylabel, main = toupper(type), type = "s", lwd = 2)
       points(x, CDF, pch = 19, col = 'steelblue')
       lines(x, CDF, lty=2, col = 'steelblue')
-
       if(!is.null(target)){
         segments(target,0,target,P, col = "red", lwd = 2, lty = 2)
         segments(min(variable), P, target, P, col = "red", lwd = 2, lty = 2)
@@ -590,78 +165,78 @@ NNS.CDF <- function(variable, degree = 0, target = NULL, type = "CDF", plot = TR
         mtext(text = round(target,4), col = "red", side = 1, at = target,  las = 1)
       }
     }
-
     values <- data.table::data.table(cbind.data.frame(x, CDF))
     colnames(values) <- c(deparse(substitute(variable)), ylabel)
-
-
-    return(list("Function" = values ,
-                "target.value" = P))
-
+    return(
+      list(
+        "Function" = values ,
+        "target.value" = P
+      )
+    )
   } else {
     overall_target_1 <- (variable[,1])
     overall_target_2 <- (variable[,2])
-
-    CDF <- Co.LPM(degree,degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) /
+    CDF <- (
+      Co.LPM(degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) /
       (
-        Co.LPM(degree,degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) +
-          Co.UPM(degree,degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) +
+        Co.LPM(degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) +
+          Co.UPM(degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) +
           D.UPM(degree,degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2) +
           D.LPM(degree,degree, sort(variable[,1]), sort(variable[,2]), overall_target_1, overall_target_2)
       )
-
+    )
     if(type == "survival"){
       CDF <- 1 - CDF
-    }
-
-    if(type == "hazard"){
+    } else if(type == "hazard"){
       CDF <- sort(variable) / (1 - CDF)
-    }
-
-    if(type == "cumulative hazard"){
+    } else if(type == "cumulative hazard"){
       CDF <- -log((1 - CDF))
     }
-
-
     if(!is.null(target)){
-      P <- Co.LPM(degree,degree, variable[,1], variable[,2], target[1], target[2]) /
+      P <- (
+        Co.LPM(degree, variable[,1], variable[,2], target[1], target[2]) /
         (
-          Co.LPM(degree,degree, variable[,1], variable[,2], target[1], target[2]) +
-            Co.UPM(degree,degree, variable[,1], variable[,2], target[1], target[2]) +
+          Co.LPM(degree, variable[,1], variable[,2], target[1], target[2]) +
+            Co.UPM(degree, variable[,1], variable[,2], target[1], target[2]) +
             D.LPM(degree,degree, variable[,1], variable[,2], target[1], target[2]) +
             D.UPM(degree,degree, variable[,1], variable[,2], target[1], target[2])
         )
-
-
+      )
     } else {
       P <- NULL
     }
-
     if(plot){
-      plot3d(variable[,1], variable[,2], CDF, col = "steelblue",
-             xlab = deparse(substitute(variable[,1])), ylab = deparse(substitute(variable[,2])),
-             zlab = "Probability", box = FALSE, pch = 19)
-
+      plot3d(
+        variable[,1], variable[,2], CDF, col = "steelblue",
+        xlab = deparse(substitute(variable[,1])), ylab = deparse(substitute(variable[,2])),
+        zlab = "Probability", box = FALSE, pch = 19
+      )
       if(!is.null(target)){
         points3d(target[1], target[2], P, col = "green", pch = 19)
         points3d(target[1], target[2], 0, col = "red", pch = 15, cex = 2)
-        lines3d(x= c(target[1], max(variable[,1])),
-                y= c(target[2], max(variable[,2])),
-                z= c(P, P),
-                col = "red", lwd = 2, lty=3)
-        lines3d(x= c(target[1], target[1]),
-                y= c(target[2], target[2]),
-                z= c(0, P),
-                col = "red", lwd = 1, lty=3)
-        text3d(max(variable[,1]), max(variable[,2]), P, texts = paste0("P = ", round(P,4)), pos = 4, col = "red")
+        lines3d(
+          x= c(target[1], max(variable[,1])),
+          y= c(target[2], max(variable[,2])),
+          z= c(P, P),
+          col = "red", lwd = 2, lty=3
+        )
+        lines3d(
+          x= c(target[1], target[1]),
+          y= c(target[2], target[2]),
+          z= c(0, P),
+          col = "red", lwd = 1, lty=3
+        )
+        text3d(
+          max(variable[,1]), max(variable[,2]), P, texts = paste0("P = ", round(P,4)), pos = 4, col = "red"
+        )
       }
-
+      
     }
-
+    
   }
-
+  
   return(list("CDF" = data.table::data.table(cbind((variable), CDF = CDF)),
               "P" = P))
-
-
+  
+  
 }
