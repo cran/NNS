@@ -1,8 +1,8 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.9.0
-Date: 2022-08-06
+Version: 0.9.1
+Date: 2022-08-21
 Authors@R: c(
   person("Fred", "Viole", role=c("aut","cre"), email="ovvo.financial.systems@gmail.com"),
   person("Roberto", "Spadim", role=c("ctb"))
@@ -14,15 +14,15 @@ BugReports: https://github.com/OVVO-Financial/NNS/issues
 RoxygenNote: 7.1.2
 Depends: R (>= 3.5.0), doParallel
 Imports: caret, data.table, dtw, dynlm, meboot, MESS, Quandl, Rcpp,
-        RcppParallel, RcppThread, Rfast, rgl, stringr, tseries, zoo
+        RcppParallel, Rfast, rgl, stringr, tseries, zoo
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 LinkingTo: Rcpp, RcppParallel
 SystemRequirements: GNU make
 Config/testthat/edition: 3
 NeedsCompilation: yes
-Packaged: 2022-08-06 03:02:00 UTC; fredv
+Packaged: 2022-08-21 15:42:16 UTC; fredv
 Author: Fred Viole [aut, cre],
   Roberto Spadim [ctb]
 Repository: CRAN
-Date/Publication: 2022-08-06 07:30:16 UTC
+Date/Publication: 2022-08-22 07:50:28 UTC
