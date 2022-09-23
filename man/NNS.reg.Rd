@@ -13,7 +13,6 @@ NNS.reg(
   dim.red.method = NULL,
   tau = NULL,
   type = NULL,
-  inference = FALSE,
   point.est = NULL,
   location = "top",
   return.values = TRUE,
@@ -47,8 +46,6 @@ NNS.reg(
 
 \item{type}{\code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].}
 
-\item{inference}{logical; \code{FALSE} (default) For inferential tasks, otherwise \code{inference = FALSE} is faster for predictive tasks.}
-
 \item{point.est}{a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.}
 
 \item{location}{Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.}
@@ -70,7 +67,7 @@ NNS.reg(
 
 \item{noise.reduction}{the method of determining regression points options: ("mean", "median", "mode", "off"); In low signal:noise situations,\code{(noise.reduction = "mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction = "median")} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction = "mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction = "off")} uses an overall central tendency measure for partitions.}
 
-\item{dist}{options:("L1", "L2", "DTW", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} seclects the Manhattan distance; \code{(dist = "DTW")} selects the dynamic time warping distance; \code{(dist = "FACTOR")} uses a frequency.}
+\item{dist}{options:("L1", "L2", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} selects the Manhattan distance; \code{(dist = "FACTOR")} uses a frequency.}
 
 \item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 

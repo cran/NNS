@@ -1,26 +1,22 @@
 # Import calls and globalvariable calls
 
+#' @importFrom caret upSample downSample
 #' @importFrom grDevices adjustcolor rainbow rgb
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext barplot hist strwidth
+#' @importFrom MESS bin
+#' @importFrom quantmod getSymbols
+#' @importFrom Rfast colmeans rowmeans rowsums
 #' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm model.matrix fivenum acf qt ecdf time approx embed frequency is.ts runif start ts optim quantile optimize dnorm dlnorm dexp dt .preformat.ts
+#' @importFrom stringr str_count
 #' @importFrom utils globalVariables head tail combn flush.console
-#' @importFrom data.table data.table %chin% .I .N .SD := as.data.table fwrite is.data.table rbindlist set setcolorder setnames setorder as.IDate as.ITime setkey frollmean shift transpose
-#' @importFrom dtw dtw
-#' @importFrom meboot meboot
-#' @importFrom Rfast colsums colmeans rowsums rowmeans
-#' @importFrom caret upSample downSample
-#' @importFrom zoo as.yearmon
-#' @importFrom tseries adf.test
-#' @import doParallel
-#' @import rgl
-#' @import stringr
-#' @import meboot
+#' @importFrom xts to.monthly
+#' @importFrom zoo as.yearmon index
 #' @import data.table
-#' @import dynlm
-#' @import Quandl
-#' @import MESS
+#' @import doParallel
+#' @import meboot
 #' @rawNamespace import(Rcpp, except = LdFlags)
 #' @import RcppParallel
+#' @import rgl
 #' @useDynLib NNS, .registration = TRUE
 
 
@@ -44,22 +40,17 @@
     ))
 
   requireNamespace("data.table")
-  requireNamespace("rgl")
   requireNamespace("doParallel")
-  requireNamespace("stringr")
-  requireNamespace("meboot")
-  requireNamespace("MESS")
-  requireNamespace("Rfast")
   requireNamespace("dynlm")
-  requireNamespace("Quandl")
-
-
+  requireNamespace("meboot")
+  requireNamespace("Rcpp")
+  requireNamespace("RcppParallel")
+  requireNamespace("rgl")
+  
 
   .datatable.aware = TRUE
   
   options(datatable.verbose=FALSE)
-
-  invisible(data.table::setDTthreads(1))
-
-
+  
+  invisible(data.table::setDTthreads(0, throttle = NULL))
 }

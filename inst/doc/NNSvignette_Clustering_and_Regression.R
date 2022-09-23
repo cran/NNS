@@ -7,7 +7,6 @@ library(data.table)
 require(knitr)
 require(rgl)
 require(meboot)
-require(dtw)
 
 ## ----linear-------------------------------------------------------------------
 x = seq(-5, 5, .05); y = x ^ 3
@@ -54,6 +53,7 @@ NNS.reg(iris[ , 1 : 4], iris[ , 5], type = "CLASS", point.est = iris[1 : 10, 1 :
 NNS.stack(IVs.train = iris[ , 1 : 4], 
           DV.train = iris[ , 5], 
           IVs.test = iris[1 : 10, 1 : 4],
+          dim.red.method = "cor",
           obj.fn = expression( mean(round(predicted) == actual) ),
           objective = "max", type = "CLASS", 
           folds = 1, ncores = 1)

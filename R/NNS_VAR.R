@@ -7,8 +7,8 @@
 #' @param tau positive integer [ > 0]; 1 (default) Number of lagged observations to consider for the time-series data.  Vector for single lag for each respective variable or list for multiple lags per each variable.
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for reducing regressors via \link{NNS.stack}.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param obj.fn expression;
-#' \code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
-#' @param objective options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
+#' \code{expression(mean((predicted - actual)^2)) / (Sum of NNS Co-partial moments)} (default) MSE / co-movements is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
+#' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @param nowcast logical; \code{FALSE} (default) internal call for \link{NNS.nowcast}.
@@ -92,7 +92,7 @@
 #'
 #'  library(Quandl)
 #'  econ_variables <- Quandl(c("FRED/GDPC1", "FRED/UNRATE", "FRED/CPIAUCSL"),type = 'ts',
-#'                           order = "asc", collapse = "monthly", start_date="2000-01-01")
+#'                           order = "asc", collapse = "monthly", start_date = "2000-01-01")
 #'
 #'  ### Note the missing values that need to be imputed
 #'  head(econ_variables)
@@ -110,8 +110,8 @@ NNS.VAR <- function(variables,
                     h,
                     tau = 1,
                     dim.red.method = "cor",
-                    obj.fn = expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2)),
-                    objective = "max",
+                    obj.fn = expression( mean((predicted - actual)^2) / (NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) + NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) )  ),
+                    objective = "min",
                     status = TRUE,
                     ncores = NULL,
                     nowcast = FALSE){
@@ -119,7 +119,8 @@ NNS.VAR <- function(variables,
   oldw <- getOption("warn")
   options(warn = -1)
   
-  if(nowcast) dates <- zoo::as.yearmon(zoo::as.yearmon(rownames(variables)[1]) + seq(0, (dim(variables)[1] + (h-1)))/12) else dates <- NULL
+  
+  if(nowcast) dates <- c(zoo::index(variables), tail(zoo::index(variables), h) + h/12) else dates <- NULL
   
   if(any(class(variables)%in%c("tbl","data.table"))) variables <- as.data.frame(variables)
   
@@ -136,6 +137,14 @@ NNS.VAR <- function(variables,
     colnames(variables) <- var_names
   }
   
+  if(any(colnames(variables)=="")){
+    var_names <- character()
+    for(i in 1:length(which(colnames(variables)==""))){
+      var_names[i] <- paste0("x",i)
+    }
+    colnames(variables)[which(colnames(variables)=="")] <- var_names
+  }
+  
   colnames(variables) <- gsub(" - ", "...", colnames(variables))
   
   # Parallel process...
@@ -145,7 +154,11 @@ NNS.VAR <- function(variables,
     num_cores <- ncores
   }
   
-  if(num_cores>1) doParallel::registerDoParallel(cores = num_cores)
+  if(num_cores > 1){
+    cl <- parallel::makeCluster(num_cores)
+    doParallel::registerDoParallel(cl)
+    invisible(data.table::setDTthreads(1))
+  }
   
   if(status) message("Currently generating univariate estimates...","\r", appendLF=TRUE)
   
@@ -175,7 +188,7 @@ NNS.VAR <- function(variables,
     na_s[i] <- tail(index, 1) - interpolation_point
     
     periods <- NNS.seas(new_variable, modulo = min(tau[[min(i, length(tau))]]),
-                        mod.only = TRUE, plot = FALSE)$periods
+                        mod.only = FALSE, plot = FALSE)$periods
     
     if(na_s[i] > 0){
       multi <- NNS.reg(a[,1], a[,2], order = NULL,
@@ -248,12 +261,12 @@ NNS.VAR <- function(variables,
   
   new_values <- data.frame(do.call(cbind, new_values))
   colnames(new_values) <- as.character(colnames(variables))
-  
+
   nns_IVs_interpolated_extrapolated <- head(new_values, dim(variables)[1])
   
   # Now lag new forecasted data.frame
   lagged_new_values <- lag.mtx(new_values, tau = tau)
-  
+
   # Keep original variables as training set
   lagged_new_values_train <- head(lagged_new_values, dim(lagged_new_values)[1] - h)
   
@@ -270,27 +283,30 @@ NNS.VAR <- function(variables,
     lapply(seq_along(x),
            function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
   }
-  
+ 
+
   nns_DVs <- list()
   relevant_vars <- list()
-  
+ 
   lists <- foreach(i = 1:ncol(variables), .packages = c("NNS", "data.table"), .combine = 'comb', .init = list(list(), list(), list()),
                    .multicombine = TRUE)%dopar%{
-                     
-                     
-                     if(status) message("Variable ", i, " of ", ncol(variables), appendLF = TRUE)
+
+                    
+                    if(status) message("Variable ", i, " of ", ncol(variables), appendLF = TRUE)
+
                      
                      # Dimension reduction NNS.reg to reduce variables
                      cor_threshold <- NNS.stack(IVs.train = lagged_new_values_train[, -i],
                                                 DV.train = lagged_new_values_train[, i],
-                                                ts.test = 2*h, folds = 1,
+                                                IVs.test = tail(lagged_new_values[, -i], h),
+                                                ts.test = 2*h, 
+                                                folds = 1,
                                                 obj.fn = obj.fn,
                                                 objective = objective,
-                                                inference = FALSE,
-                                                method = 2,
+                                                method = c(1,2),
                                                 dim.red.method = dim.red.method,
-                                                order = NULL)
-                     
+                                                order = NULL, ncores = 1, stack = TRUE)
+
                      
                      if(any(dim.red.method == "cor" | dim.red.method == "all")){
                        rel.1 <- abs(cor(cbind(lagged_new_values_train[, i], lagged_new_values_train[, -i]), method = "spearman"))
@@ -304,49 +320,28 @@ NNS.VAR <- function(variables,
                        rel.3 <- NNS.caus(cbind(lagged_new_values_train[, i], lagged_new_values_train[, -i]))
                      }
                      
-                     if(dim.red.method == "cor"){
-                       rel_vars <- rel.1[-1,1]
-                     }
+                     if(dim.red.method == "cor") rel_vars <- rel.1[-1,1]
                      
-                     if(dim.red.method == "nns.dep"){
-                       rel_vars <- rel.2[-1,1]
-                     }
+                     if(dim.red.method == "nns.dep") rel_vars <- rel.2[-1,1]
                      
-                     if(dim.red.method == "nns.caus"){
-                       rel_vars <- rel.3[1,-1]
-                     }
+                     if(dim.red.method == "nns.caus") rel_vars <- rel.3[1,-1]
                      
-                     if(dim.red.method == "all"){
-                       rel_vars <- ((rel.1+rel.2+rel.3)/3)[1, -1]
-                     }
-                     
+                     if(dim.red.method == "all") rel_vars <- ((rel.1+rel.2+rel.3)/3)[1, -1]
+                    
                      rel_vars <- names(rel_vars[rel_vars > cor_threshold$NNS.dim.red.threshold])
                      rel_vars <- rel_vars[rel_vars!=i]
-                     
                      rel_vars <- na.omit(rel_vars)
-                     relevant_vars <- rel_vars
                      
-                     if(any(length(rel_vars)==0 | is.null(relevant_vars))){
+                     if(any(length(rel_vars)==0 | is.null(rel_vars))){
                        rel_vars <- colnames(lagged_new_values_train)
                      }
                      
-                                          
-                     # NNS.stack() cross-validates the parameters of the multivariate NNS.reg() and dimension reduction NNS.reg()
+
                      if(length(rel_vars)>1){
-                       DV_values <- NNS.stack(lagged_new_values_train[, rel_vars],
-                                              lagged_new_values_train[, i],
-                                              IVs.test =  tail(lagged_new_values[, rel_vars], h),
-                                              obj.fn = obj.fn,
-                                              objective = objective,
-                                              inference = FALSE,
-                                              ts.test = 2*h, folds = 1,
-                                              status = status, ncores = num_cores,
-                                              dim.red.method = dim.red.method,
-                                              order = NULL, stack = FALSE)
+                       DV_values <- cor_threshold
                        
                        DV_weights <- c(DV_values$OBJfn.dim.red, DV_values$OBJfn.reg)
                        DV_weights <- DV_weights/sum(DV_weights)
-                       DV_weights <- DV_weights%*%c(DV_values$OBJfn.dim.red, DV_values$OBJfn.reg)
                        
                        nns_DVs <- DV_values$stack
                        nns_DVs[is.na(nns_DVs)] <- nns_IVs_results[is.na(nns_DVs),i]
@@ -355,12 +350,16 @@ NNS.VAR <- function(variables,
                        nns_DVs <- nns_IVs_results[,i]
                      }
                      
-                     if(is.null(DV_weights)) DV_weights <- c(NA, NA)
-                     list(nns_DVs, relevant_vars, DV_weights)
+                     if(is.null(DV_weights)) DV_weights <- c(.5, .5)
+          
+                     list(nns_DVs, rel_vars, DV_weights)
                    }
   
-  
-  if(num_cores>1) registerDoSEQ()
+  if(num_cores > 1) {
+    stopCluster(cl)  
+    registerDoSEQ()
+    invisible(data.table::setDTthreads(0, throttle = NULL))
+  }
   
   nns_DVs <- lists[[1]]
   relevant_vars <- lists[[2]]
@@ -383,10 +382,10 @@ NNS.VAR <- function(variables,
     if(length(na.omit(RV[,i]) > 0)){
       given_var <- unlist(strsplit(colnames(RV)[i], split = "_tau"))[1]
       observed_var <- do.call(rbind,(strsplit(na.omit(RV[,i]), split = "_tau")))[,1]
-      
+
       equal_tau <- sum(given_var==observed_var)
       unequal_tau <- sum(given_var!=observed_var)
-      
+
       if(equal_tau > unequal_tau) uni[i] <-  .5 + .5*((equal_tau)/(equal_tau + unequal_tau)) else uni[i] <-  .5 - .5*((unequal_tau)/(equal_tau + unequal_tau))
       
       if(equal_tau == unequal_tau)uni[i] <- 0.5
@@ -397,24 +396,19 @@ NNS.VAR <- function(variables,
       multi[i] <- 0.5
     }
   }
-  
-  multi_weights <- unlist(lapply(lists[[3]], `[[`,1))
-  multi_weights[is.na(uni_weights)] <- multi[is.na(uni_weights)]
-  
-  uni_weights[is.na(uni_weights)] <- uni[is.na(uni_weights)]
-  
-  uni_weights <- uni_weights / (uni_weights + multi_weights)
-  uni_weights[is.na(uni_weights)] <- uni[is.na(uni_weights)]
-  
-  uni_weights <- (uni_weights + uni + .5)/3
-  
-  uni <- uni_weights
-  multi <- 1 - uni
-  
+
+
+  for(i in 1:length(uni)){
+      if(abs(uni[i]) > 1){
+          uni[i] <- abs(uni[i])/(abs(uni[i]) + abs(multi[i]))
+          multi[i] <- 1 - uni[i]
+      }
+  }
+
   forecasts <- data.frame(Reduce(`+`,list(t(t(nns_IVs_results)*uni) , t(t(nns_DVs)*multi))))
   colnames(forecasts) <- colnames(variables)
   
-  rownames(nns_IVs_interpolated_extrapolated) <- rownames(variables)
+  rownames(nns_IVs_interpolated_extrapolated) <- head(dates, dim(variables)[1])
   colnames(nns_IVs_interpolated_extrapolated) <- colnames(variables)
   
   colnames(nns_IVs_results) <- colnames(variables)

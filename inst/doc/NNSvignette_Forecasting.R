@@ -6,7 +6,6 @@ library(NNS)
 library(data.table)
 require(knitr)
 require(rgl)
-require(dtw)
 require(meboot)
 
 ## ----linear,fig.width=5,fig.height=3,fig.align = "center", warning=FALSE------

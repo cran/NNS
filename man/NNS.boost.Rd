@@ -9,11 +9,10 @@ NNS.boost(
   DV.train,
   IVs.test = NULL,
   type = NULL,
-  inference = FALSE,
   depth = NULL,
   learner.trials = 100,
   epochs = NULL,
-  CV.size = 0.25,
+  CV.size = NULL,
   balance = FALSE,
   ts.test = NULL,
   folds = 5,
@@ -35,15 +34,13 @@ NNS.boost(
 
 \item{type}{\code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.}
 
-\item{inference}{logical; \code{FALSE} (default) For inferential tasks, otherwise \code{inference = FALSE} is faster for predictive tasks.}
-
 \item{depth}{options: (integer, NULL, "max"); \code{(depth = NULL)}(default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors, analogous to tree depth.}
 
 \item{learner.trials}{integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.}
 
 \item{epochs}{integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.}
 
-\item{CV.size}{numeric [0, 1]; \code{(CV.size = .25)} (default) Sets the cross-validation size.  Defaults to 0.25 for a 25 percent random sampling of the training set.}
+\item{CV.size}{numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size.  Defaults to a random value between 0.2 and 0.33 for a random sampling of the training set.}
 
 \item{balance}{logical; \code{FALSE} (default) Uses both up and down sampling from \code{caret} to balance the classes.  \code{type="CLASS"} required.}
 

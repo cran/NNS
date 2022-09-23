@@ -6,11 +6,10 @@
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
 #' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.
 #' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
-#' @param inference logical; \code{FALSE} (default) For inferential tasks, otherwise \code{inference = FALSE} is faster for predictive tasks.
 #' @param depth options: (integer, NULL, "max"); \code{(depth = NULL)}(default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors, analogous to tree depth.
 #' @param learner.trials integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.
 #' @param epochs integer; \code{2*length(DV.train)} (default) Total number of feature combinations to run.
-#' @param CV.size numeric [0, 1]; \code{(CV.size = .25)} (default) Sets the cross-validation size.  Defaults to 0.25 for a 25 percent random sampling of the training set.
+#' @param CV.size numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size.  Defaults to a random value between 0.2 and 0.33 for a random sampling of the training set.
 #' @param balance logical; \code{FALSE} (default) Uses both up and down sampling from \code{caret} to balance the classes.  \code{type="CLASS"} required.
 #' @param ts.test integer; NULL (default) Sets the length of the test set for time-series data; typically \code{2*h} parameter value from \link{NNS.ARMA} or double known periods to forecast.
 #' @param folds integer; 5 (default) Sets the number of \code{folds} in the \link{NNS.stack} procedure for optimal \code{n.best} parameter.
@@ -49,11 +48,10 @@ NNS.boost <- function(IVs.train,
                       DV.train,
                       IVs.test = NULL,
                       type = NULL,
-                      inference = FALSE,
                       depth = NULL,
                       learner.trials = 100,
                       epochs = NULL,
-                      CV.size = .25,
+                      CV.size = NULL,
                       balance = FALSE,
                       ts.test = NULL,
                       folds = 5,
@@ -135,15 +133,13 @@ NNS.boost <- function(IVs.train,
 
 
 
-  x <- IVs.train
+  x <- data.table::data.table(IVs.train)
   y <- DV.train
   z <- IVs.test
 
 
   ### Representative samples
-      rep.x <- data.table::data.table(x)
-
-      rep.x <- rep.x[,lapply(.SD, function(z) fivenum(as.numeric(z))), by = .(y)]
+      rep.x <- x[,lapply(.SD, function(z) fivenum(as.numeric(z))), by = .(y)]
 
       rep.y <- unlist(rep.x[,1])
       rep.x <- rep.x[,-1]
@@ -165,6 +161,7 @@ NNS.boost <- function(IVs.train,
   # Add test loop for highest threshold ...
   if(is.null(threshold)){
     if(!extreme) epochs <- NULL
+    if(is.null(CV.size)) new.CV.size <- round(runif(1, .2, 1/3), 3) else new.CV.size <- CV.size
 
     old.threshold <- 1
 
@@ -179,8 +176,8 @@ NNS.boost <- function(IVs.train,
       set.seed(123 + i)
 
       l <- length(y)
-      if(i<=l/4) new.index <- as.integer(seq(i, length(y), length.out = as.integer(CV.size * length(y)))) else {
-          new.index <- sample(l, as.integer(CV.size * l), replace = FALSE)
+      if(i<=l/4) new.index <- as.integer(seq(i, length(y), length.out = as.integer(new.CV.size * length(y)))) else {
+          new.index <- sample(l, as.integer(new.CV.size * l), replace = FALSE)
       }
 
 
@@ -189,7 +186,7 @@ NNS.boost <- function(IVs.train,
       new.index <- unlist(new.index)
 
 
-          new.iv.train <- data.table::data.table(x[-new.index,])
+          new.iv.train <- x[-new.index,] #data.table::data.table(x[-new.index,])
           new.iv.train <- new.iv.train[,lapply(.SD, as.double)]
 
           new.iv.train <- new.iv.train[,lapply(.SD,function(z) fivenum(as.numeric(z))), by = .(y[-new.index])]
@@ -217,11 +214,10 @@ NNS.boost <- function(IVs.train,
                            new.dv.train,
                            point.est = new.iv.test[,test.features[[i]]],
                            dim.red.method = "equal",
-                           plot = FALSE, residual.plot = FALSE, order = depth,
-                           factor.2.dummy = FALSE,
-                           ncores = 1, type = type, inference = inference)$Point.est
+                           plot = FALSE, order = depth,
+                           ncores = 1, type = type)$Point.est
 
-      predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
+      predicted[is.na(predicted)] <- gravity(na.omit(predicted))
 
       # Do not predict a new unseen class
       if(!is.null(type)){
@@ -284,19 +280,22 @@ NNS.boost <- function(IVs.train,
   keeper.features <- list()
 
   if(!is.null(epochs)){
+    
+    if(is.null(CV.size)) new.CV.size <- round(runif(1, .2, 1/3), 3) else new.CV.size <- CV.size
+    
     for(j in 1:epochs){
       set.seed(123 * j)
-
+      
       l <- length(y)
-      if(j<=l/4) new.index <- as.integer(seq(j, length(y), length.out = as.integer(CV.size * length(y)))) else {
-        new.index <- sample(l, as.integer(CV.size * l), replace = FALSE)
+      if(j<=l/4) new.index <- as.integer(seq(j, length(y), length.out = as.integer(new.CV.size * length(y)))) else {
+        new.index <- sample(l, as.integer(new.CV.size * l), replace = FALSE)
       }
       if(!is.null(ts.test)) new.index <- length(y) - (2*ts.test):0
 
       new.index <- unlist(new.index)
 
 
-          new.iv.train <- data.table::data.table(x[-new.index, ])
+          new.iv.train <- x[-new.index, ] #data.table::data.table(x[-new.index, ])
           new.iv.train <- new.iv.train[, lapply(.SD,as.double)]
 
           new.iv.train <- new.iv.train[,lapply(.SD,fivenum), by = .(y[-new.index])]
@@ -327,9 +326,9 @@ NNS.boost <- function(IVs.train,
                            new.dv.train, point.est = new.iv.test[, features],
                            dim.red.method = "equal",
                            plot = FALSE, residual.plot = FALSE, order = depth,
-                           factor.2.dummy = FALSE, ncores = 1, type = type, inference = inference)$Point.est
+                           ncores = 1, type = type)$Point.est
 
-      predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
+      predicted[is.na(predicted)] <- gravity(na.omit(predicted))
       # Do not predict a new unseen class
       if(!is.null(type)){
         predicted <- pmin(predicted,max(as.numeric(y)))
@@ -376,10 +375,8 @@ NNS.boost <- function(IVs.train,
 
 
   if(!is.null(rep.y)){
-      x <- rbind(rep.x, data.matrix(x))
+      x <- rbind(rep.x, (x))
       y <- c(rep.y, y)
-  } else {
-      x <- data.matrix(x)
   }
 
   kf <- data.table::data.table(table(as.character(keeper.features)))
@@ -393,13 +390,13 @@ NNS.boost <- function(IVs.train,
 
   if(status) message("Generating Final Estimate" ,"\r", appendLF = TRUE)
 
-      estimates <- NNS.stack(data.matrix(x[, unlist(final_scale)]),
+      estimates <- NNS.stack(x[, unlist(final_scale)],
                              y,
-                             IVs.test = data.matrix(z[, unlist(final_scale)]),
-                             order = depth, dim.red.method = "cor",
+                             IVs.test = z[, unlist(final_scale)],
+                             order = depth, dim.red.method = "all",
                              ncores = 1,
                              stack = FALSE, status = status,
-                             type = type, inference = inference, dist = dist, folds = folds)$stack
+                             type = type, dist = dist, folds = folds)$stack
 
       estimates[is.na(unlist(estimates))] <- ifelse(!is.null(type), mode_class(unlist(na.omit(estimates))), mode(unlist(na.omit(estimates))))
 
@@ -432,7 +429,7 @@ NNS.boost <- function(IVs.train,
     par(original.par)
   }
 
-  gc()
+
   if(!is.null(type)) estimates <- ifelse(estimates%%1 < .5, floor(estimates), ceiling(estimates))
 
   return(list("results" = estimates,

@@ -7,7 +7,6 @@ library(data.table)
 require(knitr)
 require(rgl)
 require(meboot)
-require(dtw)
 
 ## ----rhs, rows.print=18-------------------------------------------------------
 NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
