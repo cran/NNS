@@ -13,7 +13,7 @@
 #' @param point.est a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.
 #' @param location Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.
 #' @param return.values logical; \code{TRUE} (default), set to \code{FALSE} in order to only display a regression plot and call values as needed.
-#' @param plot  logical; \code{TRUE} (default) To plot regression.
+#' @param plot logical; \code{TRUE} (default) To plot regression.
 #' @param plot.regions logical; \code{FALSE} (default).  Generates 3d regions associated with each regression point for multivariate regressions.  Note, adds significant time to routine.
 #' @param residual.plot logical; \code{TRUE} (default) To plot \code{y.hat} and \code{Y}.
 #' @param confidence.interval numeric [0, 1); \code{NULL} (default) Plots the associated confidence interval with the estimate and reports the standard error for each individual segment.
@@ -119,8 +119,8 @@
 #' NNS.reg(x, y)$Fitted
 #'
 #' ## To call partial derivative (univariate regression only):
-#' NNS.reg(x, y)$derivative}
-#'
+#' NNS.reg(x, y)$derivative
+#' }
 #' @export
 
 
@@ -137,7 +137,8 @@ NNS.reg = function (x, y,
                     threshold = 0,
                     n.best = NULL,
                     noise.reduction = "off",
-                    dist = "L2", ncores = NULL,
+                    dist = "L2",
+                    ncores = NULL,
                     point.only = FALSE,
                     multivariate.call = FALSE){
   
@@ -290,28 +291,11 @@ NNS.reg = function (x, y,
                          residual.plot = residual.plot, order = order, n.best = n.best, type = type,
                          location = location, noise.reduction = noise.reduction,
                          dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions,
-                         point.only = point.only,
-                         ncores = ncores))
+                         point.only = point.only, ncores = ncores))
         
       } else { # Multivariate dim.red == FALSE
-        
-        if(is.null(ncores)) {
-          num_cores <- as.integer(parallel::detectCores()) - 1
-        } else {
-          num_cores <- ncores
-        }
-        
-        if(num_cores > 1){
-          cl <- parallel::makeCluster(num_cores)
-          doParallel::registerDoParallel(cl)
-          invisible(data.table::setDTthreads(1))
-        }
-        
         if(is.null(original.names)){
-          colnames.list <- list()
-          for(i in 1 : ncol(x)){
-            colnames.list[i] <- paste0("X", i)
-          }
+          colnames.list <- lapply(1 : ncol(x), function(i) paste0("x", i))
         } else {
           colnames.list <- original.names
         }
@@ -325,25 +309,14 @@ NNS.reg = function (x, y,
           
           if(!is.numeric(dim.red.method) && dim.red.method!="cor" && dim.red.method!="equal"){
             if(!is.null(type)) fact <- TRUE else fact <- FALSE
-            x.star.dep <- list()
             
-            x.star.dep <- foreach(i = 1:dim(x)[2], .packages = c("NNS", "data.table"))%dopar%{
-              return(NNS.dep(x[,i], y, print.map = FALSE, asym = TRUE, ncores = 1)$Dependence)
-            }
-            
-            x.star.dep <- unlist(x.star.dep)
+            x.star.dep <-  sapply(1:dim(x)[2], function(i) NNS.dep(x[,i], y, print.map = FALSE, asym = TRUE)$Dependence)
             
             x.star.dep[is.na(x.star.dep)] <- 0
           }
-          
-          x.star.cor <- list()
-          
-          x.star.cor <- foreach(i = 1:dim(x)[2], .packages = c("stats"))%dopar%{
-            return(cor(x[,i], y, method = "spearman"))
-          }
-          
-          x.star.cor <- unlist(x.star.cor)
-          
+
+          x.star.cor <-  sapply(1:dim(x)[2], function(i) cor(x[,i], y, method = "spearman"))
+
           x.star.cor[is.na(x.star.cor)] <- 0
           
           if(!is.numeric(dim.red.method) && dim.red.method == "nns.dep"){
@@ -361,14 +334,9 @@ NNS.reg = function (x, y,
               tau <- "cs"
             }
             x.star.coef <- numeric()
-            cause <- list()
-            
-            cause <- foreach(i = 1:dim(x)[2], .packages = c("NNS", "data.table"))%dopar%{
-              return(Uni.caus(y, x[,i], tau = tau, plot = FALSE))
-            }
-            
-            cause <- unlist(cause)
-            
+
+            cause <- sapply(1:dim(x)[2], function(i) Uni.caus(y, x[,i], tau = tau, plot = FALSE))
+
             cause[is.na(cause)] <- 0
             
             x.star.coef <- cause
@@ -378,13 +346,9 @@ NNS.reg = function (x, y,
             if(is.null(tau)) tau <- "cs"
             
             x.star.coef.1 <- numeric()
-            cause <- list()
             
-            cause <- foreach(i = 1:dim(x)[2], .packages = c("NNS", "data.table"))%dopar%{
-              return(Uni.caus(x[,i], y, tau = tau, plot = FALSE))
-            }
+            x.star.coef.1 <- sapply(1:dim(x)[2], function(i) Uni.caus(y, x[,i], tau = tau, plot = FALSE))
             
-            x.star.coef.1 <- unlist(cause)
             
             x.star.coef.3 <- x.star.cor
             x.star.coef.3[is.na(x.star.coef.3)] <- 0
@@ -394,18 +358,10 @@ NNS.reg = function (x, y,
             x.star.coef <- apply(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3, x.star.coef.4), 1, function(x) mode(x)) 
             x.star.coef[is.na(x.star.coef)] <- 0
           }
-        
-        if(num_cores > 1){    
-          parallel::stopCluster(cl)
-          registerDoSEQ()
-          invisible(data.table::setDTthreads(0, throttle = NULL))
-        }
-          
-          
+
           if(!is.numeric(dim.red.method) && dim.red.method == "equal")  x.star.coef <- rep(1, ncol(x))
           
           if(is.numeric(dim.red.method)) x.star.coef <- dim.red.method
-          
           
           preserved.coef <- x.star.coef
           x.star.coef[abs(x.star.coef) < threshold] <- 0
@@ -464,10 +420,9 @@ NNS.reg = function (x, y,
   x.label <- names(x)
   if(is.null(x.label)) x.label <- "x"
    
-  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE, ncores = 1)$Dependence, error = function(e) .1)
+  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
   dependence <- dependence^2
   dependence[is.na(dependence)] <- 0
-
   
   rounded_dep <- ifelse((dependence*10)%%1 < .5, floor(dependence*10), ceiling(dependence*10))
   
@@ -794,6 +749,8 @@ NNS.reg = function (x, y,
     }
   }
   
+  regression.points$x <- pmin(regression.points$x, max(x))
+  regression.points$x <- pmax(regression.points$x, min(x))
   
   regression.points$y <- pmin(regression.points$y, max(y))
   regression.points$y <- pmax(regression.points$y, min(y))
@@ -926,11 +883,9 @@ NNS.reg = function (x, y,
     }
     
     if(is.numeric(confidence.interval)){
-      fitted[, `:=` ( 'conf.int.pos' = UPM.VaR(1 - confidence.interval, degree = 1, y) ), by = gradient]
-      fitted[, `:=` ( 'conf.int.neg' = LPM.VaR(1 - confidence.interval, degree = 1, y) ), by = gradient]
-      
-      pval <- 1 - confidence.interval
-      
+      fitted[, `:=` ( 'conf.int.pos' = UPM.VaR((1-confidence.interval)/2, degree = 1, abs(residuals)) + y.hat ), by = gradient]
+      fitted[, `:=` ( 'conf.int.neg' = y.hat - UPM.VaR((1-confidence.interval)/2, degree = 1, abs(residuals)) ), by = gradient]
+
       plot(x, y, xlim = c(xmin, xmax),
            ylim = c(min(c(fitted$conf.int.neg, ymin)), max(c(fitted$conf.int.pos,ymax))),
            col ='steelblue', main = paste(paste0("NNS Order = ", plot.order), sep = "\n"),

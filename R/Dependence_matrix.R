@@ -1,4 +1,4 @@
-NNS.dep.matrix <- function(x, order = NULL, degree = NULL, asym = FALSE, ncores = NULL){
+NNS.dep.matrix <- function(x, order = NULL, degree = NULL, asym = FALSE){
 
   n <- ncol(x)
   if(is.null(n)){
@@ -12,9 +12,9 @@ NNS.dep.matrix <- function(x, order = NULL, degree = NULL, asym = FALSE, ncores 
   if(dim(x)[1] < 20 ) order <- 2
 
   upper_lower <- function(x, y, asym){
-    basic_dep <- NNS.dep(x, y, print.map = FALSE, asym = asym, ncores = 1)
+    basic_dep <- NNS.dep(x, y, print.map = FALSE, asym = asym)
     if(asym){
-      asym_dep <- NNS.dep(y, x, print.map = FALSE, asym = asym, ncores = 1)
+      asym_dep <- NNS.dep(y, x, print.map = FALSE, asym = asym)
       return(list("Upper_cor" = basic_dep$Correlation,
                   "Upper_dep" = basic_dep$Dependence,
                   "Lower_cor" = asym_dep$Correlation,
@@ -27,31 +27,9 @@ NNS.dep.matrix <- function(x, order = NULL, degree = NULL, asym = FALSE, ncores 
     }
   }
 
-  raw.both <- list((n-1))
+  raw.both <- lapply(1 : (n-1), function(i) sapply((i + 1) : n, function(b) upper_lower(x[ , i], x[ , b], asym = asym)))
 
-  if(is.null(ncores)) {
-    num_cores <- as.integer(parallel::detectCores()) - 1
-  } else {
-    num_cores <- ncores
-  }
-
-  if(num_cores>1){
-    cl <- parallel::makeCluster(num_cores)
-    doParallel::registerDoParallel(cl)
-  }
-
-
-  i <- 1:(n-1)
-
-  raw.both <- foreach(i = 1 : (n-1), .packages = c("NNS", "data.table"))%dopar%{
-    raw.both[[i]] <-  sapply((i + 1) : n, function(b) upper_lower(x[ , i], x[ , b], asym = asym))
-  }
-
-  if(num_cores>1){
-    parallel::stopCluster(cl)
-    registerDoSEQ()
-  }
-
+  
   raw.both <- unlist(raw.both)
   l <- length(raw.both)
 

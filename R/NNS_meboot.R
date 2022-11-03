@@ -70,8 +70,7 @@
 #'
 #' # Plot ensemble
 #' lines(boots$ensemble, lwd = 3)
-#'}
-#'
+#' }
 #' @export
 
  NNS.meboot <- function(x,
@@ -89,6 +88,8 @@
                         colsubj, coldata, coltimes,...)
   {
 
+    if(length(x)==1) return(list(x=x))
+   
     type <- tolower(type)
 
     if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))

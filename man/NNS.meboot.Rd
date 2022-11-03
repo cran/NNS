@@ -103,7 +103,6 @@ matplot(boots$replicates, type = 'l')
 # Plot ensemble
 lines(boots$ensemble, lwd = 3)
 }
-
 }
 \references{
 \itemize{

@@ -22,7 +22,6 @@
 #' @param plot logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.
 #' @param seasonal.plot logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.
 #' @param conf.intervals numeric [0, 1]; \code{NULL} (default) Plots and returns the associated confidence intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{meboot} on the final estimates.
-#' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine - 1.
 #' @return Returns a vector of forecasts of length \code{(h)} if no \code{conf.intervals} specified.  Else, returns a \link{data.table} with the forecasts as well as lower and upper confidence intervals per forecast point.
 #' @note
 #' For monthly data series, increased accuracy may be realized from forcing seasonal factors to multiples of 12.  For example, if the best periods reported are: \{37, 47, 71, 73\}  use
@@ -54,8 +53,8 @@
 #' NNS.ARMA(AirPassengers, h = 45, training.set = 120, seasonal.factor = c(12, 24, 36), method = "lin")
 #'
 #' ## Nonlinear NNS.ARMA using AirPassengers monthly data and 2 best periods lag
-#' NNS.ARMA(AirPassengers, h = 45, training.set = 120, seasonal.factor = FALSE, best.periods = 2)}
-#'
+#' NNS.ARMA(AirPassengers, h = 45, training.set = 120, seasonal.factor = FALSE, best.periods = 2)
+#' }
 #' @export
 
 
@@ -75,33 +74,22 @@ NNS.ARMA <- function(variable,
                      shrink = FALSE,
                      plot = TRUE,
                      seasonal.plot = TRUE,
-                     conf.intervals = NULL,
-                     ncores = NULL){
+                     conf.intervals = NULL){
   
-  
+
   if(is.numeric(seasonal.factor) && dynamic) stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
-  
+
   if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
   
   if(sum(is.na(variable)) > 0) stop("You have some missing values, please address.")
-  
+
   method <- tolower(method)
   if(method == "means") shrink <- FALSE
   
   oldw <- getOption("warn")
   options(warn = -1)
   
-  
-  if(is.null(ncores)) num_cores <- as.integer(parallel::detectCores()  - 1) else num_cores <- ncores
-  
-  if(num_cores>1){
-      cl <- parallel::makeCluster(num_cores)
-      doParallel::registerDoParallel(cl)
-      invisible(data.table::setDTthreads(1))
-  }
-  
   if(!is.null(best.periods) && !is.numeric(seasonal.factor)) seasonal.factor <- FALSE
-  
   
   label <- deparse(substitute(variable))
   variable <- as.numeric(variable)
@@ -118,9 +106,9 @@ NNS.ARMA <- function(variable,
     FV <- variable
   }
   
-  Estimates <- numeric()
+  Estimates <- numeric(length = h)
   
-  
+ 
   if(is.numeric(seasonal.factor)){
     seasonal.plot = FALSE
     M <- matrix(seasonal.factor, ncol=1)
@@ -168,8 +156,8 @@ NNS.ARMA <- function(variable,
     if(is.character(weights)) Weights <- rep(1/length(lag), length(lag))
     
   }
-  
-  
+
+
   # Regression for each estimate in h
   for (j in 1 : h){
     ## Regenerate seasonal.factor if dynamic
@@ -202,9 +190,7 @@ NNS.ARMA <- function(variable,
     ## Regression on Component Series
     for(i in 1:length(lag)){
       if(method == 'nonlin' || method == 'both'){
-        Regression.Estimates <- list(length(lag))
-        
-        
+        Regression.Estimates <- vector(mode = "list", length(lag))
         
         x <- Component.index[[i]] ; y <- Component.series[[i]]
         last.y <- tail(y, 1)
@@ -234,16 +220,15 @@ NNS.ARMA <- function(variable,
       }#Linear == F
       
       if(method == "lin" || method == "both" || method == "means") {
-        
-        Regression.Estimates <- list(length(lag))
+        Regression.Estimates <- vector(mode = "list", length(lag))
         
         if(method != "means"){
-          Regression.Estimates <- foreach(i = 1 : length(lag))%dopar%{
+          Regression.Estimates <- lapply(1 : length(lag), function(i) {
             last.x <- tail(Component.index[[i]], 1)
             coefs <- coef(lm(Component.series[[i]] ~ Component.index[[i]]))
-            
             coefs[1] + (coefs[2] * (last.x + 1))
-          }
+          })
+
           Regression.Estimates <- unlist(Regression.Estimates)
         }
         
@@ -258,7 +243,7 @@ NNS.ARMA <- function(variable,
         
       }#Linear == T
       
-      
+        
       if(!negative.values) Regression.Estimates <- pmax(0, Regression.Estimates)
       
       
@@ -272,15 +257,9 @@ NNS.ARMA <- function(variable,
       FV <- variable
     } # i loop
   } # j loop
-  
-  if(num_cores>1){
-      parallel::stopCluster(cl)
-      registerDoSEQ()
-      invisible(data.table::setDTthreads(0, throttle = NULL))
-  }
-  
-  if(!is.null(conf.intervals)) CIs <- NNS.meboot(Estimates, reps=399)$replicates
-  
+    
+
+  if(!is.null(conf.intervals)) CIs <- NNS.meboot(Estimates, reps=399, rho = 1)$replicates
   
   #### PLOTTING
   if(plot){
@@ -339,10 +318,12 @@ NNS.ARMA <- function(variable,
     par(original.par)
   }
   
+  
   options(warn = oldw)
   if(!is.null(conf.intervals)){
-    upper_CIs <- apply(CIs, 1, function(z) UPM.VaR(1-conf.intervals, 0, z))
-    lower_CIs <- apply(CIs, 1, function(z) LPM.VaR(1-conf.intervals, 0, z))
+    upper_lower <- apply(CIs, 1, function(z) list(UPM.VaR((1-conf.intervals)/2, 0, z),LPM.VaR((1-conf.intervals)/2, 0, z))) 
+    upper_CIs <- as.numeric(lapply(upper_lower, `[[`, 1))
+    lower_CIs <- as.numeric(lapply(upper_lower, `[[`, 2))
     results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_CIs),  pmax(Estimates, upper_CIs))
     colnames(results) = c("Estimates",
                           paste0("Lower ", round(conf.intervals*100,2), "% CI"),

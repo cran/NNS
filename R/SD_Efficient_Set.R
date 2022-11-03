@@ -12,10 +12,12 @@
 #'
 #' Viole, F. (2017) "A Note on Stochastic Dominance." \url{https://www.ssrn.com/abstract=3002675}.
 #' @examples
+#' \dontrun{
 #' set.seed(123)
 #' x <- rnorm(100) ; y<-rnorm(100) ; z<-rnorm(100)
 #' A <- cbind(x, y, z)
 #' NNS.SD.efficient.set(A, 1)
+#' }
 #' @export
 
 
@@ -31,9 +33,8 @@ NNS.SD.efficient.set <- function(x, degree, type = "discrete", status = TRUE) {
 
   n <- ncol(x)
   max_target <- max(x)
-  LPM_order <- numeric()
-  Dominated_set <- numeric()
-  current_base <- numeric()
+
+  current_base <- Dominated_set <- numeric()
 
   if(is.null(colnames(x))) 
     colnames(x) <- paste0("X_",1:ncol(x))
@@ -84,8 +85,8 @@ NNS.SD.efficient.set <- function(x, degree, type = "discrete", status = TRUE) {
       }
     }
   }
-  if(length(Dominated_set) > 0){
-    return(all_variables[-na.omit(Dominated_set)])
-  }
+  
+  if(length(Dominated_set) > 0) return(all_variables[-na.omit(Dominated_set)])
+  
   return(all_variables)
 }

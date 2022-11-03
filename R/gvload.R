@@ -3,7 +3,6 @@
 #' @importFrom caret upSample downSample
 #' @importFrom grDevices adjustcolor rainbow rgb
 #' @importFrom graphics abline boxplot legend lines par plot points segments text matplot title axis mtext barplot hist strwidth
-#' @importFrom MESS bin
 #' @importFrom quantmod getSymbols
 #' @importFrom Rfast colmeans rowmeans rowsums
 #' @importFrom stats coef cor lm na.omit sd median complete.cases resid uniroot aggregate density hat qnorm model.matrix fivenum acf qt ecdf time approx embed frequency is.ts runif start ts optim quantile optimize dnorm dlnorm dexp dt .preformat.ts
@@ -36,7 +35,7 @@
       "detectCores","makeCluster","registerDoSEQ","clusterExport", "frollmean", "shift",
       "%dopar%","foreach","stopCluster",
       "%do%", "k", "V1", "residuals", "nns_results", "bias_l", "bias_r",
-      "bias", "conf.int.neg", "conf.int.pos"
+      "bias", "conf.intervals", "conf.int.neg", "conf.int.pos"
     ))
 
   requireNamespace("data.table")

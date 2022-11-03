@@ -15,8 +15,8 @@ NNS.ARMA.optim(
   objective = "max",
   linear.approximation = TRUE,
   lin.only = FALSE,
-  print.trace = TRUE,
-  ncores = NULL
+  conf.intervals = NULL,
+  print.trace = TRUE
 )
 }
 \arguments{
@@ -40,9 +40,9 @@ NNS.ARMA.optim(
 
 \item{lin.only}{logical; \code{FALSE} (default) Restricts the optimization to linear methods only.}
 
-\item{print.trace}{logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!}
+\item{conf.intervals}{numeric [0, 1]; \code{NULL} Returns the associated confidence intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{meboot} on the final estimates.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized procedure. If NULL (default), the number of cores to be used is equal to half the number of cores of the machine.}
+\item{print.trace}{logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!}
 }
 \value{
 Returns a list containing:
@@ -55,6 +55,8 @@ Returns a list containing:
 \item{\code{$bias.shift}} a numerical result of the overall bias of the optimum objective function result.  To be added to the final result when using the \link{NNS.ARMA} with the derived parameters.
 \item{\code{$errors}} a vector of model errors from internal calibration.
 \item{\code{$results}} a vector of length \code{h}.
+\item{\code{$lower.conf.int}} a vector of lower confidence intervals per forecast point.
+\item{\code{$upper.conf.int}} a vector of upper confidence intervals per forecast point.
 }
 }
 \description{
