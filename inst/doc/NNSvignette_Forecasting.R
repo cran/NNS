@@ -100,6 +100,9 @@ NNS.seas(AirPassengers, modulo = 12, plot = FALSE)
 #  $shrink
 #  [1] FALSE
 #  
+#  $nns.regress
+#  [1] FALSE
+#  
 #  $bias.shift
 #  [1] 0
 #  

@@ -30,23 +30,23 @@ document.addEventListener('DOMContentLoaded', function(e) {
 </script>
 
 <style type="text/css">
-  code{white-space: pre-wrap;}
-  span.smallcaps{font-variant: small-caps;}
-  span.underline{text-decoration: underline;}
-  div.column{display: inline-block; vertical-align: top; width: 50%;}
-  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-  ul.task-list{list-style: none;}
-    </style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
 
 
 
 <style type="text/css">
-  code {
-    white-space: pre;
-  }
-  .sourceCode {
-    overflow: visible;
-  }
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
 </style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
@@ -64,55 +64,54 @@ pre > code.sourceCode { white-space: pre-wrap; }
 pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
-  { counter-reset: source-line 0; }
+{ counter-reset: source-line 0; }
 pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
+{ position: relative; left: -4em; counter-increment: source-line; }
 pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
 div.sourceCode
-  {   }
+{ }
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
 </style>
 <script>
 // apply pandoc div.sourceCode style to pre.sourceCode instead
@@ -535,42 +534,45 @@ and the corresponding periods, as well as the
 <span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>shrink</span>
 <span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="cn">FALSE</span></span>
 <span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>bias.shift</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">0</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>nns.regress</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="cn">FALSE</span></span>
 <span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>errors</span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="sc">-</span><span class="fl">12.0495905</span> <span class="sc">-</span><span class="fl">19.5023885</span> <span class="sc">-</span><span class="fl">18.2981119</span> <span class="sc">-</span><span class="fl">30.4665605</span> <span class="sc">-</span><span class="fl">21.9967015</span> <span class="sc">-</span><span class="fl">16.3628298</span></span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a> [<span class="dv">7</span>] <span class="sc">-</span><span class="fl">12.6732257</span>  <span class="sc">-</span><span class="fl">5.7137170</span>  <span class="sc">-</span><span class="fl">2.6001984</span>   <span class="fl">2.2792659</span>  <span class="fl">17.1994048</span>  <span class="fl">24.2420635</span></span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>[<span class="dv">13</span>]   <span class="fl">6.6919485</span>  <span class="sc">-</span><span class="fl">1.2269250</span>  <span class="sc">-</span><span class="fl">8.4029057</span> <span class="sc">-</span><span class="fl">34.4569779</span>   <span class="fl">6.9539623</span>  <span class="sc">-</span><span class="fl">2.5920976</span></span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>[<span class="dv">19</span>]   <span class="fl">4.8338436</span>  <span class="fl">18.5863427</span>   <span class="fl">1.8098569</span>  <span class="sc">-</span><span class="fl">0.3087157</span>  <span class="sc">-</span><span class="fl">1.1892791</span>   <span class="fl">2.5325891</span></span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="sc">-</span><span class="fl">22.4687006</span>  <span class="sc">-</span><span class="fl">4.9819699</span> <span class="sc">-</span><span class="fl">27.7262972</span> <span class="sc">-</span><span class="fl">52.7041072</span> <span class="sc">-</span><span class="fl">21.5667488</span> <span class="sc">-</span><span class="fl">23.9122298</span></span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>[<span class="dv">31</span>] <span class="sc">-</span><span class="fl">23.6982624</span> <span class="sc">-</span><span class="fl">23.0856682</span> <span class="sc">-</span><span class="fl">29.9142644</span> <span class="sc">-</span><span class="fl">27.1628466</span>  <span class="fl">12.6507957</span> <span class="sc">-</span><span class="fl">35.1714729</span></span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>[<span class="dv">37</span>] <span class="sc">-</span><span class="fl">46.1877025</span> <span class="sc">-</span><span class="fl">34.0820674</span> <span class="sc">-</span><span class="fl">63.4664903</span> <span class="sc">-</span><span class="fl">63.3893474</span> <span class="sc">-</span><span class="fl">35.6270575</span> <span class="sc">-</span><span class="fl">51.0256013</span></span>
-<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>[<span class="dv">43</span>] <span class="sc">-</span><span class="fl">27.9853043</span> <span class="sc">-</span><span class="fl">23.5848310</span></span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>results</span>
-<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">354.2580</span> <span class="fl">421.2452</span> <span class="fl">462.4395</span> <span class="fl">453.0669</span> <span class="fl">395.8280</span> <span class="fl">338.4172</span> <span class="fl">301.1178</span> <span class="fl">338.6083</span></span>
-<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">347.7440</span> <span class="fl">330.7530</span> <span class="fl">393.0655</span> <span class="fl">383.2619</span> <span class="fl">390.9250</span> <span class="fl">468.8563</span> <span class="fl">511.8161</span> <span class="fl">501.4936</span></span>
-<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">436.7415</span> <span class="fl">370.9154</span> <span class="fl">331.3098</span> <span class="fl">371.0849</span> <span class="fl">380.7716</span> <span class="fl">361.0259</span> <span class="fl">430.2580</span> <span class="fl">418.6685</span></span>
-<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">427.7316</span> <span class="fl">516.8815</span> <span class="fl">561.5732</span> <span class="fl">550.3086</span> <span class="fl">478.0325</span> <span class="fl">403.7194</span> <span class="fl">361.7944</span> <span class="fl">403.9807</span></span>
-<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">413.6136</span> <span class="fl">390.9586</span> <span class="fl">467.3674</span> <span class="fl">453.9804</span> <span class="fl">464.4469</span> <span class="fl">564.6356</span> <span class="fl">611.0813</span> <span class="fl">598.8694</span></span>
-<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">519.0765</span> <span class="fl">436.3233</span> <span class="fl">392.0875</span> <span class="fl">436.6022</span></span>
-<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>lower.conf.int</span>
-<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">291.6700</span> <span class="fl">358.6573</span> <span class="fl">399.8515</span> <span class="fl">390.4789</span> <span class="fl">333.2401</span> <span class="fl">275.8292</span> <span class="fl">238.5299</span> <span class="fl">276.0203</span></span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">285.1561</span> <span class="fl">268.1650</span> <span class="fl">330.4775</span> <span class="fl">320.6740</span> <span class="fl">328.3370</span> <span class="fl">406.2684</span> <span class="fl">449.2281</span> <span class="fl">438.9056</span></span>
-<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">374.1535</span> <span class="fl">308.3275</span> <span class="fl">268.7218</span> <span class="fl">308.4970</span> <span class="fl">318.1836</span> <span class="fl">298.4380</span> <span class="fl">367.6701</span> <span class="fl">356.0805</span></span>
-<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">365.1437</span> <span class="fl">454.2935</span> <span class="fl">498.9853</span> <span class="fl">487.7206</span> <span class="fl">415.4446</span> <span class="fl">341.1314</span> <span class="fl">299.2065</span> <span class="fl">341.3928</span></span>
-<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">351.0256</span> <span class="fl">328.3706</span> <span class="fl">404.7794</span> <span class="fl">391.3924</span> <span class="fl">401.8589</span> <span class="fl">502.0477</span> <span class="fl">548.4933</span> <span class="fl">536.2814</span></span>
-<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">456.4885</span> <span class="fl">373.7353</span> <span class="fl">329.4996</span> <span class="fl">374.0142</span></span>
-<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>upper.conf.int</span>
-<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">416.8459</span> <span class="fl">483.8332</span> <span class="fl">525.0274</span> <span class="fl">515.6548</span> <span class="fl">458.4160</span> <span class="fl">401.0052</span> <span class="fl">363.7058</span> <span class="fl">401.1962</span></span>
-<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">410.3320</span> <span class="fl">393.3409</span> <span class="fl">455.6534</span> <span class="fl">445.8499</span> <span class="fl">453.5129</span> <span class="fl">531.4443</span> <span class="fl">574.4040</span> <span class="fl">564.0815</span></span>
-<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">499.3294</span> <span class="fl">433.5034</span> <span class="fl">393.8977</span> <span class="fl">433.6729</span> <span class="fl">443.3595</span> <span class="fl">423.6139</span> <span class="fl">492.8460</span> <span class="fl">481.2564</span></span>
-<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">490.3196</span> <span class="fl">579.4694</span> <span class="fl">624.1612</span> <span class="fl">612.8965</span> <span class="fl">540.6205</span> <span class="fl">466.3074</span> <span class="fl">424.3824</span> <span class="fl">466.5687</span></span>
-<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">476.2015</span> <span class="fl">453.5465</span> <span class="fl">529.9553</span> <span class="fl">516.5683</span> <span class="fl">527.0349</span> <span class="fl">627.2236</span> <span class="fl">673.6692</span> <span class="fl">661.4573</span></span>
-<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">581.6644</span> <span class="fl">498.9112</span> <span class="fl">454.6755</span> <span class="fl">499.1901</span></span></code></pre></div>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>bias.shift</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">0</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>errors</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="sc">-</span><span class="fl">12.0495905</span> <span class="sc">-</span><span class="fl">19.5023885</span> <span class="sc">-</span><span class="fl">18.2981119</span> <span class="sc">-</span><span class="fl">30.4665605</span> <span class="sc">-</span><span class="fl">21.9967015</span> <span class="sc">-</span><span class="fl">16.3628298</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a> [<span class="dv">7</span>] <span class="sc">-</span><span class="fl">12.6732257</span>  <span class="sc">-</span><span class="fl">5.7137170</span>  <span class="sc">-</span><span class="fl">2.6001984</span>   <span class="fl">2.2792659</span>  <span class="fl">17.1994048</span>  <span class="fl">24.2420635</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>[<span class="dv">13</span>]   <span class="fl">6.6919485</span>  <span class="sc">-</span><span class="fl">1.2269250</span>  <span class="sc">-</span><span class="fl">8.4029057</span> <span class="sc">-</span><span class="fl">34.4569779</span>   <span class="fl">6.9539623</span>  <span class="sc">-</span><span class="fl">2.5920976</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>[<span class="dv">19</span>]   <span class="fl">4.8338436</span>  <span class="fl">18.5863427</span>   <span class="fl">1.8098569</span>  <span class="sc">-</span><span class="fl">0.3087157</span>  <span class="sc">-</span><span class="fl">1.1892791</span>   <span class="fl">2.5325891</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="sc">-</span><span class="fl">22.4687006</span>  <span class="sc">-</span><span class="fl">4.9819699</span> <span class="sc">-</span><span class="fl">27.7262972</span> <span class="sc">-</span><span class="fl">52.7041072</span> <span class="sc">-</span><span class="fl">21.5667488</span> <span class="sc">-</span><span class="fl">23.9122298</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>[<span class="dv">31</span>] <span class="sc">-</span><span class="fl">23.6982624</span> <span class="sc">-</span><span class="fl">23.0856682</span> <span class="sc">-</span><span class="fl">29.9142644</span> <span class="sc">-</span><span class="fl">27.1628466</span>  <span class="fl">12.6507957</span> <span class="sc">-</span><span class="fl">35.1714729</span></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>[<span class="dv">37</span>] <span class="sc">-</span><span class="fl">46.1877025</span> <span class="sc">-</span><span class="fl">34.0820674</span> <span class="sc">-</span><span class="fl">63.4664903</span> <span class="sc">-</span><span class="fl">63.3893474</span> <span class="sc">-</span><span class="fl">35.6270575</span> <span class="sc">-</span><span class="fl">51.0256013</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>[<span class="dv">43</span>] <span class="sc">-</span><span class="fl">27.9853043</span> <span class="sc">-</span><span class="fl">23.5848310</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>results</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">354.2580</span> <span class="fl">421.2452</span> <span class="fl">462.4395</span> <span class="fl">453.0669</span> <span class="fl">395.8280</span> <span class="fl">338.4172</span> <span class="fl">301.1178</span> <span class="fl">338.6083</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">347.7440</span> <span class="fl">330.7530</span> <span class="fl">393.0655</span> <span class="fl">383.2619</span> <span class="fl">390.9250</span> <span class="fl">468.8563</span> <span class="fl">511.8161</span> <span class="fl">501.4936</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">436.7415</span> <span class="fl">370.9154</span> <span class="fl">331.3098</span> <span class="fl">371.0849</span> <span class="fl">380.7716</span> <span class="fl">361.0259</span> <span class="fl">430.2580</span> <span class="fl">418.6685</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">427.7316</span> <span class="fl">516.8815</span> <span class="fl">561.5732</span> <span class="fl">550.3086</span> <span class="fl">478.0325</span> <span class="fl">403.7194</span> <span class="fl">361.7944</span> <span class="fl">403.9807</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">413.6136</span> <span class="fl">390.9586</span> <span class="fl">467.3674</span> <span class="fl">453.9804</span> <span class="fl">464.4469</span> <span class="fl">564.6356</span> <span class="fl">611.0813</span> <span class="fl">598.8694</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">519.0765</span> <span class="fl">436.3233</span> <span class="fl">392.0875</span> <span class="fl">436.6022</span></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>lower.conf.int</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">291.6700</span> <span class="fl">358.6573</span> <span class="fl">399.8515</span> <span class="fl">390.4789</span> <span class="fl">333.2401</span> <span class="fl">275.8292</span> <span class="fl">238.5299</span> <span class="fl">276.0203</span></span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">285.1561</span> <span class="fl">268.1650</span> <span class="fl">330.4775</span> <span class="fl">320.6740</span> <span class="fl">328.3370</span> <span class="fl">406.2684</span> <span class="fl">449.2281</span> <span class="fl">438.9056</span></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">374.1535</span> <span class="fl">308.3275</span> <span class="fl">268.7218</span> <span class="fl">308.4970</span> <span class="fl">318.1836</span> <span class="fl">298.4380</span> <span class="fl">367.6701</span> <span class="fl">356.0805</span></span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">365.1437</span> <span class="fl">454.2935</span> <span class="fl">498.9853</span> <span class="fl">487.7206</span> <span class="fl">415.4446</span> <span class="fl">341.1314</span> <span class="fl">299.2065</span> <span class="fl">341.3928</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">351.0256</span> <span class="fl">328.3706</span> <span class="fl">404.7794</span> <span class="fl">391.3924</span> <span class="fl">401.8589</span> <span class="fl">502.0477</span> <span class="fl">548.4933</span> <span class="fl">536.2814</span></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">456.4885</span> <span class="fl">373.7353</span> <span class="fl">329.4996</span> <span class="fl">374.0142</span></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>upper.conf.int</span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>] <span class="fl">416.8459</span> <span class="fl">483.8332</span> <span class="fl">525.0274</span> <span class="fl">515.6548</span> <span class="fl">458.4160</span> <span class="fl">401.0052</span> <span class="fl">363.7058</span> <span class="fl">401.1962</span></span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>] <span class="fl">410.3320</span> <span class="fl">393.3409</span> <span class="fl">455.6534</span> <span class="fl">445.8499</span> <span class="fl">453.5129</span> <span class="fl">531.4443</span> <span class="fl">574.4040</span> <span class="fl">564.0815</span></span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>] <span class="fl">499.3294</span> <span class="fl">433.5034</span> <span class="fl">393.8977</span> <span class="fl">433.6729</span> <span class="fl">443.3595</span> <span class="fl">423.6139</span> <span class="fl">492.8460</span> <span class="fl">481.2564</span></span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>[<span class="dv">25</span>] <span class="fl">490.3196</span> <span class="fl">579.4694</span> <span class="fl">624.1612</span> <span class="fl">612.8965</span> <span class="fl">540.6205</span> <span class="fl">466.3074</span> <span class="fl">424.3824</span> <span class="fl">466.5687</span></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>[<span class="dv">33</span>] <span class="fl">476.2015</span> <span class="fl">453.5465</span> <span class="fl">529.9553</span> <span class="fl">516.5683</span> <span class="fl">527.0349</span> <span class="fl">627.2236</span> <span class="fl">673.6692</span> <span class="fl">661.4573</span></span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>[<span class="dv">41</span>] <span class="fl">581.6644</span> <span class="fl">498.9112</span> <span class="fl">454.6755</span> <span class="fl">499.1901</span></span></code></pre></div>
 <p>Using our new parameters via the <code>nns.optimal$results</code>
 yields the same results:</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">mean</span>((nns.optimal<span class="sc">$</span>results <span class="sc">-</span> <span class="fu">tail</span>(AirPassengers, <span class="dv">44</span>)) <span class="sc">^</span> <span class="dv">2</span>))</span></code></pre></div>
@@ -609,7 +611,7 @@ intervals.</p>
 <span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">weights =</span> nns.optimal<span class="sc">$</span>weights, </span>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">shrink =</span> nns.optimal<span class="sc">$</span>shrink,</span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">plot =</span> <span class="cn">TRUE</span>, <span class="at">seasonal.plot =</span> <span class="cn">FALSE</span>) <span class="sc">+</span> nns.optimal<span class="sc">$</span>bias.shift</span></code></pre></div>
-<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEgCAMAAABb4lATAAABFFBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZmYAZpAAZrYA/wA6AAA6ADo6AGY6OgA6Ojo6OmY6ZmY6ZpA6ZrY6kLY6kNtGgrRmAABmADpmOgBmOjpmZgBmZjpmZmZmkJBmkLZmkNtmtrZmtttmtv+QOgCQOmaQZgCQZjqQkDqQkGaQkLaQtpCQttuQtv+Q27aQ2/+2ZgC2Zjq2Zma2ZpC2kDq2kGa2tma225C229u22/+2/7a2///IyMjJycnLy8vNzc3Pz8/R0dHT09PV1dXX19fZ2dnbkDrbkGbbtmbbtpDb25Db27bb29vb/9vb///e3t7i4uLm5ubq6uru7u7z8/P5+fn/AAD/tmb/25D/27b//7b//9v////9SBfYAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAVCUlEQVR4nO2di3/bthHHaTfeFGdt1k52slcf9tZlzWZ267amYZM4Trh2TZ3YlkTH4v//fwzAASAAguILtMTT/T5bLILkkeWXAA6HB6OchFrRum+ANKwIMHIRYOQiwMhFgJGLACMXAUYuAoxcBBi5CDByEWDkIsDIRYCRiwAjFwFGLgKMXAQYuQgwchFg5CLAyEWAkYsAIxcBRi4CjFwEGLkIMHIRYOQiwMhFgJGLACMXAUYuAoxcIwEcR9ER+3NzGE2cjXz5rw+jaOfjJ+bhWRTtPuU/lseR0M79J2Al2juX9sTJxqGgNJIyE7tq+c8ARnpqPIA5GQ242NAIj+zDxTug97L9J5DM//JTFWB9KCgk4PcPQ7wlPTUewByDBlxs+IgU/ArA6sRoypKv99UBBmqhkIDjIMVAT40IMHtaBWBjY+cLllmOzXyYRTu/h4fLAIsymRFlf9mJH4ntNFJYi0NBKWRxqR9/G0UffHoO6V89jHaf5MuvWSnwiSjn8x9Y5fDBF+LAh8zgfXHmf1WNEYcq6XtpRIBZ3isAGxviGTKCU+Povf/BtgLMkwTgX+8zgMvj3b9IwMWhIAuwzM76lWC/RI6PojtP1U2JIiErqoFUFwAEuIUYxt+xh6WZFhvsge58+q11MNsxlWRLOfiLYwbken/vGwBsHArSRfSROikVCNm/e0/yN/zaT+TbxKj+5vz9IbsTZuGX55DKb+o8/0GcQ0V0c7Fn9R/2/DTgYkPWsncea0a82D2RWdGog6fgfvOsnEXTFAAbh4JMwBKQ+JNqz30qjhI5lO9OP4a36yfuzE845TvfFjdNgBuKPytW2/5dl8p6A2pCVWrKg/dkfjIAs3wlAGfi5CMJ2DgUZABWOTs1XgLhnUFpbGb85ZfKkYMLQr1NgJuLPyv2cH+hAesNruVPj/YLX1hDYM9fAb7zGKzsnLC9nx/unGTiePNQkJGbZTubF8VHKj2LTMDqivwqd/76kzj+/UPY/zcC3EaqmIy0XyU3dO4rnqbOhCoXLr+RBGPgEolS2mpjaRfcAFyRg4+c3bny8NQL8f7Rh/DKEODmimW7qAAsN9ifnc/Yc/5xXz1Nq+krKegCmVGCIFZWlKfyUJBZH9t1sIqQTOzd2f3HkMfNkn7556KSXrPGBFhkuImzkbo42XNWMQ7h38q8C14To5QJh0scZR0KFzIB2140pItmN3Od2Q5m6JNz/o4ciQN5U3wCrjUvp8WZZpt6TRoVYJ5rJ86GzoUsTeBMVXnLfxjNJJWl2E/23AVb69Bc/qpqB0O6bAeLjdj2rOCF+zrSB2QRtYObSpZ2mQFYbuRL4UULv5Xj/FnnRp6vfi4CHezgWL4FgHmytA6F+tQTyfrMSn//JXPMZNeGiGTx3dyLvvNYNJ7AqRd9GzzodcfqBFmDRgKY1FUEGLkIMHIRYOQiwMhFgJGLACMXAUYuAoxcBBi5CDByEWDkIsDIRYCRiwAjFwFGrnaA1dCFtY9TIDVVK8CpGlWWGZM9SButNoCXx8X48GKyB2mj1QbwzaGewJdRIT0SUQ5GrpZ1sMzCVAePRu28aDkqOKL8OxpROxi5CDByUaADuSjQgVzUTEIuCnQgF+Vg5KJAB3IFDnREpFvSMIBv2xypSrcMuP2LReqngQDXBjoI8C1pGMD1gQ4CHFbzqh0dAN8cTsWSm9XtnwbNJAIcVpdVOzoAjvkSU5M8nlQe2yDQQYDD6m3VjvaAOb2MtXNXxKgoB9+6Xlft6AY45mv2rQhC1gc6CHBYvara0aWIntwc8hXNq4voJoGOptclNdKLqh2dnCyxFusqvm3MkUIoqdpBkSwcSqp2tAdseFA9RICDap7MKvZ0c7L6iwAH1Swg4AZ9+MrFWhGsJMBB9Ta5qNjTJQevRse1PK57CXoBFl9Q0OWIVaR4y5cwhc4m61VS5UYP1tlQ42T3AZzCuvjN3Xj8gF8mScWeobzoLFr9THsAvr4nl1Rv7OzhAuzrV0iCAr7hXyKI+/nS7nUPVsg5VAXB073zmwePot3vBL44inYe7ZxwljeHnx9CEa6/TokJsK9fISjgbOeEP9vmGajBdVfxdQDrC2cc59454OPBU/51MgDMP2/Dv5vCv8XB/uIC/MqThUMC5u1g3oWwKhbdwlxraVrX+0cCNk9gv1lKrABPYe+DE/EXGeCzyzLhxSKpOLpbO5gD7jfiORRgWQDDzWQKcFEsiy8V4QL87PKqlLZYLCoawt1zcNxrxHMfwGYRLVGmXsBpxL9OiQzwPLks18IM8Dv/4Z3r4LTGTW5srrVMJ2tlDhblNroiep6cloMai8oyuqMXHfX9VlefZpKob0VO1oAhLbUBC+oZtiL6MklKvfvzsIB7KMiw2SLQUdS2thdd5GDxHV9UgF8lyTM3bXMAhzGnQ5WGO8WavLv/5l/7tuvgnRPpWo9SZW9KBK0SN+2CAV74TfSIRUd9auFBOhvQTWX0BZhZXk3ctNOQgOU4K1a39Yl1BAYs6uCesZcNVHLla/KWS2OWFA6w6kfgnnT3llLoHJz1LFE2U8lrb5M3Kae9DVlEw3Nk5WGPIpH6gx15pyYkSWm889xXGi8WLNk/uaH7kB2egwlwMPn8KQa4NBx25gHM0tj//JMb+tTBfUZWEmBHvkCUz2GeeerbS5GD33jtdg508O9k93BaCbCjN54S1ucw+wC/ZAlVDeERtoPjzo20TJ4CLT1e/GS1ITlPGzrjpyyPizFDD/pF9YS+95TR3J9yuXPoLmCecFnhZY0RcFffveiHuieJcFRZ66CrOCM1qqcswEozvlFzHLBbsy4WF+98gPNwgIOsYrdWwMr7B39xxTRJvzJ3DIGRmzsreeFt8i7cuPNicXXlsAQPOhzgJlXvkDP8DcC89cu7/PnInac8Mglz3VJZAMsROzK0yf+FU1Xuk10UcJPX977aN85XZmFAUGaY5iOD4B3RIdMAi0UlibfJu3huJzGYMxfwTGwz8j67XdrB9fGi9jP8FyvkHFoAhp6iSS5G7ojBOdf7UzVKZ6pH7AiOIvImM1r8EfCColrmZ0YL5sVqQ8WAIHUh3achbCu7eYdivqTEM/DV40/NyqXx/I0E7J1COsjMhvbzg1fxrQQMlxGdwFP14mW8vwGurkfsqBJZ3Tm8D/FUcpF0xLuR69FmyhA/SV/IGBk0NUPfsgezjxq2iK5KgOezRAIuGeDqHqpcoWFn+MfKiYbHqkbuACe2ZT5tOWIHbsJ+NXkkzgZ8BBvakNPbzP61xhVouyGi4P4A5PMXLuDTEuCrCzjV43FzdQp01L2uw87w1zkYnjt71rIYleC1j6xG7IBH4Pb781fBKqLvSdrakAOY/dIjgyBF2g0EuBRrZLXqRdmfuhSRySLpjGXgZ3lAwE2mrgw6w98BbOfgvCgv9YgdOMvtFmZAHSdLAVaG6nKwshsKcLlFJHwqM0n5U0YibxZfwOEirukMvhuoHTzkDH9fHWyObldPW4/YkanayZKF8e5Tq5kEdXAsB3rJU7x1cCrr4OKg/nWwr8MPSmPTN55fSMDGmA4OeCZN8D/OazLqQEfhRcvnDhmK/2Cegh6xI7JkZlARSPnUDDPQcb3PN5QXrXO87UWn4hjpRSu7IbzoKsB2UGN2WvanElU2g4GZsYtrU6autJCnHQx5LlX1hmwHqxE74jABTZUoqoEMh4Ct6/0/7hep3JBRMPjbwcpugHbwYnHmBTy3Ut9pf+rKOGpxYQB+58wUHmjqygiXMmxXzNbPWa1WabZVLnt03aQzF/CpzLtilzpqIZFe8aJ6/jyx+6WGmboyxqUMW9ajPWLR5fl03i57qFotwIU/lRRHJdJ7nos+B7c9PcjUlVEuhNYScI/eJD/gvAx4ntuA544/BS9AclbszU+TxG4tDTJ1pTrQQcsJ5zCV0kniJbETYpaFs9kkmqmcKx2yt2L/peqH4iHLRJfYUoNMXRllDr49eQDz3tyZE4FUgIt+xNeq7oXos1g7ibWjVI6dAWC7f2KYqSu0lOEqeQDL1o+RcvVabhqpOnfOBPYZ96XNgl2U807Mc4SBjrGL0W0A+CzxApY0xc4z3gFlngQjd+7eNS2PMNAxdnkAz8s9uokDGByul3Kv7DVMbMC8fGZ8LcIdANcvCN7KHG55PGYPYBVi/l6n8OHPgFsSPBM/dRwSAC/mVjuZmbkLKtK6jOioXRAcOsb5eIfKmnpLAPsWkeEJduJcB6h0UtEPDn+vktwprbnXvUieWc2ohSJcpHVrB9csCA58752siPFsDeByfVsCPGc+9Cn/YThMxYhZSORbpkPNuL4QDpVVcfO3oncR3WBBcBHGhBy+5c0kD2CxbSWeFfELPeqGoZOtHVEIz3j4ouxPuQNexFZvJ6t+QfCii23bv9nQCLDhTyX8D/hTr1R9y3cmfOKCy3JRmhYMm4mZ1MnJql0QXAx3oxzcDHAxPf+V4DN/J9wlHb+QgBenJcB8IFeSW4n8pJ6hyibio5VEFq7sKMUI2Osw1wNeaIcZnOmLxGwQCcBvvNVtwg61Ac+tLaGh2sFyYFNlNkcIuJHDrDaNVGMGkujiT5LZWzMCLTqahF4adhbC5UqefZ+bSnJX1A4OpWYtIgcwz7kMsKJ0IbsLEqd1K/0ps+yFzYuZ3b2flG5roHZwC3NY1KhFVGzCX+jS15DY76vEVxov3r4tVbfWplR57Psw7eAW5sYpT49uI4e5yOTwI7mySYmRO26HAWy6Pfne5UfL6xkO0g5uY26M8hTGzfypgxLgZGaNgdWzOZzS+CWvbk8t496vNJRHRg/SDm5lboRqWBrLbSPVhp3fherWoKKq28Q0A51IyUVddevVMO3ggNfdRLWrbisB371711MaL67ccVWvxKY7f/hl3kjUXdhejUrjvBaw6BXwV7fvrJmg8+QsL6vyi8G2CHB7VcJc6TDnzgGyY88YAZsrwO/mNr3KjyI1ULcieq0z/NetUs2qN+00258qZXuVg62J3+6QOVDS4267tYPTSd/pOGMBXBG9aA1Y2HFaTIzvrBRrtDalKj8O3EDdZvjzkd79pmtgB3xgt4g8nxeBzUaAK7/f3kDd2sHXv3oq/t/+cmMbF10VvvBnV7O2dWiXRu/A5nPHgfICbuhPedVt4Dsfy98JcPvrrlndAVs7KxtRV87aK5Wfx+mqDnUwD2HF060potsAdhwrY285tCnlTMuv/AZhV3VpJsV8Rm4/J3osgJs1b8uJpVMqATsOlHcZhj6idnAhfw9CLWDTP5bHu0Cr+br1a9LifhuJABeq6EJwXKdSJj1wPGYP4OZKOp5XqdaA0zArq48DsCezOoBVE8g8owffvPRBlb5qC1ivHHdb1709NfCnHN/YzrxVRlqp6kPendUSMAyGDbA0IxbApWzfJ/sOoZaA5ZIk/T9fs5mAV8Si+L++xk/5ndgovgRYqybY6C2OPSy3BPCmr7LTIMRsHuCtbvtVtrelYQBv/Co7dYA9pfEYaHo0CODNX6Oj7FCZrZ+GpfEo1Bpw0R+0anbhkMsJB1DJO7Kat97SeEsAN9Nm5eD6Ma5OqKIqZDlKdesurNMmrbLjCRyWHWbn+Fu5sdtRtw7/Wm3OKjuloTJ5yWFGUxz71GUhtBBf6R0IsCduWO4PsuJTmOpbn7rk4PoV3wNet5VKA2UOyq1bp7ugogBHo4G6C9cT6DhwAOc2S/cQX+mNTsMAXk+gw4kNO6GocmLvrp8xaLzNpMreed+oGcUedXXrVetAx7RBHXwbywnbdafhSakhqj5/C7c/5dVoc3ApOFGKRXmO3wKgrroDXv5pTd9N0oNiDKRNYlGeztstUFfA6epmUthARynSdGA0b7ey4G2uToD152Ru4bp5ufVjdcRvZbnbQl0DHX0/5VZ1XW/PgMPU2dXzTpCrLeBYrG5W+60+Pbi2aqmWius6wIp2T0VckfjWqVOHfy1g+EQzX8WjMWAF0O3GMyLH2+kG91TbHJw1ycHQTFoer/h8lnvdwnWyQolm44fgdlGXGf61dbAKdPC1AJoBNlupB6ZzbONuerMkrU5eNPezVnnROtART5oBPii7Tr5QRdN7JRXq2g7OVn8gWu6rnmXqAnY2KbeGUo9Q5T9WBDpUKGt5vJGD7rZINH0UuQgwchFg5FobYNItaU2Ahzc90A2PymwbqwR4hGYJMHKzBBi5WQKM3CwBRm6WACM3S4CRmyXAyM1uCGDSJogAIxcBRi4CjFwEGLkIMHIRYOQiwMhFgJGLACMXAUYuAoxcBBi5hgKc9V4NwhGsQDAJa1p+iVNbDGQazAa9Y7HG4NS6x2ZWBwKcsUtnQQlf3zsJbvrmUEyx0hYDmZZmQ97x8pidn/K3pe3NDgMYJprGk4Am1dJrAU3LqZTaYiDTaoZmyDuGj5alu09b3+wwgPX9hDOZTkKbzqKpYKAthjGtzA5xxzsnrW92IMCidAqyArVS/BFUQkFNA2BlMZhpMBH+jmPjHptaHQYw1A0hK+GbQ774WjwNa1o8H20xmGlhNvwd8/UFW9/sWABLu7tPRwNY/wxlNlM+1gYAHqCIBrv7R+MpooXC3TGsD7ohRfQAThbYvXcS1PQQTlZuAw51x3Ix9g1xssI3k+C/JzPaCSGUDdFMst6bUHdcrI6yEc2kAQId4j+FuSxBTWeDBDqUFx3wjq/31QpmmxHoEKtaBnax+EJtR4FNy7JUWwxkWpoNeMcpTOvnVlreLHU2IBcBRi4CjFwEGLkIMHIRYOQiwMhFgJGLACMXAUYuAoxcBBi5CDByEWDkIsDIRYCRiwAjFwFGLgKMXAQYuQgwchFg5CLAyEWAkYsAIxcBRi4CjFzbB7g0YSv8PPVNEgEmwMhEgJGL8bw5/PwQZnbyKZiP5KRMPoWez5i/OZzWGhmPthQwXzeO/T9mPLNIbvBJ1nzefMpXx0GjLQU8heVRxCoLsUwQ87az3e8eoCqxtxTwEV/H6kiv4ADVsOAdRyEXYFy/thpwqgHDCgm8Ws7kaidYtNWAnRzMtTz+Q/DFn9aqrQYs15qSCULp3s/HmJzo7QYsnGftRYO3dTTAAn3r1HYDttvBDGzMmkjLY0xu1vYB3jIRYOQiwMhFgJGLACMXAUYuAoxcBBi5CDByEWDkIsDIRYCRiwAjFwFGLgKMXAQYuQgwchFg5CLAyEWAkYsAIxcBRi4CjFwEGLn+D5vDw+MNj+0AAAAAAElFTkSuQmCC" style="display: block; margin: auto;" /></p>
 </div>
 <div id="brief-notes-on-other-parameters" class="section level2">
 <h2>Brief Notes on Other Parameters</h2>
