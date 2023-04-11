@@ -66,7 +66,7 @@ a$feature.weights
 mean( a$results == as.numeric(iris[test.set, 5]) )
 ```
 
-A perfect classification.
+A perfect classification, using the features: `r names(a$feature.weights)`, weighted per the output above.
 
 # Cross-Validation Classification Using `NNS.stack()`
 The **`NNS.stack()`** routine cross-validates for a given objective function the `n.best` parameter in the multivariate **`NNS.reg`** function as well as the `threshold` parameter in the dimension reduction **`NNS.reg`** version. **`NNS.stack`** can be used for classification via **`NNS.stack(..., type = "CLASS", ...)`**.
@@ -110,9 +110,6 @@ $dim.red
 
 $stack
  [1] 3 3 3 3 3 3 3 3 3 3
-
-$stack
- [1] 1 2 3 3 3 3 3 3 2 3
 ```
 
 ```{r stackevalres, eval = FALSE}
