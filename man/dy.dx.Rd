@@ -4,7 +4,7 @@
 \alias{dy.dx}
 \title{Partial Derivative dy/dx}
 \usage{
-dy.dx(x, y, eval.point = median(x), deriv.method = "FD")
+dy.dx(x, y, eval.point = median(x))
 }
 \arguments{
 \item{x}{a numeric vector.}
@@ -12,8 +12,6 @@ dy.dx(x, y, eval.point = median(x), deriv.method = "FD")
 \item{y}{a numeric vector.}
 
 \item{eval.point}{numeric or ("overall"); \code{x} point to be evaluated.  Defaults to \code{(eval.point = median(x))}.  Set to \code{(eval.point = "overall")} to find an overall partial derivative estimate (1st derivative only).}
-
-\item{deriv.method}{method of derivative estimation, options: ("NNS", "FD"); Determines the partial derivative from the coefficient of the \link{NNS.reg} output when \code{(deriv.method = "NNS")} or generates a partial derivative using the finite difference method \code{(deriv.method = "FD")} (Default).}
 }
 \value{
 Returns a list of both 1st and 2nd derivative:
@@ -34,7 +32,7 @@ x <- seq(0, 2 * pi, pi / 100) ; y <- sin(x)
 dy.dx(x, y, eval.point = 1.75)
 
 # Vector of derivatives
-dy.dx(x, y, eval.point = c(1.75, 2.5), deriv.method = "FD")
+dy.dx(x, y, eval.point = c(1.75, 2.5))
 }
 }
 \references{

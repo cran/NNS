@@ -1,6 +1,6 @@
 NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, n.best = NULL, type = NULL, point.est = NULL, point.only = FALSE,
                        plot = FALSE, residual.plot = TRUE, location = NULL, noise.reduction = 'off', dist = "L2",
-                       return.values = FALSE, plot.regions = FALSE, ncores = NULL){
+                       return.values = FALSE, plot.regions = FALSE, ncores = NULL, confidence.interval = NULL){
   
   dist <- tolower(dist)
   
@@ -38,7 +38,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   maximums <- apply(original.IVs, 2, max)
   
   
-  if(is.null(order)) order <- floor(max(1,(NNS.copula(original.matrix)* 10)))
+  if(is.null(order)) order <- ceiling(max(1,(NNS.copula(original.matrix)*10)))
   
   
   ###  Regression Point Matrix
@@ -75,9 +75,8 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
     colnames(reg.points.matrix) <- as.character(colnames.list)
   }
   
-  if(is.numeric(order) || is.null(order)){
-    reg.points.matrix <- unique(reg.points.matrix)
-  }
+  if(is.numeric(order) || is.null(order)) reg.points.matrix <- unique(reg.points.matrix)
+
   
   if(!is.null(order) && order=="max" && is.null(n.best)) n.best <- 1
   
@@ -139,9 +138,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   
   y.hat <- unlist(mean.by.id.matrix[ , .(y.hat)])
   
-  if(!is.null(type)){
-    y.hat <- ifelse(y.hat %% 1 < 0.5, floor(y.hat), ceiling(y.hat))
-  }
+  if(!is.null(type)) y.hat <- ifelse(y.hat %% 1 < 0.5, floor(y.hat), ceiling(y.hat))
   
   
   fitted.matrix <- data.table::data.table(original.IVs, y = original.DV, y.hat, mean.by.id.matrix[ , .(NNS.ID)])
@@ -292,6 +289,23 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
     R2 <- max(0, min(1, R2num / R2den ))
   }
   
+  
+  lower.pred.int = NULL
+  upper.pred.int = NULL
+  pred.int = NULL
+  
+  if(is.numeric(confidence.interval)){
+    fitted.matrix[, `:=` ( 'conf.int.pos' = abs(UPM.VaR((1-confidence.interval)/2, degree = 1, residuals)) + y.hat)]
+    fitted.matrix[, `:=` ( 'conf.int.neg' = y.hat - abs(LPM.VaR((1-confidence.interval)/2, degree = 1, residuals)))]
+    
+    if(!is.null(point.est)){
+      lower.pred.int = predict.fit - abs(LPM.VaR((1-confidence.interval)/2, degree = 1, fitted.matrix$residuals))
+      upper.pred.int = abs(UPM.VaR((1-confidence.interval)/2, degree = 1, fitted.matrix$residuals)) + predict.fit
+      
+      pred.int = data.table::data.table(lower.pred.int, upper.pred.int)
+    }
+  }
+  
   ### 3d plot
   if(plot && n == 2){
     region.1 <- mean.by.id.matrix[[1]]
@@ -347,11 +361,20 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
     resids <- cbind(original.DV, y.hat)
     r2.leg <- bquote(bold(R ^ 2 == .(format(R2, digits = 4))))
     if(!is.null(type) && type=="class") r2.leg <- paste("Accuracy: ", R2) 
-    matplot(resids, type = 'l', xlab = "Index", ylab = expression(paste("y (black)   ", hat(y), " (red)")), cex.lab = 1.5, mgp = c(2, .5, 0))
+    plot(seq_along(original.DV), original.DV, type = "l", lwd = 3, col = "steelblue",xlab = "Index", ylab = expression(paste("y (blue)   ", hat(y), " (red)")), cex.lab = 1.5, mgp = c(2, .5, 0))
+    lines(seq_along(y.hat), y.hat, col = 'red', lwd = 2, lty = 2)
+    
+    if(is.numeric(confidence.interval)){
+      lines(seq_along(y.hat), na.omit(fitted.matrix$conf.int.pos), col = 'pink')
+      lines(seq_along(y.hat), na.omit(fitted.matrix$conf.int.neg), col = 'pink')
+    }
     
     title(main = paste0("NNS Order = multiple"), cex.main = 2)
     legend(location, legend = r2.leg, bty = 'n')
   }
+  
+  
+  
   
   ### Return Values
   if(return.values){
@@ -359,12 +382,14 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
                 rhs.partitions = rhs.partitions,
                 RPM = REGRESSION.POINT.MATRIX[] ,
                 Point.est = predict.fit,
+                pred.int = pred.int,
                 Fitted.xy = fitted.matrix[]))
   } else {
     invisible(list(R2 = R2,
                    rhs.partitions = rhs.partitions,
                    RPM = REGRESSION.POINT.MATRIX[],
                    Point.est = predict.fit,
+                   pred.int = pred.int,
                    Fitted.xy = fitted.matrix[]))
   }
   

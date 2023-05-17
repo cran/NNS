@@ -58,7 +58,7 @@ NNS.reg(
 
 \item{residual.plot}{logical; \code{TRUE} (default) To plot \code{y.hat} and \code{Y}.}
 
-\item{confidence.interval}{numeric [0, 1]; \code{NULL} (default) Plots the associated confidence interval with the estimate and reports the standard error for each individual segment.}
+\item{confidence.interval}{numeric [0, 1]; \code{NULL} (default) Plots the associated confidence interval with the estimate and reports the standard error for each individual segment.  Also applies the same level for the prediction intervals.}
 
 \item{threshold}{numeric [0, 1]; \code{(threshold = 0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}.}
 
@@ -87,7 +87,9 @@ UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
  \item{\code{"derivative"}} for the coefficient of the \code{x} and its applicable range;
 
  \item{\code{"Point.est"}} for the predicted value generated;
-
+ 
+ \item{\code{"pred.int"}} lower and upper prediction intervals for the \code{"Point.est"} returned using the \code{"confidence.interval"} provided;
+ 
  \item{\code{"regression.points"}} provides the points used in the regression equation for the given order of partitions;
 
  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x}, \code{y}, \code{y.hat}, \code{resid}, \code{NNS.ID}, \code{gradient};
@@ -107,6 +109,8 @@ MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
  \item{\code{"RPM"}} provides the Regression Point Matrix, the points for each \code{x} used in the regression equation for the given order of partitions;
 
  \item{\code{"Point.est"}} returns the predicted value generated;
+ 
+ \item{\code{"pred.int"}} lower and upper prediction intervals for the \code{"Point.est"} returned using the \code{"confidence.interval"} provided;
 
  \item{\code{"Fitted.xy"}} returns a \link{data.table} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
 }
