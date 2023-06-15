@@ -1,8 +1,8 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 0.9.9
-Date: 2023-05-19
+Version: 0.9.9.1
+Date: 2023-06-15
 Authors@R: c(
   person("Fred", "Viole", role=c("aut","cre"), email="ovvo.financial.systems@gmail.com"),
   person("Roberto", "Spadim", role=c("ctb"))
@@ -22,8 +22,8 @@ Config/testthat/edition: 3
 RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-05-19 01:11:41 UTC; fredv
+Packaged: 2023-06-14 13:28:20 UTC; fredv
 Author: Fred Viole [aut, cre],
   Roberto Spadim [ctb]
 Repository: CRAN
-Date/Publication: 2023-05-19 09:50:06 UTC
+Date/Publication: 2023-06-15 04:30:19 UTC
