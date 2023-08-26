@@ -8,8 +8,13 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, message = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(NNS)
+library(data.table)
+data.table::setDTthreads(2L)
+options(mc.cores = 1)
+Sys.setenv("OMP_THREAD_LIMIT" = 2)
 ```
 
 # Partial Moments
@@ -81,7 +86,12 @@ The covariance matrix $(\Sigma)$ is equal to the sum of the co-partial moments m
 $$ \Sigma = CLPM + CUPM - DLPM - DUPM $$
 
 ```{r cov_dec, warning=FALSE}
-PM.matrix(LPM_degree = 1, UPM_degree = 1,target = 'mean', variable = cbind(x, y), pop_adj = TRUE)
+cov.mtx = PM.matrix(LPM_degree = 1, UPM_degree = 1,target = 'mean', variable = cbind(x, y), pop_adj = TRUE)
+cov.mtx
+
+# Reassembled Covariance Matrix
+cov.mtx$clpm + cov.mtx$cupm - cov.mtx$dlpm - cov.mtx$dupm
+
 
 # Standard Covariance Matrix
 cov(cbind(x, y))
@@ -126,10 +136,6 @@ NNS.CDF(x, 1, type = "survival")
 ```
 
 
-## PDFs
-```{r pdfs,fig.align="center",fig.width=5,fig.height=3, rows.print = 10, results='hide'}
-NNS.PDF(x)
-```
 
 ## Numerical Integration
 Partial moments are asymptotic area approximations of $f(x)$ akin to the familiar Trapezoidal and Simpson's rules.  More observations, more accuracy...

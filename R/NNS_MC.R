@@ -4,9 +4,10 @@
 #'
 #' @param x vector of data.
 #' @param reps numeric; number of replicates to generate, \code{30} default.
-#' @param rho vector \code{c(-1,1)}; The default setting assumes that the user wants to sample from the full correlation spectrum [-1,1].
-#' @param step numeric; \code{.01} default will set the \code{by} argument in \code{seq(-1, 1, step)}.
-#' @param exp numeric; \code{1} default will exponentially weight maximum rho value if \code{exp > 1}.
+#' @param lower_rho numeric \code{[-1,1]}; \code{.01} default will set the \code{from} argument in \code{seq(from, to, by)}.
+#' @param upper_rho numeric \code{[-1,1]}; \code{.01} default will set the \code{to} argument in \code{seq(from, to, by)}.
+#' @param by numeric; \code{.01} default will set the \code{by} argument in \code{seq(-1, 1, step)}.
+#' @param exp numeric; \code{1} default will exponentially weight maximum rho value if \code{exp > 1}.  Shrinks values towards \code{upper_rho}.
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
 #' @param drift logical; \code{TRUE} default preserves the drift of the original series.
 #' @param xmin numeric; the lower limit for the left tail.
@@ -32,21 +33,26 @@
 
 NNS.MC <- function(x,
                    reps = 30,
-                   rho = c(-1, 1),
-                   step = .01,
+                   lower_rho = -1,
+                   upper_rho = 1,
+                   by = .01,
                    exp = 1,
                    type = "spearman",
                    drift = TRUE,
                    xmin = NULL,
                    xmax = NULL, ...){
-                       
 
-  NNS.meboot_vec <- Vectorize(NNS.meboot, vectorize.args = "rho")
 
-  rhos <- 1-seq(rho[1], rho[2], step)^exp
+  rhos <- seq(lower_rho, upper_rho, by)
+  l <- length(rhos)
+  
+  neg_rhos <- abs(rhos[rhos<0])
+  pos_rhos <- rhos[rhos>0]
+  
+  exp_rhos <- rev(c((neg_rhos^exp)*-1, pos_rhos^(1/exp)))
   
   
-  samples <- suppressWarnings(NNS.meboot_vec(x = x, reps = reps, rho = rhos, type = type, drift = drift,
+  samples <- suppressWarnings(NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
                             xmin = xmin, xmax = xmax, ...))
   
   replicates <- samples["replicates",]
@@ -55,7 +61,7 @@ NNS.MC <- function(x,
 
   ensemble <- Rfast::rowmeans(do.call(cbind, replicates))
 
-  names(replicates) <- paste0("rho = ", rhos)
+  names(replicates) <- paste0("rho = ", exp_rhos)
   
   return(list("ensemble" = ensemble, "replicates" = replicates))
 }

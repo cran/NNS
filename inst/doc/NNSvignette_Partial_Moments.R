@@ -1,5 +1,10 @@
-## ----setup, include=FALSE-----------------------------------------------------
+## ----setup, include=FALSE, message = FALSE------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
+library(NNS)
+library(data.table)
+data.table::setDTthreads(2L)
+options(mc.cores = 1)
+Sys.setenv("OMP_THREAD_LIMIT" = 2)
 
 ## ----mean, message=FALSE------------------------------------------------------
 library(NNS)
@@ -41,7 +46,12 @@ cov(x, y)
 (Co.LPM(1, x, y, mean(x), mean(y)) + Co.UPM(1, x, y, mean(x), mean(y)) - D.LPM(1, 1, x, y, mean(x), mean(y)) - D.UPM(1, 1, x, y, mean(x), mean(y))) * (length(x) / (length(x) - 1))
 
 ## ----cov_dec, warning=FALSE---------------------------------------------------
-PM.matrix(LPM_degree = 1, UPM_degree = 1,target = 'mean', variable = cbind(x, y), pop_adj = TRUE)
+cov.mtx = PM.matrix(LPM_degree = 1, UPM_degree = 1,target = 'mean', variable = cbind(x, y), pop_adj = TRUE)
+cov.mtx
+
+# Reassembled Covariance Matrix
+cov.mtx$clpm + cov.mtx$cupm - cov.mtx$dlpm - cov.mtx$dupm
+
 
 # Standard Covariance Matrix
 cov(cbind(x, y))
@@ -79,9 +89,6 @@ NNS.CDF(x, 1, target = mean(x))
 
 # Survival Function:
 NNS.CDF(x, 1, type = "survival")
-
-## ----pdfs,fig.align="center",fig.width=5,fig.height=3, rows.print = 10, results='hide'----
-NNS.PDF(x)
 
 ## ----numerical integration----------------------------------------------------
 x = seq(0, 1, .001) ; y = x ^ 2

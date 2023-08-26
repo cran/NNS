@@ -1,4 +1,4 @@
-[![packageversion](https://img.shields.io/badge/NNS%20version-10.0-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![packageversion](https://img.shields.io/badge/NNS%20version-10.1-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 
 # NNS
@@ -30,7 +30,7 @@ and [![NNS](https://img.shields.io/badge/NNS%3E%3D-0.9.0-blue.svg)](https://cran
 [![NNS](https://img.shields.io/badge/NNS--blue.svg)](https://cran.r-project.org/package=NNS) requires [![minimal R version](https://img.shields.io/badge/R%3E%3D-3.5.0-6666ff.svg)](https://cran.r-project.org/).  See https://cran.r-project.org/ or [![installr](https://img.shields.io/badge/installr-0.18.0-blue.svg)](https://cran.r-project.org/package=installr) for upgrading to latest R release.
 
 ```r
-require(devtools); install_github('OVVO-Financial/NNS', ref = "NNS-Beta-Version")
+library(remotes); remotes::install_github('OVVO-Financial/NNS', ref = "NNS-Beta-Version")
 ```
 or via CRAN
 ```r
@@ -47,7 +47,7 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 10.0},
+    note = {R package version 10.1},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```

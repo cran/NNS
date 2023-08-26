@@ -72,18 +72,18 @@ dy.d_ <- function(x, y, wrt,
   
   
   
-  n <- dim(x)[1]
-  l <- dim(x)[2]
+  n <- nrow(x)
+  l <- ncol(x)
   
   if(is.null(l)) stop("Please ensure (x) is a matrix or data.frame type object.")
   if(l < 2) stop("Please use NNS::dy.dx(...) for univariate partial derivatives.")
   
   
-  if(messages) message("Currently generating NNS.reg finite difference estimates...Regressor ", wrt,"\r",appendLF=TRUE)
+  if(messages) message("Currently generating NNS.reg finite difference estimates...Regressor ", wrt,"\r", appendLF=TRUE)
   
   
   if(is.null(colnames(x))){
-    colnames.list <- lapply(1 : ncol(x), function(i) paste0("X", i))
+    colnames.list <- lapply(1 : l, function(i) paste0("X", i))
     colnames(x) <- as.character(colnames.list)
   }
   
@@ -117,41 +117,44 @@ dy.d_ <- function(x, y, wrt,
   original.eval.points.max <- eval.points
   original.eval.points <- eval.points
   
-  zz <- NNS.dep(cbind(x,y))$Dependence^2
-  
-  h_s <- seq(.01, 1, length.out = max(5, ifelse(round(zz[wrt, "y"]*10)>.5, ceiling(round(zz[wrt, "y"]*10)), floor(round(zz[wrt, "y"]*10)))))
-  
+  norm.matrix <- apply(x, 2, function(z) NNS.rescale(z, 0, 1))
+ 
+  zz <- max(NNS.dep(x[,wrt], y, asym = TRUE)$Dependence, NNS.copula(cbind(x[,wrt],x[,wrt],y)), NNS.copula(cbind(norm.matrix[,wrt], norm.matrix[,wrt], y)))
+ 
+  h_s <- c(1:5, seq(10, 20, 5), 30)[1:min(length(x),9)]
+
   results <- vector(mode = "list", length(h_s))
   
   for(h in h_s){
     index <- which(h == h_s)
-    if(is.vector(eval.points) || dim(eval.points)[2] == 1){
+    if(is.vector(eval.points) || ncol(eval.points) == 1){
       eval.points <- unlist(eval.points)
+
+      h_step <- gravity(abs(diff(x[,wrt]))) * h_s[index]
       
-      h_step <- gravity(abs(diff(LPM.VaR(seq(0, 1, h), 1, x[,wrt]))))
-      
-      if(h_step==0) h_step <- abs((max(x[,wrt]) - min(x[,wrt])) * h)
+      if(h_step==0) h_step <- ((abs((max(x[,wrt]) - min(x[,wrt])) ))/length(x[,wrt])) * h_s[index]
       
       original.eval.points.min <- original.eval.points.min - h_step
       original.eval.points.max <- h_step + original.eval.points.max
       
-      seq_by <- max(.01, 1 - zz[wrt, "y"])
+      seq_by <- max(.01, (1 - zz)/2)
       
       deriv.points <- apply(x, 2, function(z) LPM.VaR(seq(0,1,seq_by), 1, z))
+      
       sampsize <- length(seq(0, 1, seq_by))
       
-      if(dim(deriv.points)[2]!=dim(x)[2]){
+      if(ncol(deriv.points)!=ncol(x)){
         deriv.points <- matrix(deriv.points, ncol = l, byrow = FALSE)
       }
       
       
       
       deriv.points <- data.table::data.table(do.call(rbind, replicate(3*length(eval.points), deriv.points, simplify = FALSE)))
-      
+     
       data.table::set(deriv.points, i = NULL, j = as.integer(wrt), value = rep(unlist(rbind(original.eval.points.min,
                                                                                             eval.points,
                                                                                             original.eval.points.max))
-                                                                               , each = sampsize, length.out = dim(deriv.points)[1] ))
+                                                                               , each = sampsize, length.out = nrow(deriv.points) ))
       
       
       colnames(deriv.points) <- colnames(x)
@@ -159,13 +162,12 @@ dy.d_ <- function(x, y, wrt,
       distance_wrt <- h_step
       
       
-      position <- rep(rep(c("l", "m", "u"), each = sampsize), length.out = dim(deriv.points)[1])
-      id <- rep(1:length(eval.points), each = 3*sampsize, length.out = dim(deriv.points)[1])
+      position <- rep(rep(c("l", "m", "u"), each = sampsize), length.out = nrow(deriv.points))
+      id <- rep(1:length(eval.points), each = 3*sampsize, length.out = nrow(deriv.points))
       
       
-      if(messages){
-        message(paste("Currently evaluating the ", dim(deriv.points)[1], " required points"  ),"\r",appendLF=TRUE)
-      }
+      if(messages) message(paste("Currently evaluating the ", nrow(deriv.points), " required points "  ), index, " of ", length(h_s),"\r", appendLF=FALSE)
+      
       
       
       estimates <- NNS.reg(x, y, point.est = deriv.points, dim.red.method = "equal", plot = FALSE, threshold = 0, order = NULL, point.only = TRUE, ncores = 1)$Point.est
@@ -175,15 +177,15 @@ dy.d_ <- function(x, y, wrt,
                                                 position = position,
                                                 id = id))
       
-      lower_msd <- estimates[position=="l", sapply(.SD, function(x) list(mean=mean(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
+      lower_msd <- estimates[position=="l", sapply(.SD, function(x) list(mean=gravity(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
       lower <- lower_msd$V1
       lower_sd <- lower_msd$V2
       
-      fx_msd <- estimates[position=="m", sapply(.SD, function(x) list(mean=mean(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
+      fx_msd <- estimates[position=="m", sapply(.SD, function(x) list(mean=gravity(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
       two.f.x <- 2* fx_msd$V1
       two.f.x_sd <- fx_msd$V2
       
-      upper_msd <- estimates[position=="u", sapply(.SD, function(x) list(mean=mean(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
+      upper_msd <- estimates[position=="u", sapply(.SD, function(x) list(mean=gravity(as.numeric(x)), sd=sd(as.numeric(x)))), .SDcols = "estimates", by = id]
       upper <- upper_msd$V1
       upper_msd <- upper_msd$V2
       
@@ -192,12 +194,12 @@ dy.d_ <- function(x, y, wrt,
       
     } else {
       
-      n <- dim(eval.points)[1]
+      n <- nrow(eval.points)
       original.eval.points <- eval.points
+
+      h_step <- gravity(abs(diff(x[,wrt]))) * h_s[index]
       
-      h_step <- gravity(abs(diff(LPM.VaR(seq(0, 1, h), 1, x[,wrt]))))
-      
-      if(h_step==0) h_step <- abs((max(x[,wrt]) - min(x[,wrt])) * h)
+      if(h_step==0) h_step <- ((abs((max(x[,wrt]) - min(x[,wrt])) ))/length(x[,wrt])) * h_s[index]
       
       original.eval.points.min[ , wrt] <- original.eval.points.min[ , wrt] - h_step
       original.eval.points.max[ , wrt] <- h_step + original.eval.points.max[ , wrt]
@@ -206,7 +208,7 @@ dy.d_ <- function(x, y, wrt,
                             original.eval.points,
                             original.eval.points.max)
       
-      if(messages) message("Currently generating NNS.reg finite difference estimates...bandwidth ", index, " of ", length(h_s),"\r",appendLF=TRUE)
+      if(messages) message("Currently generating NNS.reg finite difference estimates...bandwidth ", index, " of ", length(h_s),"\r" ,appendLF=FALSE)
       
       
       estimates <- NNS.reg(x, y, point.est = deriv.points, dim.red.method = "equal", plot = FALSE, threshold = 0, order = NULL, point.only = TRUE, ncores = 1)$Point.est
@@ -232,12 +234,12 @@ dy.d_ <- function(x, y, wrt,
       }
       
       if(!is.null(dim(eval.points))){
-        h_step_1 <- gravity(abs(diff(LPM.VaR(seq(0, 1, h), 1, x[,2]))))
-        if(h_step_1==0) h_step_1 <- abs((max(x[,1]) - min(x[,1])) * h)
+        h_step_1 <- gravity(abs(diff(x[,1]))) * h_s[index]
+        if(h_step_1==0) h_step_1 <- ((abs((max(x[,1]) - min(x[,1])) ))/length(x[,1])) * h_s[index]
         
         
-        h_step_2 <- gravity(abs(diff(LPM.VaR(seq(0, 1, h), 1, x[,2]))))
-        if(h_step_2==0) h_step_2 <- abs((max(x[,2]) - min(x[,2])) * h)
+        h_step_2 <- gravity(abs(diff(x[,2]))) * h_s[index]
+        if(h_step_2==0) h_step_2 <- ((abs((max(x[,2]) - min(x[,2])) ))/length(x[,2])) * h_s[index]
         
         mixed.deriv.points <- matrix(c(h_step_1 + eval.points[,1], h_step_2 + eval.points[,2],
                                        eval.points[,1] - h_step_1, h_step_2 + eval.points[,2],
@@ -284,7 +286,7 @@ dy.d_ <- function(x, y, wrt,
                           "Second" = apply((do.call(cbind, (lapply(results, `[[`, 2)))), 1, function(x) gravity(rep(x, length(x):1))))
     
   }
-  if(messages) message("Done :-)","\r",appendLF=TRUE)
+  if(messages) message("","\r", appendLF=TRUE)
   return(final_results)
   
 }
