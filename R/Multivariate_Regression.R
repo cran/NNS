@@ -33,16 +33,16 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
     }
   }
   
-  original.matrix <- cbind.data.frame(original.IVs, original.DV)
-  norm.matrix <- apply(original.matrix[,1:n], 2, function(z) NNS.rescale(z, 0, 1))
+  original.matrix <- cbind.data.frame(original.DV, original.IVs)
+  norm.matrix <- apply(original.matrix, 2, function(z) NNS.rescale(z, 0, 1))
   
   minimums <- apply(original.IVs, 2, min)
   maximums <- apply(original.IVs, 2, max)
   
-  dependence <- max(c(NNS.copula(original.matrix), NNS.copula(cbind(norm.matrix, original.DV))))
+  dependence <- max(c(NNS.copula(original.matrix), NNS.copula(cbind(norm.matrix))))
   
   if(is.null(order)) order <- max(1, ceiling(dependence*10))
-
+  if(order >= 9) order <- "max"
 
   ###  Regression Point Matrix
   if(is.numeric(order)){
@@ -93,8 +93,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   }
   
   if(num_cores > 1){
-    cl <- parallel::makeCluster(num_cores)
-    doParallel::registerDoParallel(cl)
+    doParallel::registerDoParallel(num_cores)
     invisible(data.table::setDTthreads(1))
   } else {
     foreach::registerDoSEQ()
@@ -145,6 +144,7 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   y.hat <- unlist(mean.by.id.matrix[ , .(y.hat)])
   
   if(!is.null(type)) y.hat <- ifelse(y.hat %% 1 < 0.5, floor(y.hat), ceiling(y.hat))
+
   
   
   fitted.matrix <- data.table::data.table(original.IVs, y = original.DV, y.hat, mean.by.id.matrix[ , .(NNS.ID)])
@@ -232,8 +232,6 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
       if(num_cores > 1){
         DISTANCES <- parallel::parApply(cl, distances, 1, function(z) NNS.distance(rpm = REGRESSION.POINT.MATRIX, rpm_class = RPM_CLASS, dist.estimate = z, type = dist, k = n.best, class = type)[1])
         
-        parallel::stopCluster(cl)
-        rm(cl)
         foreach::registerDoSEQ()
         invisible(data.table::setDTthreads(0, throttle = NULL))
       } else {
@@ -283,7 +281,11 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   
   if(!is.null(type)){
     fitted.matrix$y.hat <- ifelse(fitted.matrix$y.hat %% 1 < 0.5, floor(fitted.matrix$y.hat), ceiling(fitted.matrix$y.hat))
-    if(!is.null(predict.fit)) predict.fit <- ifelse(predict.fit %% 1 < 0.5, floor(predict.fit), ceiling(predict.fit))
+    fitted.matrix$y.hat <- pmin(max(original.DV), pmax(min(original.DV), fitted.matrix$y.hat))
+    if(!is.null(predict.fit)){
+      predict.fit <- ifelse(predict.fit %% 1 < 0.5, floor(predict.fit), ceiling(predict.fit))
+      predict.fit <- pmin(max(original.DV), pmax(min(original.DV), predict.fit))
+    }  
   }
   
   rhs.partitions <- data.table::data.table(reg.points.matrix)
