@@ -9,7 +9,7 @@
 #' @param negative.values logical; \code{FALSE} (default) If the variable can be negative, set to
 #' \code{(negative.values = TRUE)}.  It will automatically select \code{(negative.values = TRUE)} if the minimum value of the \code{variable} is negative.
 #' @param obj.fn expression;
-#' \code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
+#' \code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
 #' @param lin.only logical; \code{FALSE} (default) Restricts the optimization to linear methods only.
@@ -61,6 +61,10 @@
 #'
 #' ## To predict out of sample using best parameters:
 #' NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6))
+#' 
+#' ## Incorporate any objective function from external packages (such as \code{Metrics::mape})
+#' NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6),
+#' obj.fn = expression(Metrics::mape(actual, predicted)), objective = "min")
 #' }
 #'
 #' @export
@@ -397,6 +401,13 @@ NNS.ARMA.optim <- function(variable,
       lower_PIs <- pmax(0, lower_PIs)
       upper_PIs <- pmax(0, upper_PIs)
   }
+  
+  
+  
+  
+  
+  
+  
   
   return(list(periods = nns.periods,
               weights = nns.weights,

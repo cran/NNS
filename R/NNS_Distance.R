@@ -2,7 +2,6 @@
 #'
 #' Internal kernel function for NNS multivariate regression \link{NNS.reg} parallel instances.
 #' @param rpm REGRESSION.POINT.MATRIX from \link{NNS.reg}
-#' @param rpm_class integer \code{rpm}.
 #' @param dist.estimate Vector to generate distances from.
 #' @param type "L1", "L2" or "FACTOR"
 #' @param k \code{n.best} from \link{NNS.reg}
@@ -13,40 +12,42 @@
 #'
 #' @export
 
-NNS.distance <- function(rpm, rpm_class, dist.estimate, type, k, class){
+NNS.distance <- function(rpm, dist.estimate, type, k, class){
   type <- toupper(type)
   l <- nrow(rpm)
   if(k=="all") k <- l
   y.hat <- rpm$y.hat
   raw.dist.estimate <- unlist(dist.estimate)
+  raw.rpm <- rpm[ , -"y.hat"]
   n <- length(raw.dist.estimate)
   parallel <- FALSE
 
+  
   if(type!="FACTOR"){
     rpm <- rbind(as.list(t(dist.estimate)), rpm[, .SD, .SDcols = 1:n])
-    rpm <- rpm[, names(rpm) := lapply(.SD, function(b) ((((b - min(b))^2) / max(1e-10, (max(b) - min(b))^2)) + (((b - min(b))) / max(1e-10, (max(b) - min(b)))))/2),
-               .SDcols = 1:n]
+    rpm <- rpm[, names(rpm) := lapply(.SD, function(b) NNS.rescale(b, 0, 1)), .SDcols = 1:n]
     dist.estimate <- unlist(rpm[1, ])
     rpm <- rpm[-1,]
   }
-
-  rpm$y.hat <- y.hat
-
+  
+  M <- matrix(rep(dist.estimate, l), byrow = T, ncol = n)
+  M2 <- matrix(rep(raw.dist.estimate, l), byrow = T, ncol = n)
   
   if(type=="L2"){
-    rpm$Sum <- Rfast::rowsums( t((t(rpm[, 1:n]) - dist.estimate)^2) * ((l - (rpm_class == raw.dist.estimate))/l), parallel = parallel)
+    rpm$Sum <- Rfast::rowsums( ((t(t(rpm[, 1:n])) - M)^2) * ((1 - (raw.rpm == M2))), parallel = parallel)
   }
 
   if(type=="L1"){
-    rpm$Sum <- Rfast::rowsums(abs(t(t(rpm[, 1:n]) - dist.estimate)) * ((l - (rpm_class == raw.dist.estimate))/l), parallel = parallel)
+    rpm$Sum <- Rfast::rowsums(abs(t(t(rpm[, 1:n])) - M) * ((1 - (raw.rpm == M2))), parallel = parallel)
   }
 
   if(type=="FACTOR"){
-    rpm$Sum <- (1/l + ( Rfast::rowsums((rpm_class == raw.dist.estimate), parallel = parallel)))^-1
+    rpm$Sum <- (1/l + ( Rfast::rowsums((raw.rpm == M2), parallel = parallel)))^-1
   }
 
   rpm$Sum[rpm$Sum == 0] <- 1e-10
-
+  rpm$y.hat <- y.hat
+  
   data.table::setkey(rpm, Sum)
   
   ll <- min(k, l)

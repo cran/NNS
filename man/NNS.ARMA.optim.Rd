@@ -32,7 +32,7 @@ NNS.ARMA.optim(
 \code{(negative.values = TRUE)}.  It will automatically select \code{(negative.values = TRUE)} if the minimum value of the \code{variable} is negative.}
 
 \item{obj.fn}{expression;
-\code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.}
+\code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.}
 
 \item{objective}{options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
 
@@ -89,6 +89,10 @@ nns.estimates <- pmax(0, nns.estimates)
 
 ## To predict out of sample using best parameters:
 NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6))
+
+## Incorporate any objective function from external packages (such as \code{Metrics::mape})
+NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6),
+obj.fn = expression(Metrics::mape(actual, predicted)), objective = "min")
 }
 
 }
