@@ -120,7 +120,11 @@ NNS.VAR <- function(variables,
   oldw <- getOption("warn")
   options(warn = -1)
   
-  if(nowcast) dates <- c(zoo::as.yearmon(zoo::index(variables), '%Y%m'), tail(zoo::as.yearmon(zoo::index(variables), '%Y%m'), h) + h/12) else dates <- NULL
+  if(nowcast){
+      dates <- c(zoo::as.yearmon(zoo::index(variables), '%Y%m'), tail(zoo::as.yearmon(zoo::index(variables), '%Y%m'), h) + h/12)
+  }else {
+      dates <- NULL
+  }
   
   if(any(class(variables)%in%c("tbl","data.table"))) variables <- as.data.frame(variables)
   

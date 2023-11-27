@@ -176,11 +176,13 @@ NNS.ARMA <- function(variable,
       Weights <- ASW$Weights
     }
     
-    ## Generate vectors for 1:lag
+    
+    ## Re-Generate vectors for 1:lag if dynamic
     GV <- generate.vectors(variable,lag)
     Component.index <- GV$Component.index
     Component.series <- GV$Component.series
-    
+ 
+   
     ## Regression on Component Series
     for(i in 1:length(lag)){
       if(method == 'nonlin' || method == 'both'){

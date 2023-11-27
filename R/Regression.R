@@ -158,7 +158,7 @@ NNS.reg = function (x, y,
   if(any(class(x)%in%c("tbl","data.table")) && ncol(x)==1) x <- as.vector(unlist(x))
   if(any(class(y)%in%c("tbl","data.table")) && ncol(y)==1) y <- as.vector(unlist(y))
   if(any(class(x)%in%c("tbl","data.table"))) x <- as.data.frame(x)
- 
+  
   n <- length(y)
   original.x <- x
   
@@ -195,7 +195,7 @@ NNS.reg = function (x, y,
   original.columns <- ncol(x)
   
   if(!is.null(original.columns) & is.null(colnames(x))) x <- data.frame(x)
- 
+  
   y.label <- deparse(substitute(y))
   if(is.null(y.label)) y.label <- "y"
   
@@ -212,10 +212,10 @@ NNS.reg = function (x, y,
         new_x <- unlist(list(x, point.est))
       }
     }
- 
+    
     
     if(!is.null(dim(x)) && dim(x)[2] > 1) x <- apply(x, 2, function(z) factor_2_dummy_FR(z)) else x <- factor_2_dummy_FR(x)
-       
+    
     
     x <- data.matrix(x)
     
@@ -316,9 +316,9 @@ NNS.reg = function (x, y,
             
             x.star.dep[is.na(x.star.dep)] <- 0
           }
-
+          
           x.star.cor <-  sapply(1:dim(x)[2], function(i) cor(x[,i], y, method = "spearman"))
-
+          
           x.star.cor[is.na(x.star.cor)] <- 0
           
           if(!is.numeric(dim.red.method) && dim.red.method == "nns.dep"){
@@ -336,9 +336,9 @@ NNS.reg = function (x, y,
               tau <- "cs"
             }
             x.star.coef <- numeric()
-
+            
             cause <- sapply(1:dim(x)[2], function(i) Uni.caus(y, x[,i], tau = tau, plot = FALSE))
-
+            
             cause[is.na(cause)] <- 0
             
             x.star.coef <- cause
@@ -360,7 +360,7 @@ NNS.reg = function (x, y,
             x.star.coef <- apply(cbind(x.star.coef.1, x.star.coef.2, x.star.coef.3, x.star.coef.4), 1, function(x) mode(x)) 
             x.star.coef[is.na(x.star.coef)] <- 0
           }
-
+          
           if(!is.numeric(dim.red.method) && dim.red.method == "equal")  x.star.coef <- rep(1, ncol(x))
           
           if(is.numeric(dim.red.method)) x.star.coef <- as.numeric(dim.red.method)
@@ -372,7 +372,7 @@ NNS.reg = function (x, y,
           
           x.star.matrix <- Rfast::eachrow(norm.x, x.star.coef, "*") #t( t(norm.x) * x.star.coef)
           x.star.matrix[is.na(x.star.matrix)] <- 0
-     
+          
           #In case all IVs have 0 correlation to DV
           if(all(x.star.matrix == 0)){
             x.star.matrix <- x
@@ -380,11 +380,11 @@ NNS.reg = function (x, y,
           }
           
           xn <- sum( abs( x.star.coef) > 0)
-      
+          
           if(is.numeric(dim.red.method)) DENOMINATOR <- sum(dim.red.method) else DENOMINATOR <- sum( abs( x.star.coef) > 0)
-        
+          
           synthetic.x.equation.coef <- data.table::data.table(Variable = colnames.list, Coefficient = x.star.coef)
-        
+          
           synthetic.x.equation <- data.table::rbindlist( list( synthetic.x.equation.coef, list("DENOMINATOR", DENOMINATOR)))
           
           
@@ -408,53 +408,55 @@ NNS.reg = function (x, y,
             
           }
           
+          orig.dep <- NNS.copula(cbind(apply(cbind(x, y), 2, function(z) NNS.rescale(z, 0, 1))))
+          
           x <- Rfast::rowsums(x.star.matrix / sum( abs( x.star.coef) > 0), parallel = FALSE)
           x.star <- data.table::data.table(x)
           
           dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
+
+          dependence <- mean(c(dependence, NNS.copula(cbind(apply(cbind(x, x, y), 2, function(z) NNS.rescale(z, 0, 1)))), orig.dep))
           
-          dependence <- mean(c(dependence, dependence, NNS.copula(cbind(x, x, y))))
-          
-          dependence[is.na(dependence)] <- 0
+          dependence[is.na(dependence)] <- 0.1
           
           if(is.null(order)) order <- max(1, floor(dependence*10))
           
           if(length(y) < 100) order <- order / 2
           
-          if(is.numeric(order)){
-            ifelse(order%%1 <= .5, floor(order), ceiling(order))
-            order <- max(1, order)
-          }
+          if(is.numeric(order)) order <- max(1, order)
           
+          order <- ifelse(order%%1 <= .5, floor(order), ceiling(order))
         }
-       } # Multivariate Not NULL type
+      } # Multivariate Not NULL type
       
     } # Univariate
     
   } # Multivariate
   
-
+  
   x.label <- names(x)
   if(is.null(x.label)) x.label <- "x"
-   
-  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
-
-  dependence <- mean(c(dependence, NNS.copula(cbind(x, x, y)), NNS.copula(cbind(apply(cbind(x, x), 2, function(z) NNS.rescale(z, 0, 1)), y))))
-
-  dependence[is.na(dependence)] <- 0
   
+  dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
+  
+  dependence <- mean(c(dependence, NNS.copula(cbind(apply(cbind(x, x, y), 2, function(z) NNS.rescale(z, 0, 1))))))
+  
+  dependence[is.na(dependence)] <- 0.1
+ 
   rounded_dep <- ceiling(dependence*10)
   if(length(y) < 100) rounded_dep <- rounded_dep / 2
-  ifelse(rounded_dep%%1 <= .5, floor(rounded_dep), ceiling(rounded_dep))
+
+  rounded_dep <- ifelse(rounded_dep%%1 <= .5, floor(rounded_dep), ceiling(rounded_dep))
   rounded_dep <- max(1, rounded_dep)
   
-  
+ 
   dep.reduced.order <- max(1, ifelse(is.null(order), rounded_dep, order))
   
-
+  
   if(dependence == 1 || dep.reduced.order == "max"){
     if(is.null(order)) dep.reduced.order <- "max"
     part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+    nns.ids <- part.map$dt$quadrant
   } else {
     if(is.null(type)){
       noise.reduction2 <- ifelse(noise.reduction=="mean", "off", noise.reduction)
@@ -464,14 +466,16 @@ NNS.reg = function (x, y,
     
     if(dep.reduced.order == "max"){
       part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
+      nns.ids <- part.map$dt$quadrant
     } else {
       part.map <- NNS.part(x, y, noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
+      nns.ids <- part.map$dt$quadrant
       
       part.map1 <- NNS.part(c(x, part.map$regression.points$x), c(y, part.map$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
       part.map2 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y), noise.reduction = noise.reduction2, order = dep.reduced.order, type = "XONLY", obs.req = 0)
       part.map3 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y), noise.reduction = noise.reduction2, order =  dep.reduced.order, type =  "XONLY", obs.req = 0)
       part.map4 <- NNS.part(c(x, part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x), c(y, part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y), noise.reduction = noise.reduction2, order =  dep.reduced.order, type =  "XONLY", obs.req = 0)
-
+      
       if(Reduce(identical, lapply(list(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x), length)) &&
          Reduce(identical, lapply(list(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y), length))){
         
@@ -489,6 +493,7 @@ NNS.reg = function (x, y,
           part.map <- NNS.part(c(part.map$regression.points$x, part.map1$regression.points$x, part.map2$regression.points$x, part.map3$regression.points$x, part.map4$regression.points$x),
                                c(part.map$regression.points$y, part.map1$regression.points$y, part.map2$regression.points$y, part.map3$regression.points$y, part.map4$regression.points$y),
                                noise.reduction = noise.reduction2, order =  max(c(1, (dep.reduced.order - i))), type = "XONLY", obs.req = 0)
+          if(i==9) break
           i <- i + 1
         }
       }
@@ -505,14 +510,14 @@ NNS.reg = function (x, y,
     data.table::setkey(part.map$dt, x)
     part.map$dt <- unique(part.map$dt, by = "x")
   }
-
+  
   Regression.Coefficients <- data.frame(matrix(ncol = 3))
   colnames(Regression.Coefficients) <- c('Coefficient', 'X Lower Range', 'X Upper Range')
   
   regression.points <- part.map$regression.points[,.(x,y)]
-
+  
   regression.points$x <- pmin(max(x), pmax(regression.points$x, min(x)))
- 
+  
   data.table::setkey(regression.points,x)
   regression.points <- regression.points[, y := gravity(y), by = "x"]
   regression.points <- unique(regression.points)
@@ -527,9 +532,9 @@ NNS.reg = function (x, y,
   } else {
     med.rps <- t(c(NA, NA))
   }
- 
+  
   regression.points <- data.table::rbindlist(list(regression.points,data.table::data.table(do.call(rbind, list(med.rps)))), use.names = FALSE)
-
+  
   regression.points <- regression.points[complete.cases(regression.points),]
   regression.points <- regression.points[ , .(x,y)]
   data.table::setkey(regression.points, x, y)
@@ -538,7 +543,7 @@ NNS.reg = function (x, y,
   regression.points <- regression.points[, y := gravity(y), by = "x"]
   regression.points <- unique(regression.points)
   
-
+  
   if(dependence < 1){
     min.range <- min(regression.points$x)
     max.range <- max(regression.points$x)
@@ -638,7 +643,7 @@ NNS.reg = function (x, y,
     min.rps <- t(c(min(x), y[x == min(x)][1]))
   }
   
-
+  
   
   regression.points <- data.table::rbindlist(list(regression.points,data.table::data.table(do.call(rbind, list(min.rps, max.rps, med.rps )))), use.names = FALSE)
   
@@ -650,7 +655,7 @@ NNS.reg = function (x, y,
   regression.points <- regression.points[, y := gravity(y), by = "x"]
   regression.points <- unique(regression.points)
   
-
+  
   if(dim(regression.points)[1] > 1){
     rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
     run <- regression.points[ , 'run' := x - data.table::shift(x)]
@@ -684,7 +689,7 @@ NNS.reg = function (x, y,
   
   ### Fitted Values
   p <- length(unlist(regression.points[ , 1]))
- 
+  
   
   if(is.na(Regression.Coefficients[1, Coefficient])){
     Regression.Coefficients[1, Coefficient := Regression.Coefficients[2, Coefficient] ]
@@ -695,14 +700,14 @@ NNS.reg = function (x, y,
   
   coef.interval <- findInterval(x, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE)
   reg.interval <- findInterval(x, regression.points[, x], left.open = FALSE)
-
-
+  
+  
   if(is.fcl(order) || ifelse(is.null(order), FALSE, ifelse(order >= length(y), TRUE, FALSE))){
     estimate <- y
   } else {
     estimate <- ((x - regression.points[reg.interval, x]) * Regression.Coefficients[coef.interval, Coefficient]) + regression.points[reg.interval, y]
   }
-
+  
   if(!is.null(point.est)){
     coef.point.interval <- findInterval(point.est, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE, rightmost.closed = TRUE)
     reg.point.interval <- findInterval(point.est, regression.points[ , x], left.open = FALSE, rightmost.closed = TRUE)
@@ -731,8 +736,8 @@ NNS.reg = function (x, y,
   fitted <- data.table::data.table(x = x,
                                    y = original.y,
                                    y.hat = estimate,
-                                   NNS.ID = part.map$dt$quadrant)
-
+                                   NNS.ID = nns.ids)
+  
   colnames(fitted) <- gsub("y.hat.V1", "y.hat", colnames(fitted))
   
   fitted$y.hat[is.na(fitted$y.hat)] <- gravity(na.omit(fitted$y.hat))
@@ -742,7 +747,7 @@ NNS.reg = function (x, y,
   SE <- sqrt( sum(fitted[ , ( (y.hat - y)^2) ]) / (length(y) - 1 ))
   
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
-
+  
   fitted <- cbind(fitted, gradient)
   fitted$residuals <- original.y - fitted$y.hat
   
@@ -836,7 +841,7 @@ NNS.reg = function (x, y,
   
   y.mean <- mean(y)
   R2 <- (sum((fitted$y - y.mean)*(fitted$y.hat - y.mean))^2)/(sum((fitted$y - y.mean)^2)*sum((fitted$y.hat - y.mean)^2))
-
+  
   
   ###Standard errors estimation
   fitted[, `:=` ( 'standard.errors' = sqrt( sum((y.hat - y) ^ 2) / ( max(1,(.N - 1))) ) ), by = gradient]
@@ -847,11 +852,11 @@ NNS.reg = function (x, y,
   if(is.numeric(confidence.interval)){
     fitted[, `:=` ( 'conf.int.pos' = abs(UPM.VaR((1-confidence.interval)/2, degree = 1, residuals)) + y.hat) , by = gradient]
     fitted[, `:=` ( 'conf.int.neg' = y.hat - abs(LPM.VaR((1-confidence.interval)/2, degree = 1, residuals))) , by = gradient]
-  
+    
     if(!is.null(point.est)){
       lower.pred.int <- point.est.y - abs(LPM.VaR((1-confidence.interval)/2, degree = 1, fitted$residuals))
       upper.pred.int <- abs(UPM.VaR((1-confidence.interval)/2, degree = 1, fitted$residuals)) + point.est.y
-    
+      
       pred.int <- data.table::data.table(lower.pred.int, upper.pred.int)
       if(!is.null(type)&&type=="class") pred.int <- data.table::data.table(apply(pred.int, 2, function(x) ifelse(x%%1 <0.5, floor(x), ceiling(x))))
     }
@@ -884,7 +889,7 @@ NNS.reg = function (x, y,
            },
            ylab = y.label, mgp = c(2.5, 0.5, 0),
            cex.lab = 1.5, cex.main = 2)
-
+      
       idx <- order(fitted$x)
       polygon(c(x[idx], x[rev(idx)]), c(na.omit(fitted$conf.int.pos[idx]), (na.omit(fitted$conf.int.neg[rev(idx)]))), col = "pink", border = NA)
       points(x[idx], y[idx], pch = 1, lwd = 2, col = "steelblue")
@@ -904,7 +909,7 @@ NNS.reg = function (x, y,
     ### Plot Regression points and fitted values and legend
     points(na.omit(regression.points[ , .(x,y)]), col = 'red', pch = 15)
     lines(na.omit(regression.points[ , .(x,y)]), col = 'red', lwd = 2, lty = 2)
-  
+    
     
     if(!is.null(point.est)){
       points(point.est, point.est.y, col='green', pch = 18, cex = 1.5)
