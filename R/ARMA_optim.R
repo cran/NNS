@@ -12,9 +12,9 @@
 #' \code{expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2))} (default) Rank correlation / sum of squared errors is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
-#' @param lin.only logical; \code{FALSE} (default) Restricts the optimization to linear methods only.
-#' @param pred.int numeric [0, 1]; \code{NULL} Returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{meboot} on the final estimates.
-#' @param print.trace logical; \code{TRUE} (defualt) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
+#' @param pred.int numeric [0, 1]; 0.95 (default) Returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{meboot} on the final estimates.
+#' @param print.trace logical; \code{TRUE} (default) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
+#' @param plot logical; \code{FALSE} (default)
 #'
 #' @return Returns a list containing:
 #' \itemize{
@@ -32,7 +32,7 @@
 #'}
 #' @note
 #' \itemize{
-#' \item{} Typically, \code{(training.set = length(variable) - 2 * length(forecast horizon))} is used for optimization.  Smaller samples would use \code{(training.set = length(variable) - length(forecast horizon))} in order to preserve information.
+#' \item{} Typically, \code{(training.set = 0.8 * length(variable)} is used for optimization.  Smaller samples could use \code{(training.set = 0.9 * length(variable))} (or larger) in order to preserve information.
 #'
 #' \item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 #'
@@ -50,15 +50,6 @@
 #' nns.optims <- NNS.ARMA.optim(AirPassengers[1:132], training.set = 120,
 #' seasonal.factor = seq(12, 24, 6))
 #'
-#' ## To use optimal parameters in NNS.ARMA to predict 12 periods in-sample.
-#' ## Note the {$bias.shift} usage in the {NNS.ARMA} function:
-#' nns.estimates <- NNS.ARMA(AirPassengers, h = 12, training.set = 132,
-#' seasonal.factor = nns.optims$periods, method = nns.optims$method) + nns.optims$bias.shift
-#'
-#' ## If variable cannot logically assume negative values
-#' nns.estimates <- pmax(0, nns.estimates)
-#'
-#'
 #' ## To predict out of sample using best parameters:
 #' NNS.ARMA.optim(AirPassengers[1:132], h = 12, seasonal.factor = seq(12, 24, 6))
 #' 
@@ -74,12 +65,13 @@ NNS.ARMA.optim <- function(variable,
                            training.set = NULL,
                            seasonal.factor,
                            negative.values = FALSE,
-                           obj.fn = expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2)),
-                           objective = "max",
+                          # obj.fn = expression(cor(predicted, actual, method = "spearman") / sum((predicted - actual)^2)),
+                           obj.fn =  expression( mean((predicted - actual)^2) / (NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) + NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) )  ),
+                           objective = "min",
                            linear.approximation = TRUE,
-                           lin.only = FALSE,
-                           pred.int = NULL,
-                           print.trace = TRUE){
+                           pred.int = 0.95,
+                           print.trace = TRUE,
+                           plot = FALSE){
   
   if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
   
@@ -89,52 +81,49 @@ NNS.ARMA.optim <- function(variable,
   
   if(is.null(obj.fn)){ stop("Please provide an objective function")}
   objective <- tolower(objective)
- 
-  if(is.null(training.set) && is.null(h)) stop("Please use the length of the variable less the desired forecast period as the training.set value, or provide a value for h.")
   
-  if(min(variable)<0) negative.values <- TRUE
+  if(is.null(training.set) && is.null(h)) stop("Please use the length of the variable less the desired forecast period as the [training.set] value, or provide a value for [h].")
   
   variable <- as.numeric(variable)
+  OV <- variable
+  
+  if(min(variable) < 0) negative.values <- TRUE
   
   if(!is.null(h) && h > 0) h_oos <- h_is <- h else {
-    h <- 1
-    h_is <- length(variable) - training.set
+    h <- NULL
     h_oos <- NULL
   }
   
-  if(h_is < .1 * n) h_eval <- 2*h_is else h_eval <- h_is
+  if(is.null(training.set)) training.set <- .8 * n
+  
+  h_eval <- h_is <- n - training.set
   
   actual <- tail(variable, h_eval)
   
-  if(is.null(training.set)){
-    l <- n - h_eval 
-    training.set <- l
-  } else l <- training.set
+  if(training.set <= .5 * n) stop("Please provide a larger [training.set] value (integer) or a smaller [h].")
+  if(training.set == n) stop("Please provide a [training.set] value (integer) less than the length of the variable.")
   
-  if(l <= .5 * n) stop("Please provide a 'training.set' value (integer) less than (2*h) or a smaller (h).")
-  if(training.set == n) stop("Please provide a 'training.set' value (integer) less than the length of the variable.")
+  denominator <- min(4, max(3, ifelse((training.set/100)%%1 < .5, floor(training.set/100), ceiling(training.set/100))))
   
-  denominator <- min(4, max(3, ifelse((l/100)%%1 < .5, floor(l/100), ceiling(l/100))))
-  
-  seasonal.factor <- seasonal.factor[seasonal.factor <= (l/denominator)]
+  seasonal.factor <- seasonal.factor[seasonal.factor <= (training.set/denominator)]
   seasonal.factor <- unique(seasonal.factor)
   
-  if(length(seasonal.factor)==0) stop(paste0('Please ensure "seasonal.factor" contains elements less than ', l/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))
+  if(length(seasonal.factor)==0) stop(paste0('Please ensure [seasonal.factor] contains elements less than ', training.set/denominator, ", otherwise use cross-validation of seasonal factors as demonstrated in the vignette >>> Getting Started with NNS: Forecasting"))
   
   oldw <- getOption("warn")
   options(warn = -1)
   
   seasonal.combs <- nns.estimates <- vector(mode = "list")
- 
-  previous.seasonals <- previous.estimates <- overall.estimates <- overall.seasonals <- vector(mode = "list")
-
   
-  if(lin.only) methods <- "lin" else methods <- c("lin", "nonlin", "both")
-
+  previous.seasonals <- previous.estimates <- overall.estimates <- overall.seasonals <- vector(mode = "list")
+  
+  
+  methods <- c("lin", "nonlin", "both")
+  
   for(j in methods){
     seasonal.combs <- current.seasonals <- vector(mode = "list")
     current.estimate <- numeric()
-
+    
     
     for(i in 1 : length(seasonal.factor)){
       if(i == 1){
@@ -178,9 +167,9 @@ NNS.ARMA.optim <- function(variable,
           return(eval(obj.fn))
         })
       }
-
+      
       nns.estimates.indiv <- unlist(nns.estimates.indiv)
-     
+      
       if(objective=='min') nns.estimates.indiv[is.na(nns.estimates.indiv)] <- Inf else nns.estimates.indiv[is.na(nns.estimates.indiv)] <- -Inf
       
       nns.estimates[[i]] <- nns.estimates.indiv
@@ -248,14 +237,9 @@ NNS.ARMA.optim <- function(variable,
         print(paste0("BEST ", j, " OBJECTIVE FUNCTION = ", current.estimate[1]))
       }
     }
-    
-    
-    if(lin.only) predicted <- current.estimate
-    if(j!='lin' && lin.only) break
-    
   } # for j in c("lin", "nonlin", "both")
   
-
+  
   if(objective == "min"){
     nns.periods <- unlist(overall.seasonals[[which.min(unlist(overall.estimates))]])
     nns.method <- c("lin","nonlin","both")[which.min(unlist(overall.estimates))]
@@ -289,7 +273,7 @@ NNS.ARMA.optim <- function(variable,
       }
     } else {
       nns.weights <- NULL
-      
+
       errors <- predicted - actual
       bias <- gravity(na.omit(errors))
       if(is.na(bias)) bias <- 0
@@ -348,14 +332,22 @@ NNS.ARMA.optim <- function(variable,
     }
   }
   
+  final.predicted <- predicted
+  
   predicted <- NNS.ARMA(variable, training.set = training.set, h = h_eval, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = TRUE)
   
   if(objective == "min"){
-    if(eval(obj.fn) < nns.SSE) nns.shrink = TRUE else nns.shrink = FALSE
+    if(eval(obj.fn) < nns.SSE){
+      nns.shrink = TRUE
+      final.predicted <- predicted
+    }  else nns.shrink = FALSE
   }
   
   if(objective == "max"){
-    if(eval(obj.fn) > nns.SSE) nns.shrink = TRUE else nns.shrink = FALSE
+    if(eval(obj.fn) > nns.SSE){
+      nns.shrink = TRUE
+      final.predicted <- predicted
+    }  else nns.shrink = FALSE
   }
   
   
@@ -369,6 +361,7 @@ NNS.ARMA.optim <- function(variable,
     if(eval(obj.fn) < nns.SSE){
       variable <- regressed_variable
       nns.regress <- TRUE
+      final.predicted <- predicted
     }
   }
   
@@ -376,33 +369,77 @@ NNS.ARMA.optim <- function(variable,
     if(eval(obj.fn) > nns.SSE){
       variable <- regressed_variable
       nns.regress <- TRUE
+      final.predicted <- predicted
     }
   }
   
+  lower_PIs_is <- final.predicted - abs(LPM.VaR((1-pred.int)/2, 0, errors)) - abs(bias)
+  upper_PIs_is <- final.predicted + abs(UPM.VaR((1-pred.int)/2, 0, errors)) + abs(bias)
   
   options(warn = oldw)
   
   
   if(is.null(h_oos)){
-    model.results <- NNS.ARMA(variable, training.set = training.set, h = h_eval, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = nns.shrink) - bias
+    if(is.null(h)) h <- h_eval
+    model.results <- NNS.ARMA(OV, training.set = training.set, h = h_eval, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = nns.shrink) - bias
   } else {
-    model.results <- NNS.ARMA(variable, h = h_oos, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = nns.shrink) - bias
-  }
-  
-  if(!is.null(pred.int)){
-      lower_PIs <- model.results - abs(LPM.VaR((1-pred.int)/2, 0, errors)) - abs(bias)
-      upper_PIs <- model.results + abs(UPM.VaR((1-pred.int)/2, 0, errors)) + abs(bias)
-  } else {
-      upper_PIs <- lower_PIs <- NULL
-  } 
-  
-  if(!negative.values){
-      model.results <- pmax(0, model.results)
-      lower_PIs <- pmax(0, lower_PIs)
-      upper_PIs <- pmax(0, upper_PIs)
+    if(is.null(h)) h <- h_oos
+    model.results <- NNS.ARMA(OV, h = h_oos, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = nns.shrink) - bias
   }
   
 
+  lower_PIs <- model.results - abs(LPM.VaR((1-pred.int)/2, 0, errors)) - abs(bias)
+  upper_PIs <- model.results + abs(UPM.VaR((1-pred.int)/2, 0, errors)) + abs(bias)
+  
+  
+  if(!negative.values){
+    model.results <- pmax(0, model.results)
+    lower_PIs <- pmax(0, lower_PIs)
+    upper_PIs <- pmax(0, upper_PIs)
+  }
+
+  if(plot){
+    if(is.null(h_oos)) xlim <- c(1, max((training.set + h))) else xlim <- c(1, max((n + h)))
+    
+    plot(OV, type = 'l', lwd = 2, main = "NNS.ARMA Forecast", col = 'steelblue',
+         xlim = xlim,
+         ylab =  "Variable",
+         ylim = c(min(model.results, variable,  unlist(lower_PIs), unlist(upper_PIs) ), 
+                  max(model.results, variable,  unlist(lower_PIs), unlist(upper_PIs) )) )
+    
+    lfp <- length(final.predicted)
+    
+    starting.point <- min(training.set, min(n - lfp))
+    
+    lines((starting.point + 1) : (starting.point + lfp), final.predicted, col = "red", lwd = 2, lty = 2)
+    
+    polygon(c((starting.point + 1) : (starting.point + lfp), rev((starting.point + 1) : (starting.point + lfp))),
+            c(lower_PIs_is, rev(upper_PIs_is)),
+            col = rgb(70/255, 130/255, 180/255, alpha = 0.5),
+            border = NA)
+    
+    lines(OV, lwd = 2, col = "steelblue")
+    lines((starting.point + 1) : (starting.point + lfp), final.predicted, col = "red", lwd = 2, lty = 2)
+    
+    legend("topleft", legend = c("Variable", "Internal Validation"), 
+           col = c("steelblue", "red"), lty = c(1, 2), bty = "n", lwd = 2)
+    
+    if(!is.null(h_oos)){
+      lines((n + 1) : (n + h), model.results, col = "red", lwd = 2)
+      
+      polygon(c((n + 1) : (n + h), rev((n + 1) : (n + h))),
+              c(lower_PIs, rev(upper_PIs)),
+              col = rgb(1, 192/255, 203/255, alpha = 0.5),
+              border = NA)
+      
+      legend("topleft", legend = c("Variable", "Internal Validation", "Forecast"), 
+             col = c("steelblue", "red", "red"), lty = c(1, 2, 1), bty = "n", lwd = 2)
+    } 
+      
+    
+    
+    
+  }
   
   
   return(list(periods = nns.periods,
