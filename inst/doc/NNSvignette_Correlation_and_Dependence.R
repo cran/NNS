@@ -37,7 +37,7 @@ NNS.dep(x, y)
 x = seq(0, 12*pi, pi/100) ; y = sin(x)
 
 ## ----nonlinear1_sin,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
-NNS.part(x, y, Voronoi = TRUE, order = 2, obs.req = 0)
+NNS.part(x, y, Voronoi = TRUE, order = 3, obs.req = 0)
 
 ## ----res2_sin-----------------------------------------------------------------
 cor(x, y)

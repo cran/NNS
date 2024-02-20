@@ -189,7 +189,7 @@ NNS.VAR <- function(variables,
     variable_interpolation <- variables[,i]
 
     if(h_int > 0){
-      multi <- NNS.stack(cbind(selected_variable[,1], selected_variable[,1]), selected_variable[,2], order = NULL, ncores = 1, status = FALSE, folds = 1,
+      multi <- NNS.stack(cbind(selected_variable[,1], selected_variable[,1]), selected_variable[,2], order = NULL, ncores = 1, status = FALSE, folds = 5,
                          IVs.test = cbind(missing_index, missing_index), method = 1)$stack
       
       variable_interpolation[missing_index] <- multi
@@ -319,8 +319,10 @@ NNS.VAR <- function(variables,
                    }
   
   if(num_cores > 1) {
+    doParallel::stopImplicitCluster()
     foreach::registerDoSEQ()
     invisible(data.table::setDTthreads(0, throttle = NULL))
+    invisible(gc(verbose = FALSE))
   }
  
   nns_DVs <- lapply(lists, `[[`, 1)
@@ -355,7 +357,6 @@ NNS.VAR <- function(variables,
     }
   }
   
-
   
   forecasts <- data.frame(Reduce(`+`,list(t(t(nns_IVs_results)*uni) , t(t(nns_DVs)*multi))))
   colnames(forecasts) <- colnames(variables)
