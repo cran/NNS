@@ -1,4 +1,4 @@
-b101594fb78cff14993c6dcc85d1652a *DESCRIPTION
+eeab792e890fa36aeb6a53f6078b3c1d *DESCRIPTION
 9dceb9cbec0dba31979f9cf9c0e02cae *NAMESPACE
 7133c1be30a98929ce2ffdd1da38350c *R/ANOVA.R
 362de051591ce072624793bf37af4f99 *R/ARMA.R
@@ -12,14 +12,14 @@ b987aeb126ccfc9ea7dd4b547fd230a0 *R/ARMA_optim.R
 20a037b9a883b86dc8409881370d7ce3 *R/Dependence.R
 27af9fc5774d5de44e7670161d5e15bd *R/Dependence_matrix.R
 d4b4ba43552b107c3ecf32182b002acd *R/FSD.R
-a513feb1438185a2e1e84a6bc81050d2 *R/Internal_Functions.R
+b3a321ffc255f6700ae2556d8a4ecea1 *R/Internal_Functions.R
 107112d3c19348109a83ae16714e60c2 *R/LPM_UPM_VaR.R
 ffcf1732ed560d2ed9b9f3ef8adc6d25 *R/Multivariate_Regression.R
 d97be4677eda4049f594e6e970d5d6b4 *R/NNS-package.R
 bfb9736b95051959526b575832ce026e *R/NNS_Distance.R
 41446cb5b31dde04a9638f61c79eb0a6 *R/NNS_MC.R
 75ed2c90fb73d0aa62e4ec9c498b4864 *R/NNS_VAR.R
-dae96addbec3691461524e204bfeb5ea *R/NNS_meboot.R
+b9efb2cfd6423d79b5d71e4a4cf71e3a *R/NNS_meboot.R
 cf52c1617404fde134cf614c318a0668 *R/NNS_term_matrix.R
 cac54cb980df49196d4140c160c1fc3e *R/Normalization.R
 c5637c09e0d06e26a94014f8f50a2df3 *R/Nowcast.R
@@ -90,7 +90,7 @@ db8d5050b1e9356f728c3f6bd20454d2 *man/NNS.caus.Rd
 4415d082a45a7fce38c9ef1552befb2b *man/NNS.diff.Rd
 8f60d27d48b3542e147ee8bc8cef5be2 *man/NNS.distance.Rd
 182af57f9f6ec463003487f8b8deeca1 *man/NNS.gravity.Rd
-296667f63fd58364922a91af354adc63 *man/NNS.meboot.Rd
+1766b98ded17003f1e02bbf2f1a8d48e *man/NNS.meboot.Rd
 c26fa3bdc252cda6e44f60439f649715 *man/NNS.mode.Rd
 b56eb85c8bc37542756ef4c56f36fce0 *man/NNS.moments.Rd
 46e84736f4c6c0a41fddcd8fa615a7ba *man/NNS.norm.Rd
