@@ -258,7 +258,7 @@
 
     if(expand.sd) ensemble <- NNS.meboot.expand.sd(x=x, ensemble=ensemble, ...)
 
-    if(force.clt && reps > 1) ensemble <- meboot::force.clt(x=x, ensemble=ensemble)
+    if(force.clt && reps > 1) ensemble <- force.clt(x=x, ensemble=ensemble)
 
     # scale adjustment
 
