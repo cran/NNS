@@ -8,6 +8,7 @@ NNS.ANOVA(
   control,
   treatment,
   means.only = FALSE,
+  medians = FALSE,
   confidence.interval = 0.95,
   tails = "Both",
   pairwise = FALSE,
@@ -16,11 +17,13 @@ NNS.ANOVA(
 )
 }
 \arguments{
-\item{control}{a numeric vector, matrix or data frame.}
+\item{control}{a numeric vector, matrix or data frame, or list if unequal vector lengths.}
 
 \item{treatment}{\code{NULL} (default) a numeric vector, matrix or data frame.}
 
 \item{means.only}{logical; \code{FALSE} (default) test whether difference in sample means only is zero.}
+
+\item{medians}{logical; \code{FALSE} (default) test whether difference in sample medians only is zero.  Requires \code{means.only = TRUE}.}
 
 \item{confidence.interval}{numeric [0, 1]; The confidence interval surrounding the \code{control} mean, defaults to \code{(confidence.interval = 0.95)}.}
 
@@ -30,7 +33,7 @@ NNS.ANOVA(
 
 \item{plot}{logical; \code{TRUE} (default) Returns the boxplot of all variables along with grand mean identification and confidence interval thereof.}
 
-\item{robust}{logical; \code{FALSE} (default) Generates 100 independent random permutations to test results, and returns / plots 95 percent confidence intervals along with robust central tendency of all results.}
+\item{robust}{logical; \code{FALSE} (default) Generates 100 independent random permutations to test results, and returns / plots 95 percent confidence intervals along with robust central tendency of all results for pairwise analysis only.}
 }
 \value{
 Returns the following:
@@ -59,10 +62,18 @@ NNS.ANOVA(control = x, treatment = y)
 A <- cbind(x, y)
 NNS.ANOVA(A)
 
+### Medians test
+NNS.ANOVA(A, means.only = TRUE, medians = TRUE)
+
 ### Multiple variable analysis with no control variable
 set.seed(123)
 x <- rnorm(100) ; y <- rnorm(100) ; z <- rnorm(100)
 A <- cbind(x, y, z)
+NNS.ANOVA(A)
+
+### Different length vectors used in a list
+x <- rnorm(30) ; y <- rnorm(40) ; z <- rnorm(50)
+A <- list(x, y, z)
 NNS.ANOVA(A)
 }
 }
