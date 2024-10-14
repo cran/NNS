@@ -1,8 +1,16 @@
-[![packageversion](https://img.shields.io/badge/NNS%20version-10.9.2-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+<img src="vignettes/images/NNS_hex_sticker.png" width="150" style="border: none; outline: none; margin: 0; padding: 0; display: block;"/>
 
+
+
+
+[![packageversion](https://img.shields.io/badge/NNS%20version-10.9.3-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
+<h2 style="margin: 0; padding: 0; border: none; height: 40px;"></h2>
 
 # NNS
-Nonlinear nonparametric statistics using partial moments.  Partial moments are the [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) and [asymptotically approximate the area of f(x)](https://doi.org/10.2139/ssrn.2186471).  These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
+Nonlinear nonparametric statistics using partial moments. Partial moments are the [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) and [asymptotically approximate the area of f(x)](https://doi.org/10.2139/ssrn.2186471). These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
+
+
 
 NNS offers: 
   - Numerical Integration & Numerical Differentiation
@@ -51,10 +59,11 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 10.9.2},
+    note = {R package version 10.9.3},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```
 
 ## Thank you for your interest in NNS!
 ![](https://cranlogs.r-pkg.org/badges/NNS)
+![](https://cranlogs.r-pkg.org/badges/grand-total/NNS)

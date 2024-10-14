@@ -42,6 +42,14 @@ NNS.part(x, y, Voronoi = TRUE, order = 3, obs.req = 0)
 cor(x, y)
 NNS.dep(x, y)
 
+## ----asym1--------------------------------------------------------------------
+cor(x, y)
+NNS.dep(x, y, asym = TRUE)
+
+## ----asym2--------------------------------------------------------------------
+cor(y, x)
+NNS.dep(y, x, asym = TRUE)
+
 ## ----dependence,fig.width=5,fig.height=3,fig.align = "center"-----------------
 set.seed(123)
 df <- data.frame(x = runif(10000, -1, 1), y = runif(10000, -1, 1))
@@ -55,6 +63,7 @@ NNS.dep(df$x, df$y)
 
 ## ----permutations-------------------------------------------------------------
 ## p-values for [NNS.dep]
+set.seed(123)
 x <- seq(-5, 5, .1); y <- x^2 + rnorm(length(x))
 
 ## ----perm1,fig.width=5,fig.height=3,fig.align = "center", results='hide', echo=FALSE----
