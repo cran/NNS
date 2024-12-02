@@ -13,6 +13,7 @@ NNS.MC(
   exp = 1,
   type = "spearman",
   drift = TRUE,
+  target_drift = NULL,
   xmin = NULL,
   xmax = NULL,
   ...
@@ -33,7 +34,9 @@ NNS.MC(
 
 \item{type}{options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.}
 
-\item{drift}{logical; \code{TRUE} default preserves the drift of the original series.}
+\item{drift}{logical; \code{drift = TRUE} (default) preserves the drift of the original series.}
+
+\item{target_drift}{numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.}
 
 \item{xmin}{numeric; the lower limit for the left tail.}
 

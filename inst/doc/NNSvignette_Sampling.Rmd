@@ -224,10 +224,25 @@ Checking our replicate correlations:
 sapply(boots, function(r) cor(r, x, method = "spearman"))
 
    rho = 1  rho = 0.5 rho = -0.5   rho = -1 
- 1.0000000  0.4988059 -0.4995740 -0.9982358 
+ 1.0000000  0.4989619 -0.4984818 -0.9779778
 ```
 
-More replicates and ensembles thereof can be generated for any number of $\rho$ values. Please see the full **`NNS.meboot`** and **`NNS.MC`** argument documentation.
+More replicates and ensembles thereof can be generated for any number of $\rho$ values. 
+
+### `target_drift` Specification
+We can also specify a target drift in our replicates with the `target_drift` parameter.
+
+```{r tgt_drift, fig.align='center', fig.width=8, fig.height=8, eval=FALSE}
+boots = NNS.MC(x, reps = 1, lower_rho = -1, upper_rho = 1, by = .5, target_drift = 0.05)$replicates
+reps = do.call(cbind, boots)
+
+plot(x, type = "l", lwd = 3, ylim = c(min(reps), max(reps)))
+matplot(reps, type = "l", col = rainbow(length(boots)), add = TRUE)
+```
+
+![](images/NNSmc_1_tgt_drift.png)
+
+Please see the full **`NNS.meboot`** and **`NNS.MC`** argument documentation.
 
 ## Simulating a Multivariate Dependence Structure
 
@@ -270,8 +285,8 @@ Similar dependence with radically different values, since we used $N(10, 20)$ in
 NNS.copula(original.data)
 NNS.copula(new.dep.data)
 
-[1] 0.4379469
-[1] 0.4390599
+[1] 0.4353849
+[1] 0.4357026
 ```
 
 ```{r, eval=FALSE}
@@ -316,10 +331,10 @@ Checking `ensemble` correlations with `original.data`:
 ```{r, eval=FALSE}
 for(i in 1:4) print(cor(new.boot.dep.matrix[,i], original.data[,i], method = "spearman"))
 
-[1] 0.9453275
-[1] 0.9523726
-[1] 0.9498499
-[1] 0.9524516
+[1] 0.9432899
+[1] 0.9460947
+[1] 0.9442031
+[1] 0.9423242
 ```
 
 ### Compare Multivariate Dependence Structures
@@ -330,8 +345,8 @@ Similar dependence with similar values.
 NNS.copula(original.data)
 NNS.copula(new.boot.dep.matrix)
 
-[1] 0.4379469
-[1] 0.4302545
+[1] 0.4353849
+[1] 0.4263725
 ```
 
 ```{r, eval=FALSE}
@@ -346,12 +361,12 @@ head(new.boot.dep.matrix)
 [5,]  0.12928774 -2.54934277  0.1741359  0.12928774
 [6,]  1.71506499  1.04057346 -0.6152683  1.71506499
                    x          y          z          x
-ensemble1 -0.4667731 -0.8418413 -0.6139059 -0.4708890
-ensemble2 -0.2333747 -1.0908710  0.3748315 -0.2711240
-ensemble3  1.4799734  0.2893831 -0.3851513  1.3645317
-ensemble4  0.1751654  0.2995113  1.1342461  0.1486429
-ensemble5  0.4128802 -2.9789634 -0.1141124  0.3846150
-ensemble6  1.5592660  1.1800553 -0.5285532  1.5041917
+ensemble1 -0.4268047 -0.7794553 -0.6364458 -0.4642642
+ensemble2 -0.2965744 -1.0682197  0.3297265 -0.2531178
+ensemble3  1.3302149  0.3054734 -0.4014515  1.4914884
+ensemble4  0.2257378  0.3108846  1.0603892  0.1728540
+ensemble5  0.4716743 -3.3344967 -0.1917697  0.4309379
+ensemble6  1.3984978  1.1881374 -0.5295386  1.5326055
 ```
 
 # References {#references}

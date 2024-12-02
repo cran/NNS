@@ -9,7 +9,8 @@
 #' @param by numeric; \code{.01} default will set the \code{by} argument in \code{seq(-1, 1, step)}.
 #' @param exp numeric; \code{1} default will exponentially weight maximum rho value if \code{exp > 1}.  Shrinks values towards \code{upper_rho}.
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
-#' @param drift logical; \code{TRUE} default preserves the drift of the original series.
+#' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
+#' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
 #' @param xmin numeric; the lower limit for the left tail.
 #' @param xmax numeric; the upper limit for the right tail.
 #' @param ... possible additional arguments to be passed to \link{NNS.meboot}.
@@ -38,6 +39,7 @@ NNS.MC <- function(x,
                    exp = 1,
                    type = "spearman",
                    drift = TRUE,
+                   target_drift = NULL,
                    xmin = NULL,
                    xmax = NULL, ...){
 
@@ -50,13 +52,18 @@ NNS.MC <- function(x,
   
   exp_rhos <- rev(c((neg_rhos^exp)*-1, pos_rhos^(1/exp)))
   
+  if(is.null(target_drift)){
+    n <- length(x)
+    orig_coef <- fast_lm(1:n, x)$coef
+    orig_intercept <- orig_coef[1]
+    orig_drift <- orig_coef[2]
+    target_drift <- orig_drift
+  }
   
-  samples <- suppressWarnings(NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
-                            xmin = xmin, xmax = xmax, ...))
   
-  replicates <- samples["replicates",]
-  
-  rm(samples)
+  replicates <- suppressWarnings(NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
+                                            target_drift = target_drift, xmin = xmin, xmax = xmax, ...))["replicates",]
+
 
   ensemble <- Rfast::rowmeans(do.call(cbind, replicates))
 

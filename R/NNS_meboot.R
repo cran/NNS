@@ -6,14 +6,15 @@
 #' @param reps numeric; number of replicates to generate.
 #' @param rho numeric [-1,1] (vectorized); A \code{rho} must be provided, otherwise a blank list will be returned.
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
-#' @param drift logical; \code{TRUE} default preserves the drift of the original series.
-#' @param trim numeric [0,1]; The mean trimming proportion, defaults to \code{trim=0.1}.
+#' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
+#' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
+#' @param trim numeric [0,1]; The mean trimming proportion, defaults to \code{trim = 0.1}.
 #' @param xmin numeric; the lower limit for the left tail.
 #' @param xmax numeric; the upper limit for the right tail.
 #' @param reachbnd logical; If \code{TRUE} potentially reached bounds (xmin = smallest value - trimmed mean and
 #' xmax = largest value + trimmed mean) are given when the random draw happens to be equal to 0 and 1, respectively.
-#' @param expand.sd logical; If \code{TRUE} the standard deviation in the ensemble is expanded. See \code{expand.sd} in meboot::meboot.
-#' @param force.clt logical; If \code{TRUE} the ensemble is forced to satisfy the central limit theorem. See \code{force.clt} in meboot::meboot.
+#' @param expand.sd logical; If \code{TRUE} the standard deviation in the ensemble is expanded. See \code{expand.sd} in \code{meboot::meboot}.
+#' @param force.clt logical; If \code{TRUE} the ensemble is forced to satisfy the central limit theorem. See \code{force.clt} in \code{meboot::meboot}.
 #' @param scl.adjustment logical; If \code{TRUE} scale adjustment is performed to ensure that the population variance of the transformed series equals the variance of the data.
 #' @param sym logical; If \code{TRUE} an adjustment is performed to ensure that the ME density is symmetric.
 #' @param elaps logical; If \code{TRUE} elapsed time during computations is displayed.
@@ -40,6 +41,8 @@
 #' \item{kappa} scale adjustment to the variance of ME density.
 #' \item{elaps} elapsed time.
 #' }
+#' 
+#' @note Vectorized \code{rho} and \code{drift} parameters will not vectorize both simultaneously.  Also, do not specify \code{target_drift = NULL}.
 #'
 #' @references
 #' \itemize{
@@ -56,30 +59,42 @@
 #' @examples
 #' \dontrun{
 #' # To generate an orthogonal rank correlated time-series to AirPassengers
-#' boots <- NNS.meboot(AirPassengers, reps=100, rho = 0, xmin = 0)
+#' boots <- NNS.meboot(AirPassengers, reps = 100, rho = 0, xmin = 0)
 #'
 #' # Verify correlation of replicates ensemble to original
-#' cor(boots["ensemble",], AirPassengers, method = "spearman")
+#' cor(boots["ensemble",]$ensemble, AirPassengers, method = "spearman")
 #'
 #' # Plot all replicates
-#' matplot(boots["replicates",] , type = 'l')
+#' matplot(boots["replicates",]$replicates , type = 'l')
 #'
 #' # Plot ensemble
-#' lines(boots["ensemble",], lwd = 3)
+#' lines(boots["ensemble",]$ensemble, lwd = 3)
+#' 
+#' 
+#' ### Vectorized drift with a single rho
+#' boots <- NNS.meboot(AirPassengers, reps = 100, rho = 0, xmin = 0, target_drift = c(1,7))
+#' matplot(do.call(cbind, boots["replicates", ]), type = "l")
+#' lines(1:length(AirPassengers), AirPassengers, lwd = 3, col = "red")
+#' 
+#' ### Vectorized rho with a single target drift
+#' boots <- NNS.meboot(AirPassengers, reps = 100, rho = c(0, .5, 1), xmin = 0, target_drift = 3)
+#' matplot(do.call(cbind, boots["replicates", ]), type = "l")
+#' lines(1:length(AirPassengers), AirPassengers, lwd = 3, col = "red") 
 #' }
 #' @export
 
  NNS.meboot <- function(x,
-                        reps=999,
-                        rho=NULL,
-                        type="spearman",
-                        drift=TRUE,
-                        trim=0.10,
-                        xmin=NULL,
-                        xmax=NULL,
-                        reachbnd=TRUE,
-                        expand.sd=TRUE, force.clt=TRUE,
-                        scl.adjustment = FALSE, sym = FALSE, elaps=FALSE,
+                        reps = 999,
+                        rho = NULL,
+                        type = "spearman",
+                        drift = TRUE,
+                        target_drift = NULL,
+                        trim = 0.10,
+                        xmin = NULL,
+                        xmax = NULL,
+                        reachbnd = TRUE,
+                        expand.sd = TRUE, force.clt = TRUE,
+                        scl.adjustment = FALSE, sym = FALSE, elaps = FALSE,
                         digits = 6,
                         colsubj, coldata, coltimes,...)
   {
@@ -105,7 +120,14 @@
     ordxx <- order(x)
 
 
-    ### Fred Viole SUGGESTION PART 1 of 2
+    if(is.null(target_drift)){
+      orig_coef <- fast_lm(1:n, x)$coef
+      orig_intercept <- orig_coef[1]
+      orig_drift <- orig_coef[2]
+      target_drift <- orig_drift
+    }
+    
+
 
     if(rho < 1){
       if(rho < -0.5) ordxx_2 <- rev(ordxx) else ordxx_2 <- order(ordxx)
@@ -192,11 +214,8 @@
 
     ensemble[ordxx,] <- qseq
 
-  
-    ### Fred Viole SUGGESTION  PART 2 of 2
-    ### Average two ordxx ensemble matrices
 
-    if(rho<1){
+    if(any(rho<1)){
       matrix2 = matrix(0, nrow=length(x), ncol = reps)
       matrix2[ordxx_2,] = qseq
 
@@ -206,47 +225,48 @@
       m <- c(matrix2)
       l <- length(e)
 
-      func <- function(ab, d=drift, ty=type){
+      func <- function(ab, d = drift, ty = type) {
         a <- ab[1]
         b <- ab[2]
-
-        if(ty=="spearman" || ty=="pearson"){
-            ifelse(d,
-                  (abs(cor((a*m + b*e)/(a + b), e, method = ty) - rho) +
-                      abs(mean((a*m + b*e))/mean(e) - 1) +
-                        abs( cor((a*m + b*e)/(a + b), 1:l) - cor(e, 1:l))
-                  ),
-                  abs(cor((a*m + b*e)/(a + b), e, method = ty) - rho) +
-                    abs(mean((a*m + b*e))/mean(e) - 1)
-                  )
+        
+        # Compute the adjusted ensemble
+        combined <- (a * m + b * e) / (a + b)
+        
+        # Check correlation or dependence structure
+        if (ty == "spearman" || ty == "pearson") {
+          error <- abs(cor(combined, e, method = ty) - rho)
+        } else if (ty == "nnsdep") {
+          error <- abs(NNS.dep(combined, e)$Dependence - rho)
         } else {
-            if(ty=="nnsdep"){
-                ifelse(d,
-                      (abs(NNS.dep((a*m + b*e)/(a + b), e)$Dependence - rho) +
-                          abs(mean((a*m + b*e))/mean(e) - 1) +
-                            abs( NNS.dep((a*m + b*e)/(a + b), 1:l)$Dependence - NNS.dep(e, 1:l)$Dependence)
-                      ),
-                      abs(NNS.dep((a*m + b*e)/(a + b), e)$Dependence - rho) +
-                        abs(mean((a*m + b*e))/mean(e) - 1)
-                      )
-            } else {
-              ifelse(d,
-                     (abs(NNS.dep((a*m + b*e)/(a + b), e)$Correlation - rho) +
-                        abs(mean((a*m + b*e))/mean(e) - 1) +
-                        abs( NNS.dep((a*m + b*e)/(a + b), 1:l)$Correlation - NNS.dep(e, 1:l)$Correlation)
-                     ),
-                     abs(NNS.dep((a*m + b*e)/(a + b), e)$Correlation - rho) +
-                       abs(mean((a*m + b*e))/mean(e) - 1)
-              )
-            }
+          error <- abs(NNS.dep(combined, e)$Correlation - rho)
         }
 
+        return(error)
       }
 
-
+     
       res <- optim(c(.01,.01), func, control=list(abstol = .01))
 
       ensemble <- (res$par[1]*matrix2 + res$par[2]*ensemble) / (sum(abs(res$par)))
+      
+      
+      # Drift
+      orig_coef <- fast_lm(1:n, x)$coef
+      orig_intercept <- orig_coef[1]
+      orig_drift <- orig_coef[2]
+      
+      new_coef <- apply(ensemble, 2, function(i) fast_lm(1:n, i)$coef)
+      slopes <- new_coef[2,]
+     
+      if(drift){
+        new_slopes <- (target_drift - slopes)
+        ensemble <- ensemble + t(t(sapply(new_slopes, function(slope) cumsum(rep(slope, n)))))
+        
+        new_intercepts <- orig_intercept - new_coef[1,]
+        ensemble <- sweep(ensemble, 2, new_intercepts, FUN = "+")
+      } 
+      
+      
 
       if(identical(ordxx_2, ordxx)){
         if(reps>1) ensemble <- t(apply(ensemble, 1, function(x) sample(x, size = reps, replace = TRUE)))
@@ -257,6 +277,8 @@
     if(expand.sd) ensemble <- NNS.meboot.expand.sd(x=x, ensemble=ensemble, ...)
 
     if(force.clt && reps > 1) ensemble <- force.clt(x=x, ensemble=ensemble)
+    
+
 
     # scale adjustment
 
@@ -279,6 +301,9 @@
     # Force min / max values
     if(!is.null(trim[[2]])) ensemble <- apply(ensemble, 2, function(z) pmax(trim[[2]], z))
     if(!is.null(trim[[3]])) ensemble <- apply(ensemble, 2, function(z) pmin(trim[[3]], z))
+    
+    
+    
 
     if(is.ts(x)){
       ensemble <- ts(ensemble, frequency=frequency(x), start=start(x))
@@ -287,11 +312,12 @@
       if(reps>1) dimnames(ensemble)[[2]] <- paste("Replicate", 1:reps)
     }
 
-
+    
+    
     final <- list(x=x, replicates=round(ensemble, digits = digits), ensemble=Rfast::rowmeans(ensemble), xx=xx, z=z, dv=dv, dvtrim=dvtrim, xmin=xmin,
          xmax=xmax, desintxb=desintxb, ordxx=ordxx, kappa = kappa)
 
     return(final)
  }
  
-NNS.meboot <- Vectorize(NNS.meboot, vectorize.args = "rho")
+NNS.meboot <- Vectorize(NNS.meboot, vectorize.args = c("rho", "target_drift"))
