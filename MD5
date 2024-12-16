@@ -1,4 +1,4 @@
-5c83d65d2a871a2927dfc9f0762fd61f *DESCRIPTION
+e51ca8aa7c776003d73f0b348a552150 *DESCRIPTION
 d32a5335f807c3b742222f52af2e1b2e *NAMESPACE
 a3448ede156547217fa8a83f8c58e311 *R/ANOVA.R
 b2372e3feefcc66a7f3d13397ce1ce1b *R/ARMA.R
@@ -17,14 +17,14 @@ d563c66008a6e9bbb87c679a69e05061 *R/Dependence.R
 ffcf1732ed560d2ed9b9f3ef8adc6d25 *R/Multivariate_Regression.R
 d97be4677eda4049f594e6e970d5d6b4 *R/NNS-package.R
 251cdd2fd43c9c9901d7cdae37c71013 *R/NNS_Distance.R
-d373d9f91f7bb29d83fc0f14859b587e *R/NNS_MC.R
+58132980d38c7823807590dd533df935 *R/NNS_MC.R
 c70c5b107c68322598f411810b91c3bb *R/NNS_VAR.R
-e239c785ffa58a74271c31e8668a02dc *R/NNS_meboot.R
+dc48bcc158d3ed48e7ced59a6f307eeb *R/NNS_meboot.R
 9e68ce5d22a2620b0917a5d32e41ef0a *R/NNS_term_matrix.R
 0a015eb5bd84bd5ee358a9072106777c *R/Normalization.R
 364f826dfb74f203839abf8956308d05 *R/Nowcast.R
 0b33b01e4238908c88300568afc0b1b0 *R/Numerical_Differentiation.R
-d2802c30e5fa6c87e318ccfab30f8f54 *R/Partial_Moments.R
+ebd6fed86d12a195abe1941d0a101d22 *R/Partial_Moments.R
 204b8cd44f66800b612c307200a36a85 *R/Partition_Map.R
 860bbf9152a28fa7e3261d16dd890a02 *R/RcppExports.R
 24417d33239ee91ef45bea3a15a7aa62 *R/Regression.R
@@ -38,7 +38,7 @@ b3104abbde53bd0f689cd80cd1212773 *R/Uni_SD_Routines.R
 0a82e4fa4ff179c89528b230888833e1 *R/dy_d_wrt.R
 67faed37e6822d4aa03d9babf953873a *R/dy_dx.R
 893354142d2f13229165d6d4a303d617 *R/gvload.R
-c3f1e191480da1b30cfff5bf14e7af52 *README.md
+d9e516ba6751f0c8b8ac8db0734da51c *README.md
 afbe4209b3bb961ba3e41cbfe79ea507 *build/partial.rdb
 078d4a983822ae1de1849f1a186a67db *build/vignette.rds
 c87c3cc3b35e448dea16ca87f06417fb *inst/doc/NNSvignette_Classification.R
@@ -56,9 +56,9 @@ c8da75be43bc7c3f93674767225e5ecc *inst/doc/NNSvignette_Correlation_and_Dependenc
 5a9490531e5e9aa93f8c7eb774b15167 *inst/doc/NNSvignette_Forecasting.R
 1563f13da40fba6bd886eae0112e4ed7 *inst/doc/NNSvignette_Forecasting.Rmd
 00f2cf9dcff0e6055de3ee3c1d6124d4 *inst/doc/NNSvignette_Forecasting.html
-cf09d790b9ead9f45a566fcc14cd13fd *inst/doc/NNSvignette_Partial_Moments.R
-1e42b4da6324574874f3967103a04835 *inst/doc/NNSvignette_Partial_Moments.Rmd
-68b17e1cfdba7d486a4695e08d89ab6d *inst/doc/NNSvignette_Partial_Moments.html
+1326c7b1adc042e7159dcb0a22eaa6a8 *inst/doc/NNSvignette_Partial_Moments.R
+88d3d6d4d57ac1bb4672cf8ac912986e *inst/doc/NNSvignette_Partial_Moments.Rmd
+35b084ee0b63c4de251f4241d63fc8ee *inst/doc/NNSvignette_Partial_Moments.html
 49fbd61594dec1a64afc8a6c04a2f47c *inst/doc/NNSvignette_Sampling.R
 ae5ffb95837277ce136734c74ea79e0c *inst/doc/NNSvignette_Sampling.Rmd
 d1ba1b071ac994ab44e7cd59347c3132 *inst/doc/NNSvignette_Sampling.html
@@ -75,7 +75,7 @@ bcf3b9a2fd2e6281214601137aabef80 *man/NNS.ARMA.Rd
 2fbb0d2ca782f42867e7553f60335e4a *man/NNS.CDF.Rd
 679859f6c34c0637fb486f6602ed6408 *man/NNS.FSD.Rd
 b828c33f4d0439ee0205200e1ab19f29 *man/NNS.FSD.uni.Rd
-d00bfa44c7b9140fd1ab7df10206e3a0 *man/NNS.MC.Rd
+f9420297d3778fd6e4babea8ab42dc19 *man/NNS.MC.Rd
 1936ea366e56ed985f0dd4f5347d564f *man/NNS.Rd
 8d01a3eacd22c75d44226742fade4f67 *man/NNS.SD.efficient.set.Rd
 a04a4ada0ad02f6638e8f800db2293c8 *man/NNS.SSD.Rd
@@ -90,7 +90,7 @@ c322788139839dbbeaf24fdc5c13e561 *man/NNS.boost.Rd
 c7be9f215f4745807b487d5394777906 *man/NNS.diff.Rd
 8f60d27d48b3542e147ee8bc8cef5be2 *man/NNS.distance.Rd
 182af57f9f6ec463003487f8b8deeca1 *man/NNS.gravity.Rd
-64502c63704480a87d7ccf1220fc5b21 *man/NNS.meboot.Rd
+4b021c9faea7a8d6377b0b6846fdd98c *man/NNS.meboot.Rd
 c26fa3bdc252cda6e44f60439f649715 *man/NNS.mode.Rd
 1ef11748458085037d239eb3c4bfa6e4 *man/NNS.moments.Rd
 c8ad6a52ca2ea27b598f91ea6f5c8d9c *man/NNS.norm.Rd
@@ -130,7 +130,7 @@ c024d33a11f13814e1240c8e0922a482 *tests/testthat/test_Uni_SD_Routines.R
 2ac9df9e2d96dea2c21b8ee5e6fc2b84 *vignettes/NNSvignette_Comparing_Distributions.Rmd
 c8da75be43bc7c3f93674767225e5ecc *vignettes/NNSvignette_Correlation_and_Dependence.Rmd
 1563f13da40fba6bd886eae0112e4ed7 *vignettes/NNSvignette_Forecasting.Rmd
-1e42b4da6324574874f3967103a04835 *vignettes/NNSvignette_Partial_Moments.Rmd
+88d3d6d4d57ac1bb4672cf8ac912986e *vignettes/NNSvignette_Partial_Moments.Rmd
 ae5ffb95837277ce136734c74ea79e0c *vignettes/NNSvignette_Sampling.Rmd
 23ca8e494f04cdcc2967a79c05d92de3 *vignettes/images/ARMA_ex.png
 f68a241f1fb35dc47310473d4d00279a *vignettes/images/ARMA_optim.png

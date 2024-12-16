@@ -14,6 +14,7 @@ NNS.MC(
   type = "spearman",
   drift = TRUE,
   target_drift = NULL,
+  target_drift_scale = NULL,
   xmin = NULL,
   xmax = NULL,
   ...
@@ -37,6 +38,8 @@ NNS.MC(
 \item{drift}{logical; \code{drift = TRUE} (default) preserves the drift of the original series.}
 
 \item{target_drift}{numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.}
+
+\item{target_drift_scale}{numerical; instead of calculating a \code{target_drift}, provide a scalar to the existing drift when \code{drift = TRUE}.}
 
 \item{xmin}{numeric; the lower limit for the left tail.}
 

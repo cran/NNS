@@ -3,7 +3,7 @@
 
 
 
-[![packageversion](https://img.shields.io/badge/NNS%20version-10.9.4-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![packageversion](https://img.shields.io/badge/NNS%20version-10.9.5-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 <h2 style="margin: 0; padding: 0; border: none; height: 40px;"></h2>
 
@@ -32,9 +32,6 @@ Companion R-package and datasets to:
 #### For a quantitative finance implementation of NNS, see [OVVO Labs](https://www.ovvolabs.com)
 
 
-#### For more hands-on examples, see [NNS Examples](https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/index.md)
-
-
 ## Current Version
 Current [![NNS](https://img.shields.io/badge/NNS--blue.svg)](https://cran.r-project.org/package=NNS) CRAN version is  [![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/NNS)](https://www.r-pkg.org/badges/version/NNS)
 
@@ -50,7 +47,7 @@ install.packages('NNS')
 ```
 
 ## Examples
-Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/index.md for basic partial moments equivalences and hands-on statistics, machine learning and econometrics examples.
+Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/index.md for basic partial moments equivalences, hands-on statistics, machine learning and econometrics examples.
 
 
 ## Citation
@@ -59,7 +56,7 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 10.9.4},
+    note = {R package version 10.9.5},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```

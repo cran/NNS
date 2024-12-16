@@ -11,6 +11,7 @@ NNS.meboot(
   type = "spearman",
   drift = TRUE,
   target_drift = NULL,
+  target_drift_scale = NULL,
   trim = 0.1,
   xmin = NULL,
   xmax = NULL,
@@ -39,6 +40,8 @@ NNS.meboot(
 \item{drift}{logical; \code{drift = TRUE} (default) preserves the drift of the original series.}
 
 \item{target_drift}{numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.}
+
+\item{target_drift_scale}{numerical; instead of calculating a \code{target_drift}, provide a scalar to the existing drift when \code{drift = TRUE}.}
 
 \item{trim}{numeric [0,1]; The mean trimming proportion, defaults to \code{trim = 0.1}.}
 

@@ -8,6 +8,7 @@
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
 #' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
 #' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
+#' @param target_drift_scale numerical; instead of calculating a \code{target_drift}, provide a scalar to the existing drift when \code{drift = TRUE}.
 #' @param trim numeric [0,1]; The mean trimming proportion, defaults to \code{trim = 0.1}.
 #' @param xmin numeric; the lower limit for the left tail.
 #' @param xmax numeric; the upper limit for the right tail.
@@ -89,6 +90,7 @@
                         type = "spearman",
                         drift = TRUE,
                         target_drift = NULL,
+                        target_drift_scale = NULL,
                         trim = 0.10,
                         xmin = NULL,
                         xmax = NULL,
@@ -259,6 +261,7 @@
       slopes <- new_coef[2,]
      
       if(drift){
+        if(!is.null(target_drift_scale)) target_drift <- orig_drift * target_drift_scale
         new_slopes <- (target_drift - slopes)
         ensemble <- ensemble + t(t(sapply(new_slopes, function(slope) cumsum(rep(slope, n)))))
         
@@ -320,4 +323,4 @@
     return(final)
  }
  
-NNS.meboot <- Vectorize(NNS.meboot, vectorize.args = c("rho", "target_drift"))
+NNS.meboot <- Vectorize(NNS.meboot, vectorize.args = c("rho", "target_drift", "target_drift_scale"))

@@ -11,6 +11,7 @@
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
 #' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
 #' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
+#' @param target_drift_scale numerical; instead of calculating a \code{target_drift}, provide a scalar to the existing drift when \code{drift = TRUE}.
 #' @param xmin numeric; the lower limit for the left tail.
 #' @param xmax numeric; the upper limit for the right tail.
 #' @param ... possible additional arguments to be passed to \link{NNS.meboot}.
@@ -40,6 +41,7 @@ NNS.MC <- function(x,
                    type = "spearman",
                    drift = TRUE,
                    target_drift = NULL,
+                   target_drift_scale = NULL,
                    xmin = NULL,
                    xmax = NULL, ...){
 
@@ -62,7 +64,7 @@ NNS.MC <- function(x,
   
   
   replicates <- suppressWarnings(NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
-                                            target_drift = target_drift, xmin = xmin, xmax = xmax, ...))["replicates",]
+                                            target_drift = target_drift, target_drift_scale = target_drift_scale, xmin = xmin, xmax = xmax, ...))["replicates",]
 
 
   ensemble <- Rfast::rowmeans(do.call(cbind, replicates))
