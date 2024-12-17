@@ -27,7 +27,7 @@
 #' @examples
 #' \dontrun{
 #' # To generate a set of MC sampled time-series to AirPassengers
-#' MC_samples <- NNS.MC(AirPassengers, xmin = 0)
+#' MC_samples <- NNS.MC(AirPassengers, reps = 10, lower_rho = -1, upper_rho = 1, by = .5, xmin = 0)
 #' }
 #' @export
 
@@ -49,22 +49,25 @@ NNS.MC <- function(x,
   rhos <- seq(lower_rho, upper_rho, by)
   l <- length(rhos)
   
-  neg_rhos <- abs(rhos[rhos<0])
+  neg_rhos <- abs(rhos[rhos<=0])
   pos_rhos <- rhos[rhos>0]
   
   exp_rhos <- rev(c((neg_rhos^exp)*-1, pos_rhos^(1/exp)))
-  
+
   if(is.null(target_drift)){
-    n <- length(x)
-    orig_coef <- fast_lm(1:n, x)$coef
-    orig_intercept <- orig_coef[1]
-    orig_drift <- orig_coef[2]
-    target_drift <- orig_drift
+    if(!is.null(target_drift_scale)){
+      replicates <- NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = TRUE,
+                               target_drift_scale = target_drift_scale, 
+                               xmin = xmin, xmax = xmax, ...)["replicates",]
+    } else {
+      replicates <- NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
+                               xmin = xmin, xmax = xmax, ...)["replicates",]
+    } 
+  } else {
+    replicates <- NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = TRUE,
+                             target_drift = target_drift,
+                             xmin = xmin, xmax = xmax, ...)["replicates",]
   }
-  
-  
-  replicates <- suppressWarnings(NNS.meboot(x = x, reps = reps, rho = exp_rhos, type = type, drift = drift,
-                                            target_drift = target_drift, target_drift_scale = target_drift_scale, xmin = xmin, xmax = xmax, ...))["replicates",]
 
 
   ensemble <- Rfast::rowmeans(do.call(cbind, replicates))

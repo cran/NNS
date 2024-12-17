@@ -59,7 +59,7 @@ Monte Carlo sampling from the maximum entropy bootstrap routine \link{NNS.meboot
 \examples{
 \dontrun{
 # To generate a set of MC sampled time-series to AirPassengers
-MC_samples <- NNS.MC(AirPassengers, xmin = 0)
+MC_samples <- NNS.MC(AirPassengers, reps = 10, lower_rho = -1, upper_rho = 1, by = .5, xmin = 0)
 }
 }
 \references{

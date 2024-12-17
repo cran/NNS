@@ -113,12 +113,17 @@ lines(boots["ensemble",]$ensemble, lwd = 3)
 
 
 ### Vectorized drift with a single rho
-boots <- NNS.meboot(AirPassengers, reps = 100, rho = 0, xmin = 0, target_drift = c(1,7))
+boots <- NNS.meboot(AirPassengers, reps = 10, rho = 0, xmin = 0, target_drift = c(1,7))
 matplot(do.call(cbind, boots["replicates", ]), type = "l")
 lines(1:length(AirPassengers), AirPassengers, lwd = 3, col = "red")
 
 ### Vectorized rho with a single target drift
-boots <- NNS.meboot(AirPassengers, reps = 100, rho = c(0, .5, 1), xmin = 0, target_drift = 3)
+boots <- NNS.meboot(AirPassengers, reps = 10, rho = c(0, .5, 1), xmin = 0, target_drift = 3)
+matplot(do.call(cbind, boots["replicates", ]), type = "l")
+lines(1:length(AirPassengers), AirPassengers, lwd = 3, col = "red")
+
+### Vectorized rho with a single target drift scale
+boots <- NNS.meboot(AirPassengers, reps = 10, rho = c(0, .5, 1), xmin = 0, target_drift_scale = 0.5)
 matplot(do.call(cbind, boots["replicates", ]), type = "l")
 lines(1:length(AirPassengers), AirPassengers, lwd = 3, col = "red") 
 }

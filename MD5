@@ -1,4 +1,4 @@
-e51ca8aa7c776003d73f0b348a552150 *DESCRIPTION
+72f7d88982851ddb86c7a2fe0d7a0e95 *DESCRIPTION
 d32a5335f807c3b742222f52af2e1b2e *NAMESPACE
 a3448ede156547217fa8a83f8c58e311 *R/ANOVA.R
 b2372e3feefcc66a7f3d13397ce1ce1b *R/ARMA.R
@@ -17,9 +17,9 @@ d563c66008a6e9bbb87c679a69e05061 *R/Dependence.R
 ffcf1732ed560d2ed9b9f3ef8adc6d25 *R/Multivariate_Regression.R
 d97be4677eda4049f594e6e970d5d6b4 *R/NNS-package.R
 251cdd2fd43c9c9901d7cdae37c71013 *R/NNS_Distance.R
-58132980d38c7823807590dd533df935 *R/NNS_MC.R
+5892f1e4aa12932a605e00e87eb581cd *R/NNS_MC.R
 c70c5b107c68322598f411810b91c3bb *R/NNS_VAR.R
-dc48bcc158d3ed48e7ced59a6f307eeb *R/NNS_meboot.R
+550abf77b8b1e5ca74b633cedc87195a *R/NNS_meboot.R
 9e68ce5d22a2620b0917a5d32e41ef0a *R/NNS_term_matrix.R
 0a015eb5bd84bd5ee358a9072106777c *R/Normalization.R
 364f826dfb74f203839abf8956308d05 *R/Nowcast.R
@@ -38,7 +38,7 @@ b3104abbde53bd0f689cd80cd1212773 *R/Uni_SD_Routines.R
 0a82e4fa4ff179c89528b230888833e1 *R/dy_d_wrt.R
 67faed37e6822d4aa03d9babf953873a *R/dy_dx.R
 893354142d2f13229165d6d4a303d617 *R/gvload.R
-d9e516ba6751f0c8b8ac8db0734da51c *README.md
+5185c0a4191c5993379f3fa78dc4d01c *README.md
 afbe4209b3bb961ba3e41cbfe79ea507 *build/partial.rdb
 078d4a983822ae1de1849f1a186a67db *build/vignette.rds
 c87c3cc3b35e448dea16ca87f06417fb *inst/doc/NNSvignette_Classification.R
@@ -61,7 +61,7 @@ c8da75be43bc7c3f93674767225e5ecc *inst/doc/NNSvignette_Correlation_and_Dependenc
 35b084ee0b63c4de251f4241d63fc8ee *inst/doc/NNSvignette_Partial_Moments.html
 49fbd61594dec1a64afc8a6c04a2f47c *inst/doc/NNSvignette_Sampling.R
 ae5ffb95837277ce136734c74ea79e0c *inst/doc/NNSvignette_Sampling.Rmd
-d1ba1b071ac994ab44e7cd59347c3132 *inst/doc/NNSvignette_Sampling.html
+ba3109cba227447e339c1c29d69d87d7 *inst/doc/NNSvignette_Sampling.html
 ac44369f20d86f4ce75f544bc1c5a4aa *man/Co.LPM.Rd
 20666e42e59439ecbcce2e3aae3cc691 *man/Co.UPM.Rd
 2756bc5e70f7ef26ca6f1dd48ec74a9d *man/D.LPM.Rd
@@ -75,7 +75,7 @@ bcf3b9a2fd2e6281214601137aabef80 *man/NNS.ARMA.Rd
 2fbb0d2ca782f42867e7553f60335e4a *man/NNS.CDF.Rd
 679859f6c34c0637fb486f6602ed6408 *man/NNS.FSD.Rd
 b828c33f4d0439ee0205200e1ab19f29 *man/NNS.FSD.uni.Rd
-f9420297d3778fd6e4babea8ab42dc19 *man/NNS.MC.Rd
+c882ed6c9dbd91be68c74850516000b5 *man/NNS.MC.Rd
 1936ea366e56ed985f0dd4f5347d564f *man/NNS.Rd
 8d01a3eacd22c75d44226742fade4f67 *man/NNS.SD.efficient.set.Rd
 a04a4ada0ad02f6638e8f800db2293c8 *man/NNS.SSD.Rd
@@ -90,7 +90,7 @@ c322788139839dbbeaf24fdc5c13e561 *man/NNS.boost.Rd
 c7be9f215f4745807b487d5394777906 *man/NNS.diff.Rd
 8f60d27d48b3542e147ee8bc8cef5be2 *man/NNS.distance.Rd
 182af57f9f6ec463003487f8b8deeca1 *man/NNS.gravity.Rd
-4b021c9faea7a8d6377b0b6846fdd98c *man/NNS.meboot.Rd
+0cd3ee511513e53e0577cc0df115f3c8 *man/NNS.meboot.Rd
 c26fa3bdc252cda6e44f60439f649715 *man/NNS.mode.Rd
 1ef11748458085037d239eb3c4bfa6e4 *man/NNS.moments.Rd
 c8ad6a52ca2ea27b598f91ea6f5c8d9c *man/NNS.norm.Rd
@@ -139,5 +139,5 @@ b62a4ee008f2a99a8e47921239c22810 *vignettes/images/CDFs_1.png
 634da32c7720014b1ff3fbebd8115f68 *vignettes/images/CDFs_2.png
 d4a48b2348edb05be6193d9e4b73fca9 *vignettes/images/NNS_hex_sticker.png
 186c4102f59ef1bc2f0a419f56932678 *vignettes/images/NNSmc_1.png
-189665596dea208d04d3ae77e898f1f9 *vignettes/images/NNSmc_1_tgt_drift.png
+a5a3e4d06e1d0e180aba866840dd80fe *vignettes/images/NNSmc_1_tgt_drift.png
 e18785c2bc1af5f0e98f97ad5213e4bf *vignettes/images/boost_freq.png
