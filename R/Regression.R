@@ -162,10 +162,6 @@ NNS.reg = function (x, y,
   n <- length(y)
   original.x <- x
   
-  if(n < 2000) ncores <- 1
-  if(!is.null(dim(x))){
-    if(ncol(x) < 5) ncores <- 1
-  }
   
   if(!is.null(dim.red.method)){
     if(is.null(dim(x)) || nrow(x)==1){

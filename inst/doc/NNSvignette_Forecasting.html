@@ -501,7 +501,7 @@ its internal validation errors, and compare different
 <p>Given our monthly dataset, we will try multiple years by setting
 <code>seasonal.factor = seq(12, 60, 6)</code> every 6 months based on
 our <strong>NNS.seas()</strong> insights above.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>nns.optimal <span class="ot">=</span> <span class="fu">NNS.ARMA.optim</span>(AirPassengers, </span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>nns.optimal <span class="ot">=</span> <span class="fu">NNS.ARMA.optim</span>(AirPassengers,</span>
 <span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>                             <span class="at">training.set =</span> <span class="dv">100</span>, </span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                             <span class="at">seasonal.factor =</span> <span class="fu">seq</span>(<span class="dv">12</span>, <span class="dv">60</span>, <span class="dv">6</span>),</span>
 <span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                             <span class="at">obj.fn =</span> <span class="fu">expression</span>( <span class="fu">sqrt</span>(<span class="fu">mean</span>((predicted <span class="sc">-</span> actual)<span class="sc">^</span><span class="dv">2</span>)) ),</span>

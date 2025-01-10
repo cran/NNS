@@ -119,7 +119,7 @@ NNS also offers a wrapper function **`NNS.ARMA.optim()`** to test a given vector
 Given our monthly dataset, we will try multiple years by setting `seasonal.factor = seq(12, 60, 6)` every 6 months based on our **NNS.seas()** insights above.
 
 ```{r best optim, eval=FALSE}
-nns.optimal = NNS.ARMA.optim(AirPassengers, 
+nns.optimal = NNS.ARMA.optim(AirPassengers,
                              training.set = 100, 
                              seasonal.factor = seq(12, 60, 6),
                              obj.fn = expression( sqrt(mean((predicted - actual)^2)) ),

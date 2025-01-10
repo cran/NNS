@@ -14,6 +14,7 @@
 #' @param linear.approximation logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.
 #' @param pred.int numeric [0, 1]; 0.95 (default) Returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{NNS.meboot} on the final estimates.
 #' @param print.trace logical; \code{TRUE} (default) Prints current iteration information.  Suggested as backup in case of error, best parameters to that point still known and copyable!
+#' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
 #' @param plot logical; \code{FALSE} (default)
 #'
 #' @return Returns a list containing:
@@ -36,6 +37,7 @@
 #'
 #' \item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 #'
+#' \item{} Set \code{(ncores = 1)} if routine is used within a parallel architecture.
 #'}
 #'
 #'
@@ -68,6 +70,7 @@ NNS.ARMA.optim <- function(variable,
                            obj.fn =  expression( mean((predicted - actual)^2) / (NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) + NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) )  ),
                            objective = "min",
                            linear.approximation = TRUE,
+                           ncores = NULL,
                            pred.int = 0.95,
                            print.trace = TRUE,
                            plot = FALSE){
@@ -123,6 +126,28 @@ NNS.ARMA.optim <- function(variable,
     seasonal.combs <- current.seasonals <- vector(mode = "list")
     current.estimate <- numeric()
     
+    if (j == "lin") {
+      # Determine the number of cores to use
+      num_cores <- if (is.null(ncores)) {
+        max(2L, parallel::detectCores() - 1L)
+      } else {
+        ncores
+      }
+      
+      # Manage cluster creation
+      cl <- NULL
+      if (num_cores > 1) {
+        cl <- tryCatch(
+          parallel::makeForkCluster(num_cores),
+          error = function(e) parallel::makeCluster(num_cores)
+        )
+        doParallel::registerDoParallel(cl)
+        invisible(data.table::setDTthreads(1))  # Restrict threading for parallelization
+      } else {
+        foreach::registerDoSEQ()
+        invisible(data.table::setDTthreads(0))  # Default threading
+      }
+    }
     
     for(i in 1 : length(seasonal.factor)){
       if(i == 1){
@@ -150,15 +175,43 @@ NNS.ARMA.optim <- function(variable,
       
       if(is.null(ncol(seasonal.combs[[i]])) || dim(seasonal.combs[[i]])[2]==0) break 
       
-      if(j=="lin"){
-
-        nns.estimates.indiv <- lapply(1 : ncol(seasonal.combs[[i]]), function(k) {
-          actual <- tail(variable, h_eval)
-          if(print.trace) message("Testing seasonal.factor ", paste(unlist(seasonal.combs[[i]][ , k]), ","), "\r", appendLF = FALSE)
-          predicted <- NNS.ARMA(variable, training.set = training.set, h = h_eval, seasonal.factor =  seasonal.combs[[i]][ , k], method = "lin", plot = FALSE, negative.values = negative.values)
-          
-          return(eval(obj.fn))
-        })
+      if (j == "lin") {
+        # Parallel or sequential computation based on num_cores
+        nns.estimates.indiv <- if (num_cores > 1) {
+          parallel::clusterExport(
+            cl,
+            varlist = c("variable", "h_eval", "training.set", "seasonal.combs", "i", "obj.fn", "negative.values", "NNS.ARMA", "print.trace"),
+            envir = environment()
+          )
+          parallel::parLapply(cl, 1:ncol(seasonal.combs[[i]]), function(k) {
+            actual <- tail(variable, h_eval)
+            predicted <- NNS.ARMA(
+              variable,
+              training.set = training.set,
+              h = h_eval,
+              seasonal.factor = seasonal.combs[[i]][, k],
+              method = "lin",
+              plot = FALSE
+            )
+            eval(obj.fn)
+          })
+        } else {
+          lapply(1:ncol(seasonal.combs[[i]]), function(k) {
+            actual <- tail(variable, h_eval)
+            predicted <- NNS.ARMA(
+              variable,
+              training.set = training.set,
+              h = h_eval,
+              seasonal.factor = seasonal.combs[[i]][, k],
+              method = "lin",
+              plot = FALSE
+            )
+            eval(obj.fn)
+          })
+        }
+        
+        # Ensure output is unlisted
+        nns.estimates.indiv <- unlist(nns.estimates.indiv)
       }
       
       if(j=="nonlin" && linear.approximation){
@@ -174,14 +227,14 @@ NNS.ARMA.optim <- function(variable,
       if(j=="both" && linear.approximation){
         # Find the min (obj.fn) for a given seasonals sequence
         actual <- tail(variable, h_eval)
-       
+        
         lin.predicted <- NNS.ARMA(variable, training.set = training.set, h = h_eval, seasonal.factor = unlist(overall.seasonals[[1]]), method = "lin", plot = FALSE, negative.values = negative.values)
         predicted <- both.predicted <- (lin.predicted + nonlin.predicted) / 2
-
+        
         nns.estimates.indiv <- eval(obj.fn)
       }
       
-
+      
       nns.estimates.indiv <- unlist(nns.estimates.indiv)
       
       if(objective=='min') nns.estimates.indiv[is.na(nns.estimates.indiv)] <- Inf else nns.estimates.indiv[is.na(nns.estimates.indiv)] <- -Inf
@@ -235,6 +288,16 @@ NNS.ARMA.optim <- function(variable,
       
     } # for i in 1:length(seasonal factor)
     
+    if (j == "lin") {
+      # Clean up cluster
+      if (!is.null(cl)) {
+        parallel::stopCluster(cl)
+        doParallel::stopImplicitCluster()
+        invisible(data.table::setDTthreads(0))  # Restore threading
+        invisible(gc(verbose = FALSE))  # Clean up memory
+      }
+    }
+    
     previous.seasonals[[which(c("lin",'nonlin','both')==j)]] <- current.seasonals
     previous.estimates[[which(c("lin",'nonlin','both')==j)]] <- current.estimate
     
@@ -287,7 +350,7 @@ NNS.ARMA.optim <- function(variable,
       }
     } else {
       nns.weights <- NULL
-
+      
       errors <- predicted - actual
       bias <- gravity(na.omit(errors))
       if(is.na(bias)) bias <- 0
@@ -401,7 +464,7 @@ NNS.ARMA.optim <- function(variable,
     model.results <- NNS.ARMA(OV, h = h_oos, seasonal.factor = nns.periods, method = nns.method, plot = FALSE, negative.values = negative.values, weights = nns.weights, shrink = nns.shrink) - bias
   }
   
-
+  
   lower_PIs <- model.results - abs(LPM.VaR((1-pred.int)/2, 0, errors)) - abs(bias)
   upper_PIs <- model.results + abs(UPM.VaR((1-pred.int)/2, 0, errors)) + abs(bias)
   
@@ -411,7 +474,7 @@ NNS.ARMA.optim <- function(variable,
     lower_PIs <- pmax(0, lower_PIs)
     upper_PIs <- pmax(0, upper_PIs)
   }
-
+  
   if(plot){
     if(is.null(h_oos)) xlim <- c(1, max((training.set + h))) else xlim <- c(1, max((n + h)))
     
@@ -449,7 +512,7 @@ NNS.ARMA.optim <- function(variable,
       legend("topleft", legend = c("Variable", "Internal Validation", "Forecast"), 
              col = c("steelblue", "red", "red"), lty = c(1, 2, 1), bty = "n", lwd = 2)
     } 
-      
+    
     
     
     

@@ -201,6 +201,7 @@ NNS.VAR <- function(variables,
                           obj.fn = obj.fn,
                           objective = objective,
                           print.trace = FALSE,
+                          ncores = 1,
                           negative.values = min(variable_interpolation)<0, h = h)
       
       variable_extrapolation <- b$results

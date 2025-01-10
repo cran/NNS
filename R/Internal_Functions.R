@@ -35,16 +35,79 @@ factor_2_dummy_FR <- function(x){
 }
 
 ### Generator for 1:length(lag) vectors in NNS.ARMA
-generate.vectors <- function(x, l){
-  Component.index <- Component.series <- list()
- 
-  for (i in 1:length(l)){
-    CS <- rev(x[seq(length(x)+1, 1, -l[i])])
-    CS <- CS[!is.na(CS)]
-    Component.series[[paste('Series.', i, sep = "")]] <- CS
-    Component.index[[paste('Index.', i, sep = "")]] <- (1 : length(CS))
-  }
+generate.vectors <- function(x, l) {
+  Component.series <- lapply(l, function(lag) {
+    rev.series <- rev(x[seq(length(x) + 1, 1, -lag)])
+    rev.series[!is.na(rev.series)]
+  })
+  
+  Component.index <- lapply(Component.series, seq_along)
+  
   return(list(Component.index = Component.index, Component.series = Component.series))
+}
+
+
+generate.lin.vectors <- function(x, l, h = 1) {
+  original.index <- seq_along(x)
+  augmented.index <- c(original.index, tail(original.index,1) + (1:h))
+  max_fcast <- min(h, l)  
+  # Generate lagged components by applying lag across the augmented index
+  Component.series <- lapply(1:max_fcast, function(i) {
+    start.index <- length(x) + i  # Shift by 1 each time
+    rev.series <- rev(x[seq(start.index, 1, -l)])  # Reverse the sequence with a lag of 12
+    rev.series[!is.na(rev.series)]  # Remove any NA values
+  })
+  
+  Component.index <- lapply(Component.series, seq_along)
+  
+  # Initialize forecast.index and forecast.values
+  forecast.index <- vector("list", length(l))
+  forecast.values <- vector("list", length(l))
+  
+  # Generate forecast.index for 1:h
+  max_fcast <- min(h, l)
+  forecast.index <- create_recycled_list(1:h, max_fcast)
+  forecast.index <- forecast.index[!sapply(forecast.index, is.null)]
+  
+  
+  # Generate forecast values based on the last value in Component.index
+  forecast.values.raw <- lapply(1:h, function(i) {
+    # Recycle the index if h > l
+    recycled_index <- (i - 1) %% l + 1  # Cycle through 1 to l
+    
+    # Get the last value from the corresponding Component.index
+    last_value <- tail(Component.index[[recycled_index]], 1)
+    
+    # Calculate the forecast increment
+    forecast_increment <- ceiling(i / l)
+    
+    # Generate the forecast value
+    forecast_value <- last_value + forecast_increment
+    return(forecast_value)
+  })
+
+  forecast.values <- create_recycled_list(unlist(forecast.values.raw), l)
+  forecast.values <- forecast.values[!sapply(forecast.values, is.null)]
+  
+  return(list(
+    Component.index = Component.index,
+    Component.series = Component.series,
+    forecast.values = forecast.values,
+    forecast.index = forecast.index
+  ))
+}
+
+create_recycled_list <- function(values, list_length) {
+  # Initialize an empty list to store the values
+  result <- vector("list", list_length)
+  
+  # Recycle the values by repeating them across the list length
+  for (i in seq_along(values)) {
+    index <- (i - 1) %% list_length + 1
+    result[[index]] <- c(result[[index]], values[i])
+  }
+  
+  return(result)
 }
 
 

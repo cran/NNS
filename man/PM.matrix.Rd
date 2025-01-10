@@ -15,7 +15,7 @@ PM.matrix(LPM_degree, UPM_degree, target, variable, pop_adj)
 
 \item{variable}{a numeric matrix or data.frame.}
 
-\item{pop_adj}{logical; \code{TRUE} Adjusts the sample co-partial moment matrices for population statistics.  Use \code{FALSE} for degree 0 frequency matrices.  Must be provided by user.}
+\item{pop_adj}{logical; \code{TRUE} Adjusts the population co-partial moment matrices for sample statistics, which is default in base R.  Use \code{FALSE} for degree 0 frequency matrices.  Must be provided by user.}
 }
 \value{
 Matrix of partial moment quadrant values (CUPM, DUPM, DLPM, CLPM), and overall covariance matrix.  Uncalled quadrants will return a matrix of zeros.
@@ -24,7 +24,7 @@ Matrix of partial moment quadrant values (CUPM, DUPM, DLPM, CLPM), and overall c
 This function generates a co-partial moment matrix for the specified co-partial moment.
 }
 \note{
-For divergent asymmetical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
+For divergent asymmetrical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
 }
 \examples{
 set.seed(123)

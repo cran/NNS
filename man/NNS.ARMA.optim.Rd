@@ -15,6 +15,7 @@ NNS.ARMA.optim(
     actual, target_x = mean(predicted), target_y = mean(actual)))),
   objective = "min",
   linear.approximation = TRUE,
+  ncores = NULL,
   pred.int = 0.95,
   print.trace = TRUE,
   plot = FALSE
@@ -38,6 +39,8 @@ NNS.ARMA.optim(
 \item{objective}{options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
 
 \item{linear.approximation}{logical; \code{TRUE} (default) Uses the best linear output from \code{NNS.reg} to generate a nonlinear and mixture regression for comparison.  \code{FALSE} is a more exhaustive search over the objective space.}
+
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 
 \item{pred.int}{numeric [0, 1]; 0.95 (default) Returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{NNS.meboot} on the final estimates.}
 
@@ -70,6 +73,7 @@ Wrapper function for optimizing any combination of a given \code{seasonal.factor
 
 \item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 
+\item{} Set \code{(ncores = 1)} if routine is used within a parallel architecture.
 }
 }
 \examples{

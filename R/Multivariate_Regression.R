@@ -4,7 +4,6 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   
   dist <- tolower(dist)
   
-  
   ### For Multiple regressions
   ###  Turn each column into numeric values
   original.IVs <- X_n
@@ -190,98 +189,187 @@ NNS.M.reg <- function (X_n, Y, factor.2.dummy = TRUE, order = NULL, stn = NULL, 
   
   
   
-  ### Point estimates
-  if(!is.null(point.est)){
+  ### Point Estimates
+  if (!is.null(point.est)) {
     
-    ### Point estimates
-    central.points <- apply(REGRESSION.POINT.MATRIX[, .SD, .SDcols = 1:n], 2, function(x) gravity(x))
+    # Calculate central points
+    central.points <- apply(REGRESSION.POINT.MATRIX[, .SD, .SDcols = 1:n], 2, gravity)
     
     predict.fit <- numeric()
-    
-    outsiders <- point.est<minimums | point.est>maximums
+    outsiders <- point.est < minimums | point.est > maximums
     outsiders[is.na(outsiders)] <- 0
     
-    if(is.null(np)){
-      l <- length(point.est)
-      
-      if(!any(outsiders)){
-        predict.fit <- NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = point.est,  k = n.best, class = type)
+    # Single point estimation
+    if (is.null(np)) {
+      if (!any(outsiders)) {
+        predict.fit <- NNS::NNS.distance(
+          rpm = REGRESSION.POINT.MATRIX, 
+          dist.estimate = point.est, 
+          k = n.best, 
+          class = type
+        )
       } else {
         boundary.points <- pmin(pmax(point.est, minimums), maximums)
         mid.points <- (boundary.points + central.points) / 2
         mid.points_2 <- (boundary.points + mid.points) / 2
-        last.known.distance_1 <- sqrt(sum((boundary.points - central.points) ^ 2))
-        last.known.distance_2 <- sqrt(sum((boundary.points - mid.points) ^ 2))
-        last.known.distance_3 <- sqrt(sum((boundary.points - mid.points_2) ^ 2))
         
-        boundary.estimates <- NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = boundary.points,  k = n.best, class = type)
+        last.known.distances <- c(
+          sqrt(sum((boundary.points - central.points) ^ 2)),
+          sqrt(sum((boundary.points - mid.points) ^ 2)),
+          sqrt(sum((boundary.points - mid.points_2) ^ 2))
+        )
         
-        last.known.gradient_1 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = central.points,  k = n.best, class = type)) / last.known.distance_1
-        last.known.gradient_2 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = mid.points,  k = n.best, class = type)) / last.known.distance_2
-        last.known.gradient_3 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = mid.points_2,  k = n.best, class = type)) / last.known.distance_3
+        boundary.estimates <- NNS::NNS.distance(
+          rpm = REGRESSION.POINT.MATRIX, 
+          dist.estimate = boundary.points, 
+          k = n.best, 
+          class = type
+        )
         
-        last.known.gradient <- (last.known.gradient_1*3 + last.known.gradient_2*2 + last.known.gradient_3) / 6
+        gradients <- sapply(1:3, function(i) {
+          compare.points <- list(central.points, mid.points, mid.points_2)[[i]]
+          (boundary.estimates - NNS::NNS.distance(
+            rpm = REGRESSION.POINT.MATRIX, 
+            dist.estimate = compare.points, 
+            k = n.best, 
+            class = type
+          )) / last.known.distances[i]
+        })
         
+        last.known.gradient <- sum(gradients * c(3, 2, 1)) / 6
         last.distance <- sqrt(sum((point.est - boundary.points) ^ 2))
         
         predict.fit <- last.distance * last.known.gradient + boundary.estimates
       }
     }
     
-    if(!is.null(np)){
+    # Multiple point estimation
+    if (!is.null(np)) {
       DISTANCES <- vector(mode = "list", np)
       distances <- data.table::data.table(point.est)
-      if(num_cores > 1){
-        DISTANCES <- parallel::parApply(cl, distances, 1, function(z) NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = z,  k = n.best, class = type)[1])
-        
-        doParallel::stopImplicitCluster()
-        foreach::registerDoSEQ()
-        invisible(data.table::setDTthreads(0, throttle = NULL))
-        invisible(gc(verbose = FALSE))
+      
+      if (num_cores > 1) {
+        DISTANCES <- parallel::parApply(
+          cl, 
+          distances, 
+          1, 
+          function(z) NNS.distance(
+            rpm = REGRESSION.POINT.MATRIX, 
+            dist.estimate = z, 
+            k = n.best, 
+            class = type
+          )[1]
+        )
       } else {
-        distances <- distances[, DISTANCES :=  NNS.distance(rpm = REGRESSION.POINT.MATRIX, dist.estimate = .SD,  k = n.best, class = type)[1], by = 1:nrow(point.est)]
+        distances <- distances[, DISTANCES := NNS.distance(
+          rpm = REGRESSION.POINT.MATRIX, 
+          dist.estimate = .SD, 
+          k = n.best, 
+          class = type
+        )[1], by = 1:nrow(point.est)]
         
         DISTANCES <- as.numeric(unlist(distances$DISTANCES))
       }
-
-      if(any(outsiders > 0)){
-        outsiders <- rowSums(outsiders)
-        outside.index <- as.numeric(which(outsiders>0))
+      
+      # Parallel handling for outsiders
+      if (any(rowSums(outsiders) > 0)) {
+        outsider.indices <- which(rowSums(outsiders) > 0)
         
-        for(i in outside.index){
-          outside.points <- point.est[i,]
-          boundary.points <- pmin(pmax(outside.points, minimums), maximums)
-          mid.points <- (boundary.points + central.points) / 2
-          mid.points_2 <- (boundary.points + mid.points) / 2
-          last.known.distance_1 <- sqrt(sum((boundary.points - central.points) ^ 2))
-          last.known.distance_2 <- sqrt(sum((boundary.points - mid.points) ^ 2))
-          last.known.distance_3 <- sqrt(sum((boundary.points - mid.points_2) ^ 2))
-          
-          boundary.estimates <- NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX, 
-                                                  dist.estimate = boundary.points,
-                                                   k = n.best, class = type)
-          
-          last.known.gradient_1 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = central.points,  k = n.best, class = type)) / last.known.distance_1
-          last.known.gradient_2 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = mid.points,  k = n.best, class = type)) / last.known.distance_2
-          last.known.gradient_3 <- (boundary.estimates - NNS::NNS.distance(rpm = REGRESSION.POINT.MATRIX,  dist.estimate = mid.points_2,  k = n.best, class = type)) / last.known.distance_3
-          
-          last.known.gradient <- (last.known.gradient_1*3 + last.known.gradient_2*2 + last.known.gradient_3) / 6
-          
-          last.distance <- sqrt(sum((outside.points - boundary.points) ^ 2))
-          
-          
-          DISTANCES[i] <- last.distance * last.known.gradient + boundary.estimates
+        if (num_cores > 1) {
+          DISTANCES[outsider.indices] <- unlist(parallel::parApply(
+            cl,
+            as.matrix(point.est[outsider.indices, ]),
+            1,
+            function(outside.points) {
+              boundary.points <- pmin(pmax(outside.points, minimums), maximums)
+              mid.points <- (boundary.points + central.points) / 2
+              mid.points_2 <- (boundary.points + mid.points) / 2
+              
+              last.known.distances <- c(
+                sqrt(sum((boundary.points - central.points) ^ 2)),
+                sqrt(sum((boundary.points - mid.points) ^ 2)),
+                sqrt(sum((boundary.points - mid.points_2) ^ 2))
+              )
+              
+              boundary.estimates <- NNS::NNS.distance(
+                rpm = REGRESSION.POINT.MATRIX, 
+                dist.estimate = boundary.points, 
+                k = n.best, 
+                class = type
+              )
+              
+              gradients <- sapply(1:3, function(i) {
+                compare.points <- list(central.points, mid.points, mid.points_2)[[i]]
+                (boundary.estimates - NNS::NNS.distance(
+                  rpm = REGRESSION.POINT.MATRIX, 
+                  dist.estimate = compare.points, 
+                  k = n.best, 
+                  class = type
+                )) / last.known.distances[i]
+              })
+              
+              last.known.gradient <- sum(gradients * c(3, 2, 1)) / 6
+              last.distance <- sqrt(sum((outside.points - boundary.points) ^ 2))
+              
+              last.distance * last.known.gradient + boundary.estimates
+            }
+          ))
+        } else {
+          DISTANCES[outsider.indices] <- apply(
+            as.matrix(point.est[outsider.indices, ]),
+            1,
+            function(outside.points) {
+              boundary.points <- pmin(pmax(outside.points, minimums), maximums)
+              mid.points <- (boundary.points + central.points) / 2
+              mid.points_2 <- (boundary.points + mid.points) / 2
+              
+              last.known.distances <- c(
+                sqrt(sum((boundary.points - central.points) ^ 2)),
+                sqrt(sum((boundary.points - mid.points) ^ 2)),
+                sqrt(sum((boundary.points - mid.points_2) ^ 2))
+              )
+              
+              boundary.estimates <- NNS::NNS.distance(
+                rpm = REGRESSION.POINT.MATRIX, 
+                dist.estimate = boundary.points, 
+                k = n.best, 
+                class = type
+              )
+              
+              gradients <- sapply(1:3, function(i) {
+                compare.points <- list(central.points, mid.points, mid.points_2)[[i]]
+                (boundary.estimates - NNS::NNS.distance(
+                  rpm = REGRESSION.POINT.MATRIX, 
+                  dist.estimate = compare.points, 
+                  k = n.best, 
+                  class = type
+                )) / last.known.distances[i]
+              })
+              
+              last.known.gradient <- sum(gradients * c(3, 2, 1)) / 6
+              last.distance <- sqrt(sum((outside.points - boundary.points) ^ 2))
+              
+              last.distance * last.known.gradient + boundary.estimates
+            }
+          )
         }
       }
-      
       predict.fit <- DISTANCES
-      
-      if(point.only) return(list(Point.est = predict.fit,  RPM = REGRESSION.POINT.MATRIX[] ))
     }
     
+    if (point.only) {
+      return(list(Point.est = predict.fit, RPM = REGRESSION.POINT.MATRIX[]))
+    }
   } else {
     predict.fit <- NULL
   } # is.null point.est
+  
+  if(num_cores > 1){
+    doParallel::stopImplicitCluster()
+    foreach::registerDoSEQ()
+    invisible(data.table::setDTthreads(0, throttle = NULL))
+    invisible(gc(verbose = FALSE))
+  }
   
   if(!is.null(type)){
     fitted.matrix$y.hat <- ifelse(fitted.matrix$y.hat %% 1 < 0.5, floor(fitted.matrix$y.hat), ceiling(fitted.matrix$y.hat))

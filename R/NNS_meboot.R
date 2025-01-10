@@ -125,14 +125,13 @@ NNS.meboot <- function(x,
   
   xx <- sort(x)
   ordxx <- order(x)
-
+  
   
   if(!is.null(target_drift) || !is.null(target_drift_scale)) drift <- TRUE 
-
   
-#  if(rho < 1){
-    if(rho < -0.5) ordxx_2 <- rev(ordxx) else ordxx_2 <- ordxx #order(ordxx)
-#  }
+  
+  if(rho < -0.5) ordxx_2 <- rev(ordxx) else ordxx_2 <- ordxx #order(ordxx)
+  
   
   # symmetry
   
@@ -216,65 +215,63 @@ NNS.meboot <- function(x,
   ensemble[ordxx,] <- qseq
   
   
-#  if(any(rho<1)){
-    matrix2 = matrix(0, nrow=length(x), ncol = reps)
-    matrix2[ordxx_2,] <- qseq
+  matrix2 = matrix(0, nrow=length(x), ncol = reps)
+  matrix2[ordxx_2,] <- qseq
+  
+  # Intial search
+  
+  e <- c(ensemble)
+  m <- c(matrix2)
+  l <- length(e)
+  
+  func <- function(ab, d = drift, ty = type) {
+    a <- ab[1]
+    b <- ab[2]
     
-    # Intial search
+    # Compute the adjusted ensemble
+    combined <- (a * m + b * e) / (a + b)
     
-    e <- c(ensemble)
-    m <- c(matrix2)
-    l <- length(e)
-    
-    func <- function(ab, d = drift, ty = type) {
-      a <- ab[1]
-      b <- ab[2]
-      
-      # Compute the adjusted ensemble
-      combined <- (a * m + b * e) / (a + b)
-      
-      # Check correlation or dependence structure
-      if (ty == "spearman" || ty == "pearson") {
-        error <- abs(cor(combined, e, method = ty) - rho)
-      } else if (ty == "nnsdep") {
-        error <- abs(NNS.dep(combined, e)$Dependence - rho)
-      } else {
-        error <- abs(NNS.dep(combined, e)$Correlation - rho)
-      }
-      
-      return(error)
+    # Check correlation or dependence structure
+    if (ty == "spearman" || ty == "pearson") {
+      error <- abs(cor(combined, e, method = ty) - rho)
+    } else if (ty == "nnsdep") {
+      error <- abs(NNS.dep(combined, e)$Dependence - rho)
+    } else {
+      error <- abs(NNS.dep(combined, e)$Correlation - rho)
     }
     
+    return(error)
+  }
+  
+  
+  res <- optim(c(.01,.01), func, control=list(abstol = .01))
+  
+  ensemble <- (res$par[1]*matrix2 + res$par[2]*ensemble) / (sum(abs(res$par)))
+  
+  
+  # Drift
+  orig_coef <- fast_lm(1:n, x)$coef
+  orig_intercept <- orig_coef[1]
+  orig_drift <- orig_coef[2]
+  
+  new_coef <- apply(ensemble, 2, function(i) fast_lm(1:n, i)$coef)
+  slopes <- new_coef[2,]
+  
+  if(drift){
+    if(!is.null(target_drift_scale)) target_drift <- orig_drift * target_drift_scale else if(is.null(target_drift)) target_drift <- orig_drift
+    new_slopes <- (target_drift - slopes)
+    ensemble <- ensemble + t(t(sapply(new_slopes, function(slope) cumsum(rep(slope, n)))))
     
-    res <- optim(c(.01,.01), func, control=list(abstol = .01))
-    
-    ensemble <- (res$par[1]*matrix2 + res$par[2]*ensemble) / (sum(abs(res$par)))
-    
-    
-    # Drift
-    orig_coef <- fast_lm(1:n, x)$coef
-    orig_intercept <- orig_coef[1]
-    orig_drift <- orig_coef[2]
-    
-    new_coef <- apply(ensemble, 2, function(i) fast_lm(1:n, i)$coef)
-    slopes <- new_coef[2,]
-    
-    if(drift){
-      if(!is.null(target_drift_scale)) target_drift <- orig_drift * target_drift_scale else if(is.null(target_drift)) target_drift <- orig_drift
-      new_slopes <- (target_drift - slopes)
-      ensemble <- ensemble + t(t(sapply(new_slopes, function(slope) cumsum(rep(slope, n)))))
-      
-      new_intercepts <- orig_intercept - new_coef[1,]
-      ensemble <- sweep(ensemble, 2, new_intercepts, FUN = "+")
-    } 
-    
-    
-    
-    if(identical(ordxx_2, ordxx)){
-      if(reps>1) ensemble <- t(apply(ensemble, 1, function(x) sample(x, size = reps, replace = TRUE)))
-    }
-    
-#  }
+    new_intercepts <- orig_intercept - new_coef[1,]
+    ensemble <- sweep(ensemble, 2, new_intercepts, FUN = "+")
+  } 
+  
+  
+  
+  if(identical(ordxx_2, ordxx)){
+    if(reps>1) ensemble <- t(apply(ensemble, 1, function(x) sample(x, size = reps, replace = TRUE)))
+  }
+  
   
   if(expand.sd) ensemble <- NNS.meboot.expand.sd(x=x, ensemble=ensemble, ...)
   

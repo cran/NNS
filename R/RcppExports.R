@@ -199,9 +199,9 @@ D.UPM <- function(degree_lpm, degree_upm, x, y, target_x, target_y) {
 #' @param UPM_degree integer; Degree for \code{variable} above \code{target} deviations.  \code{(UPM_degree = 0)} is frequency, \code{(UPM_degree = 1)} is area.
 #' @param target numeric; Typically the mean of Variable X for classical statistics equivalences, but does not have to be. (Vectorized)  \code{(target = NULL)} (default) will set the target as the mean of every variable.
 #' @param variable a numeric matrix or data.frame.
-#' @param pop_adj logical; \code{TRUE} Adjusts the sample co-partial moment matrices for population statistics.  Use \code{FALSE} for degree 0 frequency matrices.  Must be provided by user.
+#' @param pop_adj logical; \code{TRUE} Adjusts the population co-partial moment matrices for sample statistics, which is default in base R.  Use \code{FALSE} for degree 0 frequency matrices.  Must be provided by user.
 #' @return Matrix of partial moment quadrant values (CUPM, DUPM, DLPM, CLPM), and overall covariance matrix.  Uncalled quadrants will return a matrix of zeros.
-#' @note For divergent asymmetical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
+#' @note For divergent asymmetrical \code{"D.LPM" and "D.UPM"} matrices, matrix is \code{D.LPM(column,row,...)}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995)
 #' @references Viole, F. (2017) "Bayes' Theorem From Partial Moments" \doi{10.2139/ssrn.3457377}
