@@ -80,9 +80,9 @@ NNS.diff <- function(f, point, h = 0.1, tol = 1e-10, digits = 12, print.trace = 
   if(lower.B == upper.B){
       original.par=par(no.readonly = TRUE)
       par(mfrow = c(1, 2))
-      plot(f, xlim = c(point - (100 * h), point + (100 * h)), col = 'blue', ylab = 'f(x)')
+      plot(f, xlim = c(point - (100 * h), point + (100 * h)), col = 'steelblue', ylab = 'f(x)')
       points(point, f.x, pch = 19, col = 'red')
-      plot(f, xlim = c(point - 1, point + 1), col = 'blue', ylab = 'f(x)')
+      plot(f, xlim = c(point - 1, point + 1), col = 'steelblue', ylab = 'f(x)')
       points(point, f.x, pch = 19, col = 'red')
       par(original.par)
 
@@ -120,31 +120,31 @@ NNS.diff <- function(f, point, h = 0.1, tol = 1e-10, digits = 12, print.trace = 
               plot(f, xlim = c(min(c(point - (100 * h), point + (100 * h)), 0), max(c(point - (100 * h), point + (100 * h)), 0)), col = 'azure4', ylab = 'f(x)', lwd = 2, ylim = c(min(c(min(c(B1, B2)), min(na.omit(f((point - (100 * h)) : (point + (100 * h))))))), max(c(max(na.omit(f((point - (100 * h)) : (point + (100 * h))))), max(c(B1, B2))))), main = 'f(x) and initial y-intercept range')
               abline(h = 0, v = 0, col = 'grey')
               points(point, f.x, pch = 19, col = 'green')
-              points(point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'blue', 'red'), pch = 19)
-              points(point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'blue'), pch = 19)
-              points(x = rep(0, 2), y = c(B1, B2), col = c(ifelse(B1 == high.B, 'blue', 'red'), ifelse(B1 == high.B, 'red', 'blue')), pch = 1)
-              segments(0, B1, point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'blue','red'), lty = 2)
-              segments(0, B2, point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red','blue'), lty = 2)
+              points(point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'steelblue', 'red'), pch = 19)
+              points(point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'steelblue'), pch = 19)
+              points(x = rep(0, 2), y = c(B1, B2), col = c(ifelse(B1 == high.B, 'steelblue', 'red'), ifelse(B1 == high.B, 'red', 'steelblue')), pch = 1)
+              segments(0, B1, point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'steelblue','red'), lty = 2)
+              segments(0, B2, point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red','steelblue'), lty = 2)
 
               ## Plot #2
               plot(f, col = 'azure4', ylab = 'f(x)', lwd = 3, main = 'f(x) narrowed range and secant lines', xlim = c(min(c(point - h, point + h,  0)), max(c(point + h,point - h, 0))), ylim= c(min(c(B1, B2, f.x.h.lower, f.x.h.upper)), max(c(B1, B2, f.x.h.lower, f.x.h.upper))))
 
               abline(h = 0, v = 0, col = 'grey')
               points(point,f.x, pch = 19, col = 'red')
-              points(point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'blue', 'red'), pch = 19)
-              points(point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'blue'), pch = 19)
+              points(point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'steelblue', 'red'), pch = 19)
+              points(point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'steelblue'), pch = 19)
               points(point, f.x, pch = 19, col = 'green')
-              segments(0, B1, point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'blue', 'red'), lty = 2)
-              segments(0, B2, point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'blue'), lty = 2)
-              points(x = rep(0, 2), y = c(B1, B2), col = c(ifelse(B1 == high.B, 'blue', 'red'), ifelse(B1 == high.B, 'red', 'blue')), pch = 1)
+              segments(0, B1, point - h, f.x.h.lower, col = ifelse(B1 == high.B, 'steelblue', 'red'), lty = 2)
+              segments(0, B2, point + h, f.x.h.upper, col = ifelse(B1 == high.B, 'red', 'steelblue'), lty = 2)
+              points(x = rep(0, 2), y = c(B1, B2), col = c(ifelse(B1 == high.B, 'steelblue', 'red'), ifelse(B1 == high.B, 'red', 'steelblue')), pch = 1)
 
 
               ## Plot #3
               plot(Bs, ylim = c(min(c(Bl, Bu)), max(c(Bl, Bu))), xlab = "Iterations", ylab = "y-inetercept", col = 'green', pch = 19, main = 'Iterated range of y-intercept')
               points(Bl, col = 'red', ylab = '')
-              points(Bu, col = 'blue', ylab = '')
+              points(Bu, col = 'steelblue', ylab = '')
 
-              legend('topright', c("Upper y-intercept", "Lower y-intercept", "Mean y-intercept"), col = c('blue', 'red', 'green'), pch = c(1, 1, 19), bty = 'n')
+              legend('topright', c("Upper y-intercept", "Lower y-intercept", "Mean y-intercept"), col = c('steelblue', 'red', 'green'), pch = c(1, 1, 19), bty = 'n')
 
               par(original.par)
 

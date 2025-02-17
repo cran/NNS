@@ -74,8 +74,8 @@ NNS.caus <- function(x, y = NULL,
       Causation.x.given.y[is.na(Causation.x.given.y)] <- 0
       Causation.y.given.x[is.na(Causation.y.given.x)] <- 0
 
-      if(Causation.x.given.y == Causation.y.given.x |
-         Causation.x.given.y == 0 | Causation.y.given.x == 0){
+      if(Causation.x.given.y == Causation.y.given.x ||
+         Causation.x.given.y == 0 || Causation.y.given.x == 0){
         Causation.x.given.y <- Uni.caus(x, y, tau = tau, plot = FALSE)
         Causation.y.given.x <- Uni.caus(y, x, tau = tau, plot = FALSE)
         Causation.x.given.y[is.na(Causation.x.given.y)] <- 0
@@ -90,8 +90,8 @@ NNS.caus <- function(x, y = NULL,
       Causation.x.given.y[is.na(Causation.x.given.y)] <- 0
       Causation.y.given.x[is.na(Causation.y.given.x)] <- 0
 
-      if(Causation.x.given.y == Causation.y.given.x |
-         Causation.x.given.y == 0 | Causation.y.given.x == 0){
+      if(Causation.x.given.y == Causation.y.given.x ||
+         Causation.x.given.y == 0 || Causation.y.given.x == 0){
         Causation.x.given.y <- Uni.caus(x, y, tau = 0, plot = FALSE)
         Causation.y.given.x <- Uni.caus(y, x, tau = 0, plot = FALSE)
 
@@ -121,19 +121,18 @@ NNS.caus <- function(x, y = NULL,
         }
         return(c(Causation.x.given.y = Causation.x.given.y,
                  Causation.y.given.x = Causation.y.given.x,
-                 "C(x--->y)" = sign(Causation.y.given.x) * (abs(Causation.y.given.x) - abs(Causation.x.given.y))))
+                 "C(x--->y)" = sign(Causation.y.given.x) * (abs(Causation.y.given.x - Causation.x.given.y)/2)))
       } else {
         if(plot){
           # For plotting only
           if(tau == "cs") tau <- 0
-
           if(tau == "ts") tau <- 3
 
           Uni.caus(x, y, tau = tau, plot = plot)
         }
         return(c(Causation.x.given.y = Causation.x.given.y,
                  Causation.y.given.x = Causation.y.given.x,
-                 "C(y--->x)" = sign(Causation.x.given.y) * (abs(Causation.x.given.y) - abs(Causation.y.given.x))))
+                 "C(y--->x)" = sign(Causation.x.given.y) * (abs(Causation.x.given.y - Causation.y.given.x)/2)))
       }
 
 

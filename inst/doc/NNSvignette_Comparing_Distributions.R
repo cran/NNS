@@ -48,19 +48,21 @@ NNS.ANOVA(control = x, treatment = y,
 ## ----stochdom, fig.width=7, fig.align='center'--------------------------------
 NNS.FSD(x, y)
 
-## ----stochdomset, eval=FALSE--------------------------------------------------
-#  set.seed(123)
-#  x1 = rnorm(1000)
-#  x2 = x1 + 1
-#  x3 = rnorm(1000)
-#  x4 = x3 + 1
-#  x5 = rnorm(1000)
-#  x6 = x5 + 1
-#  x7 = rnorm(1000)
-#  x8 = x7 + 1
-#  
-#  NNS.SD.efficient.set(cbind(x1, x2, x3, x4, x5, x6, x7, x8), degree = 1, status = FALSE)
-#  [1] "x4" "x2" "x8" "x6"
+## ----stochdomset, eval=TRUE---------------------------------------------------
+set.seed(123)
+x1 = rnorm(1000)
+x2 = x1 + 1
+x3 = rnorm(1000)
+x4 = x3 + 1
+x5 = rnorm(1000)
+x6 = x5 + 1
+x7 = rnorm(1000)
+x8 = x7 + 1
+
+NNS.SD.efficient.set(cbind(x1, x2, x3, x4, x5, x6, x7, x8), degree = 1, status = FALSE)
+
+## ----stochdomclust, eval=TRUE, fig.width=7, fig.align='center'----------------
+NNS.SD.cluster(cbind(x1, x2, x3, x4, x5, x6, x7, x8), degree = 1, dendrogram = TRUE)
 
 ## ----threads, echo = FALSE----------------------------------------------------
 Sys.setenv("OMP_THREAD_LIMIT" = "")
