@@ -33,7 +33,7 @@
 #'}
 #' @note
 #' \itemize{
-#' \item{} Typically, \code{(training.set = 0.8 * length(variable)} is used for optimization.  Smaller samples could use \code{(training.set = 0.9 * length(variable))} (or larger) in order to preserve information.
+#' \item{} Typically, \code{(training.set = 0.8 * length(variable))} is used for optimization.  Smaller samples could use \code{(training.set = 0.9 * length(variable))} (or larger) in order to preserve information.
 #'
 #' \item{} The number of combinations will grow prohibitively large, they should be kept as small as possible.  \code{seasonal.factor} containing an element too large will result in an error.  Please reduce the maximum \code{seasonal.factor}.
 #'
@@ -473,6 +473,8 @@ NNS.ARMA.optim <- function(variable,
     model.results <- pmax(0, model.results)
     lower_PIs <- pmax(0, lower_PIs)
     upper_PIs <- pmax(0, upper_PIs)
+    lower_PIs_is <- pmax(0, lower_PIs_is)
+    upper_PIs_is <- pmax(0, upper_PIs_is)
   }
   
   if(plot){

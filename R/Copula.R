@@ -61,10 +61,10 @@ NNS.copula <- function (
   
 
   # Isolate the upper triangles from each of the partial moment matrices
-  continuous_Co_pm <- sum(continuous_pm_cov$cupm[upper.tri(continuous_pm_cov$cupm, diag = FALSE)]) + sum(continuous_pm_cov$clpm[upper.tri(continuous_pm_cov$clpm, diag = FALSE)])
-  continuous_D_pm <- sum(continuous_pm_cov$dupm[upper.tri(continuous_pm_cov$dupm, diag = FALSE)]) + sum(continuous_pm_cov$dlpm[upper.tri(continuous_pm_cov$dlpm, diag = FALSE)])
+  continuous_Co_pm <- sum(continuous_pm_cov$cupm[upper.tri(continuous_pm_cov$cupm, diag = FALSE)]) + sum(continuous_pm_cov$clpm[upper.tri(continuous_pm_cov$clpm, diag = FALSE)]) 
+  continuous_D_pm <- sum(continuous_pm_cov$dupm[upper.tri(continuous_pm_cov$dupm, diag = FALSE)]) + sum(continuous_pm_cov$dlpm[upper.tri(continuous_pm_cov$dlpm, diag = FALSE)]) 
 
-  discrete_Co_pm <- sum(discrete_pm_cov$cupm[upper.tri(discrete_pm_cov$cupm, diag = FALSE)]) + sum(discrete_pm_cov$clpm[upper.tri(discrete_pm_cov$clpm, diag = FALSE)])
+  discrete_Co_pm <- sum(discrete_pm_cov$cupm[upper.tri(discrete_pm_cov$cupm, diag = FALSE)]) + sum(discrete_pm_cov$clpm[upper.tri(discrete_pm_cov$clpm, diag = FALSE)]) 
   discrete_D_pm <- sum(discrete_pm_cov$dupm[upper.tri(discrete_pm_cov$dupm, diag = FALSE)]) + sum(discrete_pm_cov$dlpm[upper.tri(discrete_pm_cov$dlpm, diag = FALSE)])
 
  
@@ -108,8 +108,6 @@ NNS.copula <- function (
 
   if(continuous_Co_pm == continuous_D_pm) return(mean(c(0, discrete_dep)))
   if(continuous_Co_pm==0 || continuous_D_pm==0) return(mean(c(1, discrete_dep)))
-  
- 
 
   if(continuous_Co_pm < continuous_D_pm) return(mean(c((1 - (continuous_Co_pm/continuous_D_pm)), discrete_dep)))
   if(continuous_Co_pm > continuous_D_pm) return(mean(c((1 - (continuous_D_pm/continuous_Co_pm)), discrete_dep)))

@@ -4,26 +4,46 @@
 \alias{NNS.rescale}
 \title{NNS rescale}
 \usage{
-NNS.rescale(x, a, b)
+NNS.rescale(x, a, b, method = "minmax", T = NULL, type = "Terminal")
 }
 \arguments{
-\item{x}{vector of data.}
+\item{x}{numeric vector; data to rescale (e.g., terminal prices for risk-neutral method).}
 
-\item{a}{numeric; lower limit.}
+\item{a}{numeric; defines the scaling target:
+- For \code{method = "minmax"}: the lower limit of the output range (e.g., 5 to scale to [5, b]).
+- For \code{method = "riskneutral"}: the initial price \( S_0 \) (must be positive, e.g., 100), used to set the target mean.}
 
-\item{b}{numeric; upper limit.}
+\item{b}{numeric; defines the scaling range or rate:
+- For \code{method = "minmax"}: the upper limit of the output range (e.g., 10 to scale to [a, 10]).
+- For \code{method = "riskneutral"}: the risk-free rate \( r \) (e.g., 0.05), used with \( T \) to adjust the mean.}
+
+\item{method}{character; scaling method: \code{"minmax"} (default) for min-max scaling, or \code{"riskneutral"} for risk-neutral adjustment.}
+
+\item{T}{numeric; time to maturity in years (required for \code{method = "riskneutral"}, ignored otherwise; e.g., 1). Default is NULL.}
+
+\item{type}{character; for \code{method = "riskneutral"}: \code{"Terminal"} (default) or \code{"Discounted"} (mean = \( S_0 \)).}
 }
 \value{
-Returns a rescaled distribution within provided limits.
+Returns a rescaled distribution:
+  - For \code{"minmax"}: values scaled linearly to the range \code{[a, b]}.
+  - For \code{"riskneutral"}: values scaled multiplicatively to a risk-neutral mean (\( S_0 e^(rT) \) if \code{type = "Terminal"}, or \( S_0 \) if \code{type = "Discounted"}).
 }
 \description{
-Rescale min-max scaling output between two numbers.
+Rescale a vector using either min-max scaling or risk-neutral adjustment.
 }
 \examples{
 \dontrun{
 set.seed(123)
+# Min-max scaling: a = lower limit, b = upper limit
 x <- rnorm(100)
-NNS.rescale(x, 5, 10)
+NNS.rescale(x, a = 5, b = 10, method = "minmax")  # Scales to [5, 10]
+
+# Risk-neutral scaling (Terminal): a = S_0, b = r  # Mean approx 105.13
+prices <- 100 * exp(cumsum(rnorm(100, 0.001, 0.02)))
+NNS.rescale(prices, a = 100, b = 0.05, method = "riskneutral", T = 1, type = "Terminal")
+
+# Risk-neutral scaling (Discounted): a = S_0, b = r  # Mean approx 100
+NNS.rescale(prices, a = 100, b = 0.05, method = "riskneutral", T = 1, type = "Discounted")
 }
 }
 \author{

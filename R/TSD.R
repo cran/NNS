@@ -23,11 +23,10 @@ NNS.TSD <- function(x, y, plot = TRUE){
 
     Combined_sort <- sort(c(x, y), decreasing = FALSE)
 
-    LPM_x_sort <- LPM(1, Combined_sort,x)
-    LPM_y_sort <- LPM(1, Combined_sort,y)
-
+    LPM_x_sort <- LPM(2, Combined_sort, x)
+    LPM_y_sort <- LPM(2, Combined_sort, y)
+    
     x.tsd.y <- any(LPM_x_sort > LPM_y_sort)
-
     y.tsd.x <- any(LPM_y_sort > LPM_x_sort)
 
 
