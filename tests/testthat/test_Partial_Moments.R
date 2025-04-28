@@ -192,7 +192,7 @@ T1<-data.table::data.table(matrix(
   ), 
   ncol=2
 ))
-colnames(T1) <- c("A", "Probability")
+colnames(T1) <- c("A", "S(x)")
 B<-NNS.CDF(A, type="survival")
 test_that(
   "NNS.CDF", {

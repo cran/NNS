@@ -1,4 +1,4 @@
-72b5c46ac12e23e8a7b6468a6b9d53f6 *DESCRIPTION
+17025ac7134dcffa702180363f12953e *DESCRIPTION
 d1e6cddeb625d59f44500993313f3fff *NAMESPACE
 a3448ede156547217fa8a83f8c58e311 *R/ANOVA.R
 2326a9c3b38c34742705a117e4759232 *R/ARMA.R
@@ -22,9 +22,9 @@ d97be4677eda4049f594e6e970d5d6b4 *R/NNS-package.R
 fc1a235131018ac44079388f76405162 *R/NNS_meboot.R
 9e68ce5d22a2620b0917a5d32e41ef0a *R/NNS_term_matrix.R
 0a015eb5bd84bd5ee358a9072106777c *R/Normalization.R
-364f826dfb74f203839abf8956308d05 *R/Nowcast.R
+c2cb5dd37ee79cb8012c9767cbf79d31 *R/Nowcast.R
 fdcadc0e7a0263fe406f93a2c52a0f3b *R/Numerical_Differentiation.R
-ebd6fed86d12a195abe1941d0a101d22 *R/Partial_Moments.R
+d2ee9d6faa7a1c8356e4a962d042698a *R/Partial_Moments.R
 204b8cd44f66800b612c307200a36a85 *R/Partition_Map.R
 12b6e043e821e975d26e0083880747e2 *R/RcppExports.R
 071fea03bc1f15ffb4f57da7fdb68eae *R/Regression.R
@@ -39,7 +39,7 @@ b3104abbde53bd0f689cd80cd1212773 *R/Uni_SD_Routines.R
 0a82e4fa4ff179c89528b230888833e1 *R/dy_d_wrt.R
 67faed37e6822d4aa03d9babf953873a *R/dy_dx.R
 304e80a9af4c52f34c6194b794dca7de *R/gvload.R
-a5c01063f5b5cf5979bc5805569c0ec2 *README.md
+6d2b11e8c8d847bd30fa7a191586c778 *README.md
 afbe4209b3bb961ba3e41cbfe79ea507 *build/partial.rdb
 078d4a983822ae1de1849f1a186a67db *build/vignette.rds
 c87c3cc3b35e448dea16ca87f06417fb *inst/doc/NNSvignette_Classification.R
@@ -59,7 +59,7 @@ db98367449d50dd198b75cbcf20735d0 *inst/doc/NNSvignette_Forecasting.Rmd
 1e04ddb2f52849ad43f45810616b4ca4 *inst/doc/NNSvignette_Forecasting.html
 1326c7b1adc042e7159dcb0a22eaa6a8 *inst/doc/NNSvignette_Partial_Moments.R
 88d3d6d4d57ac1bb4672cf8ac912986e *inst/doc/NNSvignette_Partial_Moments.Rmd
-35b084ee0b63c4de251f4241d63fc8ee *inst/doc/NNSvignette_Partial_Moments.html
+a7b5f571a6d1ba6cb793633f5c40bc55 *inst/doc/NNSvignette_Partial_Moments.html
 49fbd61594dec1a64afc8a6c04a2f47c *inst/doc/NNSvignette_Sampling.R
 ae5ffb95837277ce136734c74ea79e0c *inst/doc/NNSvignette_Sampling.Rmd
 ba3109cba227447e339c1c29d69d87d7 *inst/doc/NNSvignette_Sampling.html
@@ -96,7 +96,7 @@ c7be9f215f4745807b487d5394777906 *man/NNS.diff.Rd
 c26fa3bdc252cda6e44f60439f649715 *man/NNS.mode.Rd
 1ef11748458085037d239eb3c4bfa6e4 *man/NNS.moments.Rd
 c8ad6a52ca2ea27b598f91ea6f5c8d9c *man/NNS.norm.Rd
-881ab6af24670fdf04f93b7c042102a3 *man/NNS.nowcast.Rd
+cd4eaef631c4a5265e4c73900b843404 *man/NNS.nowcast.Rd
 70de1dc319ec50376b79d0bf2d1041d3 *man/NNS.part.Rd
 73f63a356d4a9bebfb3a120e555df79c *man/NNS.reg.Rd
 6f59a9b15b1e242b243fd6b8d7369e86 *man/NNS.rescale.Rd
@@ -113,18 +113,18 @@ eb85cafae8898b57d17a12265c0c681d *man/dy.d_.Rd
 5bb30a826b45767dc66c4b30ec706440 *src/Makevars.win
 a641074864917e8ecaeaba9d1b8062ef *src/RcppExports.cpp
 efdd69057b0ddd90af3fcd6c27545a3f *src/central_tendencies.h
-d0788f5e21119dcc9e874e8887f01821 *src/fast_lm.cpp
+10a124bcfd3e3f06150c57c983db2fc1 *src/fast_lm.cpp
 e953e2d782d5fb3ce1c0965f2ba3ac3c *src/nns_rcpp.cpp
 922958541466e1f0d0513200a60003e9 *src/partial_moments.cpp
 1621a0753e6f445a5f7c568a2ca1f816 *src/partial_moments.h
 c4c78d230105b745bd07415105c7e66b *src/partial_moments_rcpp.cpp
 5e38a9b8f25fe93a35299c8a3d8aee10 *src/partial_moments_rcpp.h
 6f446e94d8e61035de22cc6c3af556e5 *tests/testthat.R
-39e27ea1300796625ca8c34ff2385e64 *tests/testthat/Rplots.pdf
+5fa2408ab68183e936e2136d6f14d727 *tests/testthat/Rplots.pdf
 6f853f3e77ffddc9ef135e5383e9cd4c *tests/testthat/test_ANOVA.R
 9b97a63d42c9abd84a921ac5d3950577 *tests/testthat/test_Copula.R
 5a4b0fb4d1027cfb5c9a41fe81bb794b *tests/testthat/test_FSD_SSD_TSD.R
-2af68f423a60958f199c2b68c2703f03 *tests/testthat/test_Partial_Moments.R
+576f2cb8fac5f79911edbb1ad156166c *tests/testthat/test_Partial_Moments.R
 ffb7612569cf41bd4fb53538f935b852 *tests/testthat/test_Partition_Map.R
 727bdcd5a95f1be8f978c6ac1cb317bd *tests/testthat/test_SD_efficient_Set.R
 c024d33a11f13814e1240c8e0922a482 *tests/testthat/test_Uni_SD_Routines.R

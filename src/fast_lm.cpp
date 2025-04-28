@@ -41,6 +41,62 @@ List fast_lm(NumericVector x, NumericVector y) {
   );
 }
 
+// Cholesky decomposition of a symmetric positive-definite matrix A
+// Returns lower triangular matrix L such that A = L * L^T
+NumericMatrix cholesky_decomposition(NumericMatrix A) {
+  int n = A.nrow();
+  NumericMatrix L(n, n); // Initialize L with zeros
+  
+  for (int i = 0; i < n; ++i) {
+    // Compute L(i, i)
+    double sum = A(i, i);
+    for (int k = 0; k < i; ++k) {
+      sum -= L(i, k) * L(i, k);
+    }
+    L(i, i) = sqrt(sum > 0 ? sum : 0); // Ensure non-negative for stability
+    
+    // Compute L(j, i) for j > i
+    for (int j = i + 1; j < n; ++j) {
+      sum = A(j, i);
+      for (int k = 0; k < i; ++k) {
+        sum -= L(j, k) * L(i, k);
+      }
+      L(j, i) = sum / L(i, i);
+    }
+  }
+  return L;
+}
+
+// Solve L * z = b (forward substitution, L is lower triangular)
+NumericVector forward_substitution(NumericMatrix L, NumericVector b) {
+  int n = L.nrow();
+  NumericVector z(n);
+  
+  for (int i = 0; i < n; ++i) {
+    double sum = b[i];
+    for (int j = 0; j < i; ++j) {
+      sum -= L(i, j) * z[j];
+    }
+    z[i] = sum / L(i, i);
+  }
+  return z;
+}
+
+// Solve L^T * x = z (back substitution, L^T is upper triangular)
+NumericVector back_substitution(NumericMatrix L, NumericVector z) {
+  int n = L.nrow();
+  NumericVector x(n);
+  
+  for (int i = n - 1; i >= 0; --i) {
+    double sum = z[i];
+    for (int j = i + 1; j < n; ++j) {
+      sum -= L(j, i) * x[j]; // L(j, i) is L^T(i, j)
+    }
+    x[i] = sum / L(i, i);
+  }
+  return x;
+}
+
 // [[Rcpp::export]]
 List fast_lm_mult(NumericMatrix x, NumericVector y) {
   int n = x.nrow(); // Number of observations
@@ -73,15 +129,14 @@ List fast_lm_mult(NumericMatrix x, NumericVector y) {
     Xty[i] = sum;
   }
   
-  // Solve the normal equations (X'X)beta = X'y
-  NumericVector coef(p + 1);
-  for (int i = 0; i < p + 1; ++i) {
-    double sum = Xty[i];
-    for (int j = 0; j < p + 1; ++j) {
-      sum -= XtX(i, j) * coef[j];
-    }
-    coef[i] = sum / XtX(i, i);
-  }
+  // Cholesky decomposition: X'X = L * L^T
+  NumericMatrix L = cholesky_decomposition(XtX);
+  
+  // Solve L * z = X'y (forward substitution)
+  NumericVector z = forward_substitution(L, Xty);
+  
+  // Solve L^T * beta = z (back substitution)
+  NumericVector coef = back_substitution(L, z);
   
   // Compute fitted values
   NumericVector fitted_values(n);
@@ -97,11 +152,11 @@ List fast_lm_mult(NumericMatrix x, NumericVector y) {
   NumericVector residuals = y - fitted_values;
   
   // Compute R-squared
-  double TSS = sum(pow(y - mean(y), 2)); // Total sum of squares
-  double RSS = sum(pow(residuals, 2)); // Residual sum of squares
+  double y_mean = mean(y);
+  double TSS = sum(pow(y - y_mean, 2));
+  double RSS = sum(pow(residuals, 2));
   double R2 = 1 - RSS / TSS;
   
-  // Return coefficients, fitted values, residuals, and R-squared value
   return List::create(
     _["coefficients"] = coef,
     _["fitted.values"] = fitted_values,
