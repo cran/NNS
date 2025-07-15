@@ -14,11 +14,18 @@
 #' x <- rnorm(100)
 #' LPM(0, mean(x), x)
 #' @export
+#' 
 LPM <- function(degree, target, variable, excess_ret = FALSE) {
-  .Call(`_NNS_LPM_RCPP`, degree, target, variable, excess_ret)
-}
+  target   <- as.numeric(target)
+  variable <- as.numeric(variable)
+  
+  if (!excess_ret && length(target) > 1) {
+    return(.Call("_NNS_LPM_CPv", degree, target, variable))
+  }
+  
+  .Call("_NNS_LPM_RCPP", degree, target, variable, excess_ret)
 
-LPM <- Vectorize(LPM, vectorize.args="target", USE.NAMES = FALSE)
+}
 
 
 #' Upper Partial Moment
@@ -38,11 +45,16 @@ LPM <- Vectorize(LPM, vectorize.args="target", USE.NAMES = FALSE)
 #' UPM(0, mean(x), x)
 #' @export
 UPM <- function(degree, target, variable, excess_ret = FALSE) {
-  .Call(`_NNS_UPM_RCPP`, degree, target, variable, excess_ret)
+  target   <- as.numeric(target)
+  variable <- as.numeric(variable)
+  
+  if (!excess_ret && length(target) > 1) {
+    return(.Call("_NNS_UPM_CPv", degree, target, variable))
+  }
+  
+ .Call("_NNS_UPM_RCPP", degree, target, variable, excess_ret)
+
 }
-
-UPM <- Vectorize(UPM, vectorize.args="target", USE.NAMES = FALSE)
-
 
 #' NNS CDF
 #'

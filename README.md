@@ -3,16 +3,14 @@
 
 
 
-[![packageversion](https://img.shields.io/badge/NNS%20version-11.4-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![packageversion](https://img.shields.io/badge/NNS%20version-11.4.1-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 <h2 style="margin: 0; padding: 0; border: none; height: 40px;"></h2>
 
 # NNS
-Nonlinear nonparametric statistics using partial moments. Partial moments are the [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) and [asymptotically approximate the area of f(x)](https://doi.org/10.2139/ssrn.2186471). These robust statistics provide the basis for nonlinear analysis while retaining linear equivalences.
+NNS (Nonlinear Nonparametric Statistics) leverages partial moments – the fundamental [elements of variance](https://www.linkedin.com/pulse/elements-variance-fred-viole) that [asymptotically approximate the area under f(x)](https://doi.org/10.2139/ssrn.2186471) – to provide a robust foundation for nonlinear analysis while maintaining linear equivalences.
 
-
-
-NNS offers: 
+NNS delivers a comprehensive suite of advanced statistical techniques, including:
   - Numerical Integration & Numerical Differentiation
   - Partitional & Hierarchial Clustering
   - Nonlinear Correlation & Dependence
@@ -56,7 +54,7 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 11.4},
+    note = {R package version 11.4.1},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```
