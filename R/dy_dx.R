@@ -7,7 +7,6 @@
 #' @param eval.point numeric or ("overall"); \code{x} point to be evaluated, must be provided.  Defaults to \code{(eval.point = NULL)}.  Set to \code{(eval.point = "overall")} to find an overall partial derivative estimate (1st derivative only).
 #' @return Returns a \code{data.table} of eval.point along with both 1st and 2nd derivative.
 #'
-#' @note If a vector of derivatives is required, ensure \code{(deriv.method = "FD")}.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995)
 #'
@@ -52,9 +51,10 @@ dy.dx <- function(x, y, eval.point = NULL){
     
     eval.point.idx <- which(eval.point==eval.point)
 
-    h_s <- c(1:5, seq(10, 20, 5))[1:min(length(x),8)]/100 
+    n <- length(x)
+    root_n <- floor(sqrt(n))
+    h_s <- round(exp(seq(log(2), log(root_n), length.out = 5)))
 
-    
     results <- vector(mode = "list", length(h_s))
     first.deriv <- vector(mode = "list", length(h_s))
     second.deriv <- vector(mode = "list", length(h_s))
@@ -63,10 +63,11 @@ dy.dx <- function(x, y, eval.point = NULL){
   
     for(h in h_s){
       index <- which(h == h_s)
-      h_step <- eval.point * h_s[index]
-      
-      eval.point.min <- max(min(x), original.eval.point.min - h_step)
-      eval.point.max <- min(max(x), h_step + original.eval.point.max)
+
+      h_step <- gravity(abs(diff(x))) * h_s[index]
+
+      eval.point.min <- pmax(min(x), original.eval.point.min - h_step)
+      eval.point.max <- pmin(max(x), h_step + original.eval.point.max)
       
       deriv.points[[index]] <- cbind(eval.point.min, eval.point, eval.point.max)
     }
@@ -86,7 +87,7 @@ dy.dx <- function(x, y, eval.point = NULL){
         run_1[z_1] <- eval.point.max[z_1] - eval.point[z_1]; run_2[z_2] <- eval.point[z_2] - eval.point.min[z_2]
       }
     
-      reg.output <- NNS.reg(x, y, plot = FALSE, point.est = unlist(deriv.points), point.only = TRUE, ncores = 1)
+      reg.output <- NNS.reg(x, y, plot = FALSE, point.est = unlist(deriv.points), point.only = TRUE, ncores = 1, smooth = TRUE)
      
       combined.matrices <- cbind(deriv.points, matrix(unlist(reg.output$Point.est), ncol = 3, byrow = F))
       colnames(combined.matrices) <- c(colnames(deriv.points), "estimates.min", "estimates", "estimates.max")
@@ -101,13 +102,12 @@ dy.dx <- function(x, y, eval.point = NULL){
       
       combined.matrices[, `:=` (
         first.deriv = (rise_1 + rise_2) / (run_1 + run_2),
-        second.deriv = (rise_1 / run_1 - rise_2 / run_2) / mean(c(run_1, run_2))
+        second.deriv = (rise_1 / run_1 - rise_2 / run_2) / ((run_1 + run_2)/2)
       )]
       
-      first.deriv <- tryCatch(combined.matrices[ , mean((first.deriv)), by = eval.point],
-                              error = function(e) combined.matrices[ , mean(first.deriv), by = eval.point])
-      second.deriv <- tryCatch(combined.matrices[ , mean((second.deriv)), by = eval.point], 
-                               error = function(e) combined.matrices[ , mean(second.deriv), by = eval.point])
+      first.deriv  <- combined.matrices[, .(first.derivative  = mean(first.deriv)), by = eval.point]
+      second.deriv <- combined.matrices[, .(second.derivative = mean(second.deriv)), by = eval.point]
+
   }
 
   colnames(first.deriv) <- c("eval.point", "first.derivative")

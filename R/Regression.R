@@ -6,7 +6,6 @@
 #' @param y a numeric or factor vector with compatible dimensions to \code{x}.
 #' @param factor.2.dummy logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.
 #' @param order integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.
-#' @param stn numeric [0, 1]; Signal to noise parameter, sets the threshold of \code{(NNS.dep)} which reduces \code{("order")} when \code{(order = NULL)}.  Defaults to 0.95 to ensure high dependence for higher \code{("order")} and endpoint determination.
 #' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all", "equal", \code{numeric vector}, NULL) method for determining synthetic X* coefficients.  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  \code{(dim.red.method = "equal")} uses unit weights.  Alternatively, user can specify a numeric vector of coefficients.
 #' @param tau options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.
 #' @param type \code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].
@@ -20,6 +19,7 @@
 #' @param threshold  numeric [0, 1]; \code{(threshold = 0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}.
 #' @param n.best integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}.  \code{(n.best = "all")} will select and weight all generated regression points.  Analogous to \code{k} in a
 #' \code{k Nearest Neighbors} algorithm.  Different values of \code{n.best} are tested using cross-validation in \link{NNS.stack}.
+#' @param smooth logical; \code{FALSE} (default) Applies a smoothing spline instead of local linear fit to regression points.
 #' @param noise.reduction the method of determining regression points options: ("mean", "median", "mode", "off"); In low signal:noise situations,\code{(noise.reduction = "mean")}  uses means for \link{NNS.dep} restricted partitions, \code{(noise.reduction = "median")} uses medians instead of means for \link{NNS.dep} restricted partitions, while \code{(noise.reduction = "mode")}  uses modes instead of means for \link{NNS.dep} restricted partitions.  \code{(noise.reduction = "off")} uses an overall central tendency measure for partitions.
 #' @param dist options:("L1", "L2", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} selects the Manhattan distance; \code{(dist = "FACTOR")} uses a frequency.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
@@ -130,7 +130,6 @@
 
 NNS.reg = function (x, y,
                     factor.2.dummy = TRUE, order = NULL,
-                    stn = .95,
                     dim.red.method = NULL, tau = NULL,
                     type = NULL,
                     point.est = NULL,
@@ -140,6 +139,7 @@ NNS.reg = function (x, y,
                     confidence.interval = NULL,
                     threshold = 0,
                     n.best = NULL,
+                    smooth = FALSE,
                     noise.reduction = "off",
                     dist = "L2",
                     ncores = NULL,
@@ -193,8 +193,8 @@ NNS.reg = function (x, y,
   
   
   if(!is.null(original.columns) & is.null(original.names)) x <- data.frame(x)
-  
-  y.label <- deparse(substitute(y))
+  mc <- match.call()
+  y.label <- deparse(mc$y)
   if(is.null(y.label)) y.label <- "y"
   
   if(factor.2.dummy && any(sapply(x, is.factor))) factor.2.dummy <- TRUE else factor.2.dummy <- FALSE
@@ -280,10 +280,13 @@ NNS.reg = function (x, y,
   
   np <- nrow(point.est)
   
+  stn <- .95
+  
   if(!is.null(type) && type == "class" ){
     if(is.null(n.best)) n.best <- 1
   }
   
+
   if(!is.null(original.columns)){
     if(original.columns == 1){
       x <- original.variable
@@ -291,11 +294,11 @@ NNS.reg = function (x, y,
       if(is.null(dim.red.method)){
         if(is.null(colnames(x))) colnames(x) <- rep("x", ncol(x))        
         colnames(x) <- make.unique(colnames(x), sep = "_")
-
+        
         return(NNS.M.reg(x, y, factor.2.dummy = factor.2.dummy, point.est = point.est, plot = plot,
                          residual.plot = residual.plot, order = order, n.best = n.best, type = type,
                          location = location, noise.reduction = noise.reduction,
-                         dist = dist, stn = stn, return.values = return.values, plot.regions = plot.regions,
+                         dist = dist, return.values = return.values, plot.regions = plot.regions,
                          point.only = point.only, ncores = ncores, confidence.interval = confidence.interval))
         
       } else { # Multivariate dim.red == FALSE
@@ -307,7 +310,7 @@ NNS.reg = function (x, y,
         
         x <- apply(data.matrix(x), 2, as.numeric)
         y <- as.numeric(y)
-
+        
         if(!is.null(dim.red.method) & !is.null(dim(x))){
           if(!is.numeric(dim.red.method)) dim.red.method <- tolower(dim.red.method)
           x.star.matrix <- matrix(nrow = length(y))
@@ -411,12 +414,10 @@ NNS.reg = function (x, y,
             
           }
           
-          
           x <- Rfast::rowsums(x.star.matrix / sum( abs( x.star.coef) > 0), parallel = FALSE)
           x.star <- data.table::data.table(x)
           
           dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
-
           dependence <- tryCatch(mean(c(dependence, NNS.copula(cbind(apply(cbind(x, x, y), 2, function(z) NNS.rescale(z, 0, 1)))))), error = function(e) dependence)
           
           dependence[is.na(dependence)] <- 0.1
@@ -424,7 +425,7 @@ NNS.reg = function (x, y,
           if(is.null(order)) order <- max(1, ifelse(dependence*10 %% 1 < .5, floor(dependence * 10), ceiling(dependence * 10)))
           
           if(length(y) < 100) order <- order / 2
-        
+          
           if(is.numeric(order)) order <- max(1, order) else order <- n
           
           order <- ifelse(order%%1 < .5, floor(order), ceiling(order))
@@ -436,34 +437,33 @@ NNS.reg = function (x, y,
   } # Multivariate
   
   
+  
   x.label <- names(x)
   if(is.null(x.label)) x.label <- "x"
   
   dependence <- tryCatch(NNS.dep(x, y, print.map = FALSE, asym = TRUE)$Dependence, error = function(e) .1)
-  
   dependence <- tryCatch(mean(c(dependence, NNS.copula(cbind(apply(cbind(x, x, y), 2, function(z) NNS.rescale(z, 0, 1)))))), error = function(e) dependence)
   
   dependence[is.na(dependence)] <- 0.1
- 
+  
   rounded_dep <- ifelse(dependence*10 %% 1 < .5, floor(dependence * 10), ceiling(dependence * 10))
   
   if(length(y) < 100){
     rounded_dep <- rounded_dep / 2
     rounded_dep <- floor(rounded_dep)
   }
-   
-  rounded_dep <- max(1, rounded_dep)
   
+  rounded_dep <- max(1, rounded_dep)
   
   dep.reduced.order <- max(1, ifelse(is.null(order), rounded_dep, order))
   
-  
+
   if(dependence == 1 || dep.reduced.order == "max"){
     if(is.null(order)) dep.reduced.order <- "max"
     part.map <- NNS.part(x, y, order = dep.reduced.order, obs.req = 0)
   } else {
     if(is.null(type)){
-      noise.reduction2 <- ifelse(noise.reduction=="mean", "off", noise.reduction)
+      noise.reduction2 <- noise.reduction 
     } else {
       if(type == "class") noise.reduction2 <- "mode_class" else noise.reduction2 <- noise.reduction
     }
@@ -476,9 +476,8 @@ NNS.reg = function (x, y,
         part.map <- NNS.part(x, y, type =  "XONLY", noise.reduction = noise.reduction2, order = min( nchar(part.map$dt$quadrant)), obs.req = 0)
       }
     }
-   
   }
-  
+
   nns.ids <- part.map$dt$quadrant
   
   if(length(part.map$dt$y) > length(y)){
@@ -645,6 +644,15 @@ NNS.reg = function (x, y,
     regression.points <- data.table::rbindlist(list(regression.points, regression.points, regression.points), use.names = FALSE)
   }
   
+  
+  regression.points$x <- pmin(regression.points$x, max(x))
+  regression.points$x <- pmax(regression.points$x, min(x))
+  
+  regression.points$y <- pmin(regression.points$y, max(y))
+  regression.points$y <- pmax(regression.points$y, min(y))
+  
+  
+  
   Regression.Coefficients <- regression.points[ , .(rise,run)]
   
   Regression.Coefficients <- Regression.Coefficients[complete.cases(Regression.Coefficients), ]
@@ -682,15 +690,25 @@ NNS.reg = function (x, y,
   if(is.fcl(order) || ifelse(is.null(order), FALSE, ifelse(order >= length(y), TRUE, FALSE))){
     estimate <- y
   } else {
-    estimate <- ((x - regression.points[reg.interval, x]) * Regression.Coefficients[coef.interval, Coefficient]) + regression.points[reg.interval, y]
+    if(smooth && p >= 4){
+      sorted_x <- sort(x, index= T)
+      orig.order <- sorted_x$ix
+      spline_fit <- stats::smooth.spline(regression.points[, x], regression.points[, y], spar = (dependence + 0.5)/2)
+      regression.points$y <- spline_fit$y
+      plot_estimate <- stats::predict(spline_fit, sorted_x$x)$y
+      estimate <- plot_estimate[orig.order]
+    } else estimate <- ((x - regression.points[reg.interval, x]) * Regression.Coefficients[coef.interval, Coefficient]) + regression.points[reg.interval, y]
   }
+  
+  ### Regression Equation
+  if(multivariate.call)  return(regression.points[, c("x","y")])
   
   if(!is.null(point.est)){
     coef.point.interval <- findInterval(point.est, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE, rightmost.closed = TRUE)
     reg.point.interval <- findInterval(point.est, regression.points[ , x], left.open = FALSE, rightmost.closed = TRUE)
     coef.point.interval[coef.point.interval == 0] <- 1
     reg.point.interval[reg.point.interval == 0] <- 1
-    point.est.y <- as.vector(((point.est - regression.points[reg.point.interval, x]) * Regression.Coefficients[coef.point.interval, Coefficient]) + regression.points[reg.point.interval, y])
+    if(smooth && p >= 4) point.est.y <- predict(spline_fit, point.est)$y else point.est.y <- as.vector(((point.est - regression.points[reg.point.interval, x]) * Regression.Coefficients[coef.point.interval, Coefficient]) + regression.points[reg.point.interval, y])
     
     if(any(point.est > max(x) | point.est < min(x) ) & length(na.omit(point.est)) > 0){
       upper.slope <- mean(tail(Regression.Coefficients[, unique(Coefficient)], 2))
@@ -709,7 +727,7 @@ NNS.reg = function (x, y,
   if(!is.null(type)){
     if(type=="class") estimate <- pmin(max(y), pmax(min(y), ifelse(estimate%%1 < .5, floor(estimate), ceiling(estimate))))
   }
-
+  
   fitted <- data.table::data.table(x = x,
                                    y = original.y,
                                    y.hat = estimate,
@@ -726,88 +744,12 @@ NNS.reg = function (x, y,
   gradient <- Regression.Coefficients$Coefficient[findInterval(fitted$x, Regression.Coefficients$X.Lower.Range)]
   
   fitted <- cbind(fitted, gradient)
-  fitted$residuals <- original.y - fitted$y.hat
-  
-  regression.points$x <- pmin(regression.points$x, max(x))
-  regression.points$x <- pmax(regression.points$x, min(x))
-  
-  regression.points$y <- pmin(regression.points$y, max(y))
-  regression.points$y <- pmax(regression.points$y, min(y))
+  fitted$residuals <- fitted$y.hat - original.y 
   
   if(!is.numeric(order) && !is.null(order)){
     regression.points <- part.map$dt[, .(x,y)]
     data.table::setkey(regression.points, x)
   }
-  
-  ### Regression Equation
-  if(multivariate.call)  return(regression.points)
-  
-  
-  rise <- regression.points[ , 'rise' := y - data.table::shift(y)]
-  run <- regression.points[ , 'run' := x - data.table::shift(x)]
-  
-  
-  Regression.Coefficients <- regression.points[ , .(rise,run)]
-  
-  Regression.Coefficients <- Regression.Coefficients[complete.cases(Regression.Coefficients), ]
-  
-  upper.x <- regression.points[(2 : .N), x]
-  
-  Regression.Coefficients <- Regression.Coefficients[ , `:=` ('Coefficient'=(rise / run),'X.Lower.Range' = regression.points[-.N, x], 'X.Upper.Range' = upper.x)]
-  
-  Regression.Coefficients <- Regression.Coefficients[ , .(Coefficient,X.Lower.Range, X.Upper.Range)]
-  
-  
-  Regression.Coefficients <- unique(Regression.Coefficients)
-  Regression.Coefficients$Coefficient[Regression.Coefficients$Coefficient==Inf] <- 1
-  Regression.Coefficients$Coefficient[is.na(Regression.Coefficients$Coefficient)] <- 0
-  
-  
-  ### Fitted Values
-  p <- length(unlist(regression.points[ , 1]))
-  
-  if(is.na(Regression.Coefficients[1, Coefficient])){
-    Regression.Coefficients[1, Coefficient := Regression.Coefficients[2, Coefficient] ]
-  }
-  if(is.na(Regression.Coefficients[.N, Coefficient])){
-    Regression.Coefficients[.N, Coefficient := Regression.Coefficients[.N-1, Coefficient] ]
-  }
-  
-  coef.interval <- findInterval(x, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE)
-  reg.interval <- findInterval(x, regression.points[, x], left.open = FALSE)
-  
-  if(!is.null(order) && is.character(order)){
-    estimate <- y
-  } else{
-    estimate <- ((x - regression.points[reg.interval, x]) * Regression.Coefficients[coef.interval, Coefficient]) + regression.points[reg.interval, y]
-  }
-  
-  if(!is.null(point.est)){
-    coef.point.interval <- findInterval(point.est, Regression.Coefficients[ , (X.Lower.Range)], left.open = FALSE, rightmost.closed = TRUE)
-    reg.point.interval <- findInterval(point.est, regression.points[ , x], left.open = FALSE, rightmost.closed = TRUE)
-    coef.point.interval[coef.point.interval == 0] <- 1
-    reg.point.interval[reg.point.interval == 0] <- 1
-    point.est.y <- as.vector(((point.est - regression.points[reg.point.interval, x]) * Regression.Coefficients[coef.point.interval, Coefficient]) + regression.points[reg.point.interval, y])
-    
-    if(any(point.est > max(x) | point.est < min(x) ) & length(na.omit(point.est)) > 0){
-      upper.slope <- mean(tail(Regression.Coefficients[, unique(Coefficient)], 2))
-      point.est.y[point.est>max(x)] <- (point.est[point.est>max(x)] - max(x)) * upper.slope +  regression.points[.N, y]
-      
-      lower.slope <- mean(head(Regression.Coefficients[, unique(Coefficient)], 2))
-      point.est.y[point.est<min(x)] <- (point.est[point.est<min(x)] - min(x)) * lower.slope +  regression.points[1, y]
-    }
-    
-    if(!is.null(type)){
-      if(type=="class") point.est.y <- pmin(max(y), pmax(min(y), ifelse(point.est.y%%1 < .5, floor(point.est.y), ceiling(point.est.y))))
-    }
-  }
-  
-  colnames(estimate) <- NULL
-  if(!is.null(type)){
-    if(type=="class") estimate <- pmin(max(y), pmax(min(y), ifelse(estimate%%1 < 0.5, floor(estimate), ceiling(estimate))))
-  }
-  
-  colnames(fitted) <- gsub(".V1", "", colnames(fitted))
   
   
   if(!is.null(type)){
@@ -828,11 +770,11 @@ NNS.reg = function (x, y,
   pred.int = NULL
   if(is.numeric(confidence.interval)){
     fitted[, `:=` ( 'conf.int.pos' = abs(UPM.VaR((1-confidence.interval)/2, degree = 1, residuals)) + y.hat) , by = gradient]
-    fitted[, `:=` ( 'conf.int.neg' = y.hat - abs(LPM.VaR((1-confidence.interval)/2, degree = 1, residuals))) , by = gradient]
+    fitted[, `:=` ( 'conf.int.neg' = y.hat - abs(UPM.VaR((1-confidence.interval)/2, degree = 1, residuals))) , by = gradient]
     
     if(!is.null(point.est)){
       
-  
+      
       fitted[, `:=` ( 'pred.int.pos' = (UPM.VaR((1-confidence.interval)/2, degree = 0, y))) , by = gradient]
       fitted[, `:=` ( 'pred.int.neg' = (LPM.VaR((1-confidence.interval)/2, degree = 0, y))) , by = gradient]
       
@@ -899,18 +841,17 @@ NNS.reg = function (x, y,
     
     ### Plot Regression points and fitted values and legend
     points(na.omit(regression.points[ , .(x,y)]), col = 'red', pch = 15)
-    lines(na.omit(regression.points[ , .(x,y)]), col = 'red', lwd = 2, lty = 2)
-    
+    if(smooth && p >= 4 && !is.character(order)) lines(sorted_x$x, plot_estimate, col = "red", lwd = 2) else lines(na.omit(regression.points[ , .(x,y)]), col = 'red', lwd = 2, lty = 2)
     
     if(!is.null(point.est)){
       points(point.est, point.est.y, col='green', pch = 18, cex = 1.5)
       legend(location, bty = "n", y.intersp = 0.75, legend = r2.leg)
       if(any(point.est > max(x))){
-        segments(point.est[point.est > max(x)], point.est.y[point.est > max(x)], regression.points[.N, x], regression.points[.N, y], col = "green", lty = 2)
+        if(!smooth) segments(point.est[point.est > max(x)], point.est.y[point.est > max(x)], regression.points[.N, x], regression.points[.N, y], col = "green", lty = 2)
       }
       
       if(any(point.est < min(x))){
-        segments(point.est[point.est < min(x)], point.est.y[point.est < min(x)], regression.points[1, x], regression.points[1, y], col = "green", lty = 2)
+        if(!smooth) segments(point.est[point.est < min(x)], point.est.y[point.est < min(x)], regression.points[1, x], regression.points[1, y], col = "green", lty = 2)
       }
     } else {
       legend(location, bty = "n", y.intersp = 0.75, legend = r2.leg)

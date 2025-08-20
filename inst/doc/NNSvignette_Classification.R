@@ -25,14 +25,18 @@ NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 #                status = FALSE, balance = TRUE,
 #                type = "CLASS", folds = 1)
 #  
-#  a$results
-#  [1] 3 3 3 3 3 3 3 3 3 3
+#  a
+#  $results
+#   [1] 3 3 3 3 3 3 3 3 3 3
 #  
-#  a$feature.weights
-#  Petal.Width Petal.Length Sepal.Length
+#  $pred.int
+#  NULL
+#  
+#  $feature.weights
+#   Petal.Width Petal.Length Sepal.Length
 #     0.4285714    0.4285714    0.1428571
 #  
-#  a$feature.frequency
+#  $feature.frequency
 #   Petal.Width Petal.Length Sepal.Length
 #             3            3            1
 #  
@@ -50,22 +54,22 @@ NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 
 ## ----stackeval, eval = FALSE--------------------------------------------------
 #  $OBJfn.reg
-#  [1] 1
+#  [1] 0.8642857
 #  
 #  $NNS.reg.n.best
-#  [1] 1
+#  [1] 5
 #  
 #  $probability.threshold
-#  [1] 0.43875
+#  [1] 0.465
 #  
 #  $OBJfn.dim.red
-#  [1] 0.9798658
+#  [1] 0.9642857
 #  
 #  $NNS.dim.red.threshold
 #  [1] 0.93
 #  
 #  $reg
-#   [1] 3 3 3 3 3 3 3 3 3 3
+#   [1] 3 2 2 3 3 2 2 2 2 2
 #  
 #  $reg.pred.int
 #  NULL

@@ -1,3 +1,8 @@
+is.fcl <- function(x) is.factor(x) || is.character(x) || is.logical(x)
+
+is.discrete <- function(x) sum(as.numeric(x)%%1)==0
+
+
 ### Continuous Mode of a distribution
 mode <- function(x) NNS.mode(x, discrete = FALSE, multi = FALSE)
 
@@ -155,7 +160,8 @@ lag.mtx <- function(x, tau){
   max_tau <- max(unlist(tau))
   
   if(is.null(dim(x)[2])) {
-    colheads <- noquote(as.character(deparse(substitute(x))))
+    mc <- match.call()
+    colheads <- noquote(as.character(deparse(mc$x)))
     x <- t(t(x))
   }
   
@@ -310,10 +316,6 @@ force.clt <- function(x, ensemble)
   out
 }
 
-
-is.fcl <- function(x) is.factor(x) || is.character(x) || is.logical(x)
-
-is.discrete <- function(x) sum(as.numeric(x)%%1)==0
 
 
 ### upSample / downSample to avoid dependencies

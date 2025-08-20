@@ -7,9 +7,9 @@
 NNS.CDF(variable, degree = 0, target = NULL, type = "CDF", plot = TRUE)
 }
 \arguments{
-\item{variable}{a numeric vector or data.frame of 2 variables for joint CDF.}
+\item{variable}{a numeric vector or data.frame of >= 2 variables for joint CDF.}
 
-\item{degree}{integer; \code{(degree = 0)} (default) is frequency, \code{(degree = 1)} is area.}
+\item{degree}{numeric; \code{(degree = 0)} (default) is frequency, \code{(degree = 1)} is area.}
 
 \item{target}{numeric; \code{NULL} (default) Must lie within support of each variable.}
 
@@ -46,7 +46,7 @@ A <- cbind(x,y)
 NNS.CDF(A, 0)
 
 ## Joint CDF with target
-NNS.CDF(A, 0, target = c(0,0))
+NNS.CDF(A, 0, target = rep(0, ncol(A)))
 }
 }
 \references{
