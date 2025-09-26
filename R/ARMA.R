@@ -72,7 +72,7 @@ NNS.ARMA <- function(variable,
   
   if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
   
-  if(sum(is.na(variable)) > 0) stop("You have some missing values, please address.")
+  if(anyNA(variable)) stop("You have some missing values, please address.")
   
   method <- tolower(method)
   if(method == "means") shrink <- FALSE
@@ -162,7 +162,7 @@ NNS.ARMA <- function(variable,
         last.xs <- tail(GV.lin$Component.index[[i]], 1)
         lin.reg <- fast_lm(GV.lin$Component.index[[i]], GV.lin$Component.series[[i]])
         coefs <- lin.reg$coef
-
+        
         return(as.numeric(coefs[1] + coefs[2] * unlist(GV.lin$forecast.values[[i]])))
       })
       
@@ -222,6 +222,7 @@ NNS.ARMA <- function(variable,
           last.y <- tail(y, 1)
           
           reg.points <- NNS.reg(x, y, return.values = FALSE, plot = FALSE, multivariate.call = TRUE)
+          
           reg.points <- reg.points[complete.cases(reg.points), ]
           
           xs <- tail(reg.points$x, 1) - reg.points$x
@@ -343,8 +344,8 @@ NNS.ARMA <- function(variable,
   
   
   options(warn = oldw)
+  
   if(!is.null(pred.int)){
-    
     results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_PIs),  pmax(Estimates, upper_PIs))
     colnames(results) = c("Estimates",
                           paste0("Lower ", round(pred.int*100,2), "% pred.int"),

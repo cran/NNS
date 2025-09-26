@@ -12,9 +12,10 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 library(NNS)
 library(data.table)
-data.table::setDTthreads(2L)
+data.table::setDTthreads(1L)
 options(mc.cores = 1)
-Sys.setenv("OMP_THREAD_LIMIT" = 2)
+RcppParallel::setThreadOptions(numThreads = 1)
+Sys.setenv("OMP_THREAD_LIMIT" = 1)
 ```
 
 ```{r setup2, message=FALSE, warning = FALSE}
@@ -66,7 +67,7 @@ a = NNS.boost(IVs.train = iris[-test.set, 1:4],
               IVs.test = iris[test.set, 1:4],
               epochs = 10, learner.trials = 10, 
               status = FALSE, balance = TRUE,
-              type = "CLASS", folds = 1)
+              type = "CLASS", folds = 5)
 
 a
 $results
@@ -102,29 +103,29 @@ b = NNS.stack(IVs.train = iris[-test.set, 1:4],
               DV.train = iris[-test.set, 5],
               IVs.test = iris[test.set, 1:4],
               type = "CLASS", balance = TRUE,
-              ncores = 1, folds = 1)
+              ncores = 1, folds = 5)
 
 b
 ```
 
 ```{r stackeval, eval = FALSE}
 $OBJfn.reg
-[1] 0.8642857
+[1] 0.955787
 
 $NNS.reg.n.best
-[1] 5
+[1] 1
 
 $probability.threshold
-[1] 0.465
+[1] 0.6429167
 
 $OBJfn.dim.red
-[1] 0.9642857
+[1] 0.955787
 
 $NNS.dim.red.threshold
-[1] 0.93
+[1] 0.925
 
 $reg
- [1] 3 2 2 3 3 2 2 2 2 2
+ [1] 3 3 3 3 3 3 3 3 3 3
 
 $reg.pred.int
 NULL

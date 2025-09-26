@@ -10,6 +10,84 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// NNS_distance_cpp
+SEXP NNS_distance_cpp(NumericMatrix X, NumericVector yhat, NumericVector dest, int k, bool use_class);
+RcppExport SEXP _NNS_NNS_distance_cpp(SEXP XSEXP, SEXP yhatSEXP, SEXP destSEXP, SEXP kSEXP, SEXP use_classSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type yhat(yhatSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type dest(destSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_class(use_classSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_distance_cpp(X, yhat, dest, k, use_class));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_distance_path_cpp
+Rcpp::NumericMatrix NNS_distance_path_cpp(const Rcpp::NumericMatrix& RPM, const Rcpp::NumericVector& yhat, const Rcpp::NumericMatrix& Xtest, int kmax, bool is_class);
+RcppExport SEXP _NNS_NNS_distance_path_cpp(SEXP RPMSEXP, SEXP yhatSEXP, SEXP XtestSEXP, SEXP kmaxSEXP, SEXP is_classSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type RPM(RPMSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type yhat(yhatSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type Xtest(XtestSEXP);
+    Rcpp::traits::input_parameter< int >::type kmax(kmaxSEXP);
+    Rcpp::traits::input_parameter< bool >::type is_class(is_classSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_distance_path_cpp(RPM, yhat, Xtest, kmax, is_class));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_distance_bulk_cpp
+Rcpp::NumericVector NNS_distance_bulk_cpp(const Rcpp::NumericMatrix& RPM, const Rcpp::NumericVector& yhat, const Rcpp::NumericMatrix& Xtest, int k, bool is_class);
+RcppExport SEXP _NNS_NNS_distance_bulk_cpp(SEXP RPMSEXP, SEXP yhatSEXP, SEXP XtestSEXP, SEXP kSEXP, SEXP is_classSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type RPM(RPMSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type yhat(yhatSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type Xtest(XtestSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< bool >::type is_class(is_classSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_distance_bulk_cpp(RPM, yhat, Xtest, k, is_class));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_distance_path_parallel_cpp
+NumericMatrix NNS_distance_path_parallel_cpp(NumericMatrix RPM, NumericVector yhat, NumericMatrix Xtest, int kmax, bool is_class, int nthreads);
+RcppExport SEXP _NNS_NNS_distance_path_parallel_cpp(SEXP RPMSEXP, SEXP yhatSEXP, SEXP XtestSEXP, SEXP kmaxSEXP, SEXP is_classSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type RPM(RPMSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type yhat(yhatSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Xtest(XtestSEXP);
+    Rcpp::traits::input_parameter< int >::type kmax(kmaxSEXP);
+    Rcpp::traits::input_parameter< bool >::type is_class(is_classSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_distance_path_parallel_cpp(RPM, yhat, Xtest, kmax, is_class, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_part_cpp
+List NNS_part_cpp(NumericVector x, NumericVector y, Nullable<std::string> type, Nullable<int> order_in, int obs_req, bool min_obs_stop, std::string noise_reduction);
+RcppExport SEXP _NNS_NNS_part_cpp(SEXP xSEXP, SEXP ySEXP, SEXP typeSEXP, SEXP order_inSEXP, SEXP obs_reqSEXP, SEXP min_obs_stopSEXP, SEXP noise_reductionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Nullable<std::string> >::type type(typeSEXP);
+    Rcpp::traits::input_parameter< Nullable<int> >::type order_in(order_inSEXP);
+    Rcpp::traits::input_parameter< int >::type obs_req(obs_reqSEXP);
+    Rcpp::traits::input_parameter< bool >::type min_obs_stop(min_obs_stopSEXP);
+    Rcpp::traits::input_parameter< std::string >::type noise_reduction(noise_reductionSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_part_cpp(x, y, type, order_in, obs_req, min_obs_stop, noise_reduction));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sd_dom_matrix_prefix_parallel
 IntegerMatrix sd_dom_matrix_prefix_parallel(const NumericMatrix& X, int degree, std::string type);
 RcppExport SEXP _NNS_sd_dom_matrix_prefix_parallel(SEXP XSEXP, SEXP degreeSEXP, SEXP typeSEXP) {
@@ -136,6 +214,157 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
     rcpp_result_gen = Rcpp::wrap(fast_lm_mult(x, y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// is_fcl
+bool is_fcl(SEXP x);
+RcppExport SEXP _NNS_is_fcl(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(is_fcl(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// is_discrete
+bool is_discrete(SEXP x);
+RcppExport SEXP _NNS_is_discrete(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(is_discrete(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// factor_2_dummy
+SEXP factor_2_dummy(SEXP x);
+RcppExport SEXP _NNS_factor_2_dummy(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(factor_2_dummy(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// factor_2_dummy_FR
+SEXP factor_2_dummy_FR(SEXP x);
+RcppExport SEXP _NNS_factor_2_dummy_FR(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(factor_2_dummy_FR(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// generate_vectors
+List generate_vectors(NumericVector x, IntegerVector l);
+RcppExport SEXP _NNS_generate_vectors(SEXP xSEXP, SEXP lSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type l(lSEXP);
+    rcpp_result_gen = Rcpp::wrap(generate_vectors(x, l));
+    return rcpp_result_gen;
+END_RCPP
+}
+// generate_lin_vectors
+List generate_lin_vectors(NumericVector x, int l, int h);
+RcppExport SEXP _NNS_generate_lin_vectors(SEXP xSEXP, SEXP lSEXP, SEXP hSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type l(lSEXP);
+    Rcpp::traits::input_parameter< int >::type h(hSEXP);
+    rcpp_result_gen = Rcpp::wrap(generate_lin_vectors(x, l, h));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ARMA_seas_weighting
+List ARMA_seas_weighting(bool sf, SEXP mat);
+RcppExport SEXP _NNS_ARMA_seas_weighting(SEXP sfSEXP, SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< bool >::type sf(sfSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(ARMA_seas_weighting(sf, mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_meboot_part
+NumericVector NNS_meboot_part(NumericVector x, int n, NumericVector z, double xmin, double xmax, NumericVector desintxb, bool reachbnd);
+RcppExport SEXP _NNS_NNS_meboot_part(SEXP xSEXP, SEXP nSEXP, SEXP zSEXP, SEXP xminSEXP, SEXP xmaxSEXP, SEXP desintxbSEXP, SEXP reachbndSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type z(zSEXP);
+    Rcpp::traits::input_parameter< double >::type xmin(xminSEXP);
+    Rcpp::traits::input_parameter< double >::type xmax(xmaxSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type desintxb(desintxbSEXP);
+    Rcpp::traits::input_parameter< bool >::type reachbnd(reachbndSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_meboot_part(x, n, z, xmin, xmax, desintxb, reachbnd));
+    return rcpp_result_gen;
+END_RCPP
+}
+// NNS_meboot_expand_sd
+SEXP NNS_meboot_expand_sd(SEXP x, NumericMatrix ensemble, double fiv);
+RcppExport SEXP _NNS_NNS_meboot_expand_sd(SEXP xSEXP, SEXP ensembleSEXP, SEXP fivSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type ensemble(ensembleSEXP);
+    Rcpp::traits::input_parameter< double >::type fiv(fivSEXP);
+    rcpp_result_gen = Rcpp::wrap(NNS_meboot_expand_sd(x, ensemble, fiv));
+    return rcpp_result_gen;
+END_RCPP
+}
+// force_clt
+SEXP force_clt(SEXP x, NumericMatrix ensemble);
+RcppExport SEXP _NNS_force_clt(SEXP xSEXP, SEXP ensembleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type ensemble(ensembleSEXP);
+    rcpp_result_gen = Rcpp::wrap(force_clt(x, ensemble));
+    return rcpp_result_gen;
+END_RCPP
+}
+// downSample
+SEXP downSample(SEXP x, SEXP y, bool list, std::string yname);
+RcppExport SEXP _NNS_downSample(SEXP xSEXP, SEXP ySEXP, SEXP listSEXP, SEXP ynameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< bool >::type list(listSEXP);
+    Rcpp::traits::input_parameter< std::string >::type yname(ynameSEXP);
+    rcpp_result_gen = Rcpp::wrap(downSample(x, y, list, yname));
+    return rcpp_result_gen;
+END_RCPP
+}
+// upSample
+SEXP upSample(SEXP x, SEXP y, bool list, std::string yname);
+RcppExport SEXP _NNS_upSample(SEXP xSEXP, SEXP ySEXP, SEXP listSEXP, SEXP ynameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< bool >::type list(listSEXP);
+    Rcpp::traits::input_parameter< std::string >::type yname(ynameSEXP);
+    rcpp_result_gen = Rcpp::wrap(upSample(x, y, list, yname));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -343,6 +572,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_NNS_NNS_distance_cpp", (DL_FUNC) &_NNS_NNS_distance_cpp, 5},
+    {"_NNS_NNS_distance_path_cpp", (DL_FUNC) &_NNS_NNS_distance_path_cpp, 5},
+    {"_NNS_NNS_distance_bulk_cpp", (DL_FUNC) &_NNS_NNS_distance_bulk_cpp, 5},
+    {"_NNS_NNS_distance_path_parallel_cpp", (DL_FUNC) &_NNS_NNS_distance_path_parallel_cpp, 6},
+    {"_NNS_NNS_part_cpp", (DL_FUNC) &_NNS_NNS_part_cpp, 7},
     {"_NNS_sd_dom_matrix_prefix_parallel", (DL_FUNC) &_NNS_sd_dom_matrix_prefix_parallel, 3},
     {"_NNS_NNS_SD_efficient_set_parallel_cpp", (DL_FUNC) &_NNS_NNS_SD_efficient_set_parallel_cpp, 4},
     {"_NNS_NNS_FSD_uni_cpp", (DL_FUNC) &_NNS_NNS_FSD_uni_cpp, 3},
@@ -353,6 +587,18 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NNS_NNS_mode_cpp", (DL_FUNC) &_NNS_NNS_mode_cpp, 3},
     {"_NNS_fast_lm", (DL_FUNC) &_NNS_fast_lm, 2},
     {"_NNS_fast_lm_mult", (DL_FUNC) &_NNS_fast_lm_mult, 2},
+    {"_NNS_is_fcl", (DL_FUNC) &_NNS_is_fcl, 1},
+    {"_NNS_is_discrete", (DL_FUNC) &_NNS_is_discrete, 1},
+    {"_NNS_factor_2_dummy", (DL_FUNC) &_NNS_factor_2_dummy, 1},
+    {"_NNS_factor_2_dummy_FR", (DL_FUNC) &_NNS_factor_2_dummy_FR, 1},
+    {"_NNS_generate_vectors", (DL_FUNC) &_NNS_generate_vectors, 2},
+    {"_NNS_generate_lin_vectors", (DL_FUNC) &_NNS_generate_lin_vectors, 3},
+    {"_NNS_ARMA_seas_weighting", (DL_FUNC) &_NNS_ARMA_seas_weighting, 2},
+    {"_NNS_NNS_meboot_part", (DL_FUNC) &_NNS_NNS_meboot_part, 7},
+    {"_NNS_NNS_meboot_expand_sd", (DL_FUNC) &_NNS_NNS_meboot_expand_sd, 3},
+    {"_NNS_force_clt", (DL_FUNC) &_NNS_force_clt, 2},
+    {"_NNS_downSample", (DL_FUNC) &_NNS_downSample, 4},
+    {"_NNS_upSample", (DL_FUNC) &_NNS_upSample, 4},
     {"_NNS_LPM_CPv", (DL_FUNC) &_NNS_LPM_CPv, 3},
     {"_NNS_UPM_CPv", (DL_FUNC) &_NNS_UPM_CPv, 3},
     {"_NNS_CoLPM_nD_RCPP", (DL_FUNC) &_NNS_CoLPM_nD_RCPP, 4},
