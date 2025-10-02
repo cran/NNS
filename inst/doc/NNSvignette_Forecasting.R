@@ -141,6 +141,3 @@ NNS.seas(AirPassengers, modulo = 12, plot = FALSE)
 #                 objective = "min",
 #                 pred.int = .95, h = 50, plot = TRUE)
 
-## ----threads, echo = FALSE----------------------------------------------------
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-

@@ -158,6 +158,3 @@ Rmat <- cbind(A=RA, B=RB, C=RC)
 try(NNS.SD.cluster(Rmat, degree = 1))
 try(NNS.SD.efficient.set(Rmat, degree = 1))
 
-## ----threads, echo = FALSE----------------------------------------------------
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-

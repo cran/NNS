@@ -230,6 +230,3 @@ NNS.reg(x, y, smooth = TRUE)
 #        pt.lwd = c(2, NA),
 #        bty    = "n")
 
-## ----threads, echo = FALSE----------------------------------------------------
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-

@@ -471,6 +471,3 @@ See NNS Vignette: [Getting Started with NNS: Sampling and Simulation](https://CR
 For complete references, please see the Vignettes linked above and their specific referenced materials.
 
 
-```{r threads, echo = FALSE}
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-```

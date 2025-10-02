@@ -78,6 +78,3 @@ set.seed(123)
 x = rnorm(1000); y = rnorm(1000); z = rnorm(1000)
 NNS.copula(cbind(x, y, z), plot = TRUE, independence.overlay = TRUE)
 
-## ----threads, echo = FALSE----------------------------------------------------
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-

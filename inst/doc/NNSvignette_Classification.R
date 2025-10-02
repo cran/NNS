@@ -93,6 +93,3 @@ NNS.reg(iris[,1:4], iris[,5], residual.plot = FALSE, ncores = 1)$rhs.partitions
 ## ----stackreseval, eval = FALSE-----------------------------------------------
 # [1] 1
 
-## ----threads, echo = FALSE----------------------------------------------------
-Sys.setenv("OMP_THREAD_LIMIT" = "")
-
