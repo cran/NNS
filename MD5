@@ -1,4 +1,4 @@
-2d158e1dfcfc02bab1eaa82ba989428c *DESCRIPTION
+2e2040afe60ceace66925b9d08ab4730 *DESCRIPTION
 1e754678b4441c992437dfe13e4646df *NAMESPACE
 9c815903ba61d696886de25801ceb6a3 *R/ANOVA.R
 edf0b9d2c5ef3e81ab25f1132eecf7e6 *R/ARMA.R
@@ -9,7 +9,7 @@ b0c1fd69b80fc93400e3a6642fbad2fe *R/Causal_matrix.R
 09eedd4f9e5e7755a6932e46b10cda64 *R/Causation.R
 047855c18ccb0f03b0734938329c6e42 *R/Central_tendencies.R
 e208af486e30b3c6cebebaf0694e5765 *R/Copula.R
-bac3f7ab69d4fc85e22137e9d804b9e8 *R/Dependence.R
+db9a2243331cc5ce98ad5b9957c6e2ef *R/Dependence.R
 27af9fc5774d5de44e7670161d5e15bd *R/Dependence_matrix.R
 6afceb441d4b7b51839af433e28379a4 *R/FSD.R
 2cbe45ba295e5f384960f50966c57652 *R/LPM_UPM_VaR.R
@@ -27,7 +27,7 @@ fdcadc0e7a0263fe406f93a2c52a0f3b *R/Numerical_Differentiation.R
 995f6ebfc492b4f4aca0062b5b9ddf3a *R/Partial_Moments.R
 8f7cb5f3f34973eae578f8877a65a2b5 *R/Partition_Map.R
 3fe4521c51ef2cc9bd23275ee6b97c1f *R/RcppExports.R
-fa6ef2a5915b951e9f4fa3af98135e8b *R/Regression.R
+8b04a9afbaba3042b3d5c72e3a2cda70 *R/Regression.R
 282549fedc543ce51450d1111fa06645 *R/SD_Cluster.R
 ec2994d55ddc273ad4eae3f6cbcb85b8 *R/SD_Efficient_Set.R
 74ddc9e103fffb137caa70490ef65303 *R/SSD.R
@@ -39,12 +39,12 @@ e59abe3f77fb4dca31bd3943e90302a8 *R/Uni_Causation.R
 7c8b42ed0f61c342ec5a889431046475 *R/dy_d_wrt.R
 1416edb1ede603de5c9614792388c74c *R/dy_dx.R
 637436ebafd036e96520811978132a04 *R/gvload.R
-a543f15c463dae90cb566d4e0c41a3b0 *README.md
+8b36fdfb5b37a74665b28114766525fa *README.md
 afbe4209b3bb961ba3e41cbfe79ea507 *build/partial.rdb
 0ce0d91b3778b737928e25a7aaa038be *build/vignette.rds
 f9142bfb9e719cb358ccb2616b951285 *inst/doc/NNSvignette_Classification.R
 8ffb4fedd11b5d7d82eb15175a591f8a *inst/doc/NNSvignette_Classification.Rmd
-c4b2b29784a87498267c6faea1c07337 *inst/doc/NNSvignette_Classification.html
+d6ba0180d854602426561a197df28e7e *inst/doc/NNSvignette_Classification.html
 ea3131263069250c65b530c6269a58b1 *inst/doc/NNSvignette_Clustering_and_Regression.R
 3b365ba368bb6836eff6e58da713c25b *inst/doc/NNSvignette_Clustering_and_Regression.Rmd
 764eaec3330c301b9bfddf963c679e4d *inst/doc/NNSvignette_Clustering_and_Regression.html
@@ -59,7 +59,7 @@ c33b10891a1c245d664edc1a74024ae0 *inst/doc/NNSvignette_Forecasting.R
 43da7d0bb448e6d7fbaedabba779d3e6 *inst/doc/NNSvignette_Forecasting.html
 0d278665d1cb18cd11112d9065f4d062 *inst/doc/NNSvignette_Overview.R
 32278884f634f3a7f6ea00655c952509 *inst/doc/NNSvignette_Overview.Rmd
-661154cce5978f525003bded041c1494 *inst/doc/NNSvignette_Overview.html
+598b8310554fc7e0de1ff91eae105297 *inst/doc/NNSvignette_Overview.html
 b2958f9f317f9a86382896f06a326973 *inst/doc/NNSvignette_Partial_Moments.R
 6fa21c238bedec056d4fd6c564afe655 *inst/doc/NNSvignette_Partial_Moments.Rmd
 ab09e9e709dae26fe41f0c70a2d430c4 *inst/doc/NNSvignette_Partial_Moments.html
@@ -122,7 +122,7 @@ a2e5c47722c3f48a72e6dabc1ba8c2a6 *src/NNS_part.cpp
 40106498ba338969395a702b583a55d4 *src/RcppExports.cpp
 ccd0a880a7724a4610a7a49ce39ea5f5 *src/SD.cpp
 985f503d3ecb30f9945316c851962d7b *src/central_tendencies.cpp
-21de2e49213c6d54042c2b90a93bad6f *src/fast_lm.cpp
+20548e66dd51b6a2d43993fdfc5e4ddf *src/fast_lm.cpp
 118e7d726c36c972d181c60ea02cebcd *src/internal_functions.cpp
 0c5f63f8b8cb21a3b8cb83e6b73af77d *src/partial_moments.cpp
 30a3a8ef6f768b20d7d5a34625b5d413 *src/partial_moments.h
