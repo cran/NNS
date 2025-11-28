@@ -23,139 +23,85 @@
 #' @export
 
 
+
 NNS.seas <- function(variable,
                      modulo = NULL,
                      mod.only = TRUE,
-                     plot = TRUE){
-
-  if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
-
-  if(anyNA(variable)) stop("You have some missing values, please address.")
-
-  if(length(variable) < 5){
-    return(data.table::data.table("Period" = 0, "Coefficient.of.Variation" = 0, "Variable.Coefficient.of.Variation" = 0, key = "Coefficient.of.Variation"))
+                     plot = TRUE) {
+  # API per NNS manual / Rd (arguments & defaults)  :contentReference[oaicite:3]{index=3}
+  # Coerce tbl/data.table to numeric vector (repo reference)  :contentReference[oaicite:4]{index=4}
+  if (any(class(variable) %in% c("tbl", "data.table"))) {
+    variable <- as.vector(unlist(variable, use.names = FALSE))
   }
-
-  if(is.null(modulo)) mod.only <- FALSE
-
-
-  variable_1 <- variable[1 : (length(variable) - 1)]
-  variable_2 <- variable_1[1 : (length(variable_1) - 1)]
-
-
-  output_2 <- output_1 <- output <- numeric(floor(length(variable) / 2)) 
-  instances_2 <- instances_1 <- instances <- numeric(floor(length(variable) / 2)) 
-
-  if(mean(variable) != 0){
-    var.cov <- abs(sd(variable) / mean(variable))
-  } else {
-    var.cov <- abs(acf(variable, lag.max = 1, plot = FALSE)$acf[2])^-1
+  if (!is.numeric(variable)) stop("Variable must be numeric")
+  if (anyNA(variable)) stop("You have some missing values, please address.")
+  if (any(is.infinite(variable))) stop("Infinite values not allowed")
+  
+  ans <- NNS_seas_cpp(
+    variable           = variable,
+    modulo             = if (is.null(modulo)) NULL else as.integer(modulo),
+    mod_only           = isTRUE(mod.only)
+  )
+  
+  # Plot (diagnostic)
+  if (isTRUE(plot)) {
+    M <- ans$all.periods
+    
+    # nothing to plot
+    if (is.null(M) || nrow(M) == 0L) return(ans)
+    
+    mean_var <- mean(variable)
+    if (mean_var != 0) {
+      overall_cv <- abs(stats::sd(variable) / mean_var)
+    } else {
+      # fallback carried back from C++
+      overall_cv <- M$`Variable.Coefficient.of.Variation`[1L]
+    }
+    overall_cv <- as.numeric(overall_cv)
+    
+    # Predictive strength in [0,1] with guards
+    n <- nrow(M)
+    if (is.finite(overall_cv) && overall_cv > 0) {
+      strength <- 1 - (M[["Coefficient.of.Variation"]] / overall_cv)
+      strength <- pmin(pmax(strength, 0), 1)
+      steel_pal <- grDevices::colorRampPalette(
+        c("steelblue1", "steelblue2", "steelblue3", "steelblue4"))
+      palette_ <- steel_pal(100L)
+      idx <- pmax(1L, as.integer(round(strength * 99L + 1L)))
+      point_colors <- palette_[idx]
+    } else {
+      point_colors <- rep("steelblue3", n)
+    }
+    
+    # y-limits: nonnegative and wide enough to show the reference line if finite
+    ymax <- if (is.finite(overall_cv) && overall_cv > 0) 2 * overall_cv else max(M[["Coefficient.of.Variation"]], 1)
+    ylim <- c(0, ymax)
+    
+    plot(M[["Period"]], M[["Coefficient.of.Variation"]],
+         xlab = "Period",
+         ylab = "Component Series CV",
+         main = "Seasonality Detection via Predictive Power\n(Lower CV = Tighter Distribution = More Predictable)",
+         ylim = ylim,
+         col = point_colors, pch = 19)
+    
+    # highlight best period (table is keyed ascending by CV)
+    points(M[["Period"]][1L], M[["Coefficient.of.Variation"]][1L],
+           pch = 19, col = "red", cex = 1.5)
+    
+    # Reference CV line and centered label (only when finite)
+    if (is.finite(overall_cv)) {
+      abline(h = overall_cv, col = "red", lty = 2)
+      usr <- graphics::par("usr")
+      xmid <- mean(usr[1:2])
+      graphics::text(xmid, overall_cv,
+                     labels = "Overall Series CV\n(Predictive Power Threshold)",
+                     adj = c(0.5, 0.5), col = "red", xpd = NA)
+    }
   }
-
-  for(i in 1 : floor(length(variable) / 2)){
-    reverse.var <- variable[seq(length(variable), 1, -i)]
-    reverse.var_1 <- variable_1[seq(length(variable_1), 1, -i)]
-    reverse.var_2 <- variable_2[seq(length(variable_2), 1, -i)]
-
-    if(mean(variable) != 0){
-        test <- abs(sd(reverse.var) / mean(reverse.var)); test <- ifelse(is.na(test), var.cov, test)
-        test_1 <- abs(sd(reverse.var_1) / mean(reverse.var_1)); test_1 <- ifelse(is.na(test_1), var.cov, test_1)
-        test_2 <- abs(sd(reverse.var_2) / mean(reverse.var_2)); test_2 <- ifelse(is.na(test_2), var.cov, test_2)
-    } else {
-        test <- abs(acf(reverse.var, lag.max = 1, plot = FALSE)$acf[2])^-1; test <- ifelse(is.na(test), var.cov, test)
-        test_1 <- abs(acf(reverse.var_1, lag.max = 1, plot = FALSE)$acf[2])^-1; test_1 <- ifelse(is.na(test_1), var.cov, test_1)
-        test_2 <- abs(acf(reverse.var_2, lag.max = 1, plot = FALSE)$acf[2])^-1; test_2 <- ifelse(is.na(test_2), var.cov, test_2)
-    }
-
-    if (test <= var.cov){
-      instances[i] <- i
-      output[i] <- test
-    } else {
-      instances[i] <- 0
-      output[i] <- 0
-    }
-
-    if (test_1 <= var.cov){
-      instances_1[i] <- i
-      output_1[i] <- test_1
-    } else {
-      instances_1[i] <- 0
-      output_1[i] <- 0
-    }
-
-    if (test_2 <= var.cov){
-      instances_2[i] <- i
-      output_2[i] <- test_2
-    } else {
-      instances_2[i] <- 0
-      output_2[i] <- 0
-    }
-  }
-
-  ref.output <- cbind(instances, output, output_1, output_2, output * output_1 * output_2 > 0)
-  output <- Rfast::rowmeans(ref.output[ , 2 : 4]) * ref.output[ , 5]
-
-  instances <- ref.output[ , 1] * ref.output[ , 5]
-
-  index <- which(instances > 0 & output > 0)
-
-  insts <- sum(instances > 0) > 0
-
-  if(insts){
-    n <- rep(var.cov, length(instances[index]))
-
-    M <- data.table::data.table("Period" = instances[index], "Coefficient.of.Variation" = output[index], "Variable.Coefficient.of.Variation" = n, key = "Coefficient.of.Variation")
-  } else {
-    M <- data.table::data.table("Period" = 1, "Coefficient.of.Variation" = var.cov, "Variable.Coefficient.of.Variation" = var.cov, key = "Coefficient.of.Variation")
-  }
-
-
-
-
-
-    if(!is.null(modulo)){
-        a <- M$Period
-        plus <- a+(modulo-a%%modulo)
-        minus <- a-a%%modulo
-
-        periods <- unique(c(rbind(minus,plus)))
-
-        if(mod.only){
-            periods <- c(periods[!is.na(periods) & periods>0])
-            mod_index <- which(unlist(M[, 1])%in%periods)
-        } else {
-            if(!1%in%unlist(M[,1])){
-                periods <- c(periods[!is.na(periods) & periods>0], 1)
-            } else {
-                periods <- c(periods[!is.na(periods) & periods>0])
-            }
-            mod_index <- seq_along(unlist(M[,1]))
-        }
-
-        periods <- unique(periods[!periods%in%unlist(M[, 1])])
-
-        mod_cv <- data.table::data.table(cbind(periods,
-                                   rep(M[1, 3], length(periods)),
-                                   rep(M[1, 3], length(periods))))
-
-        M <- data.table::rbindlist(list(M[mod_index, ], mod_cv), use.names = FALSE)
-    }
-
-    M <- M[Period < length(variable)/2,]
-
-    if(plot){
-        plot(unlist(M[, 1]), unlist(M[, 2]), xlab = "Period", ylab = "Coefficient of Variation", main = "Seasonality Test", ylim = c(0, 2 * abs(sd(variable) / mean(variable))))
-
-        points(unlist(M[, 1])[1], unlist(M[, 2])[1], pch = 19, col = 'red')
-
-        abline(h = abs(sd(variable) / mean(variable)), col = "red", lty = 5)
-        text(mean(unlist(M[, 1])), abs(sd(variable) / mean(variable)), pos = 3, "Variable Coefficient of Variation", col = 'red')
-    }
-
-    return(list("all.periods" = M,
-                "best.period" = unlist(M[1, 1]),
-                "periods" = as.vector(unlist(M[, 1]))))
-
+  
+  
+  # Return results
+  ans
 }
 
 

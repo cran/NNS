@@ -21,6 +21,10 @@ NNS_part_cpp <- function(x, y, type, order_in, obs_req, min_obs_stop, noise_redu
     .Call(`_NNS_NNS_part_cpp`, x, y, type, order_in, obs_req, min_obs_stop, noise_reduction)
 }
 
+NNS_seas_cpp <- function(variable, modulo = NULL, mod_only = TRUE) {
+    .Call(`_NNS_NNS_seas_cpp`, variable, modulo, mod_only)
+}
+
 sd_dom_matrix_prefix_parallel <- function(X, degree, type = "discrete") {
     .Call(`_NNS_sd_dom_matrix_prefix_parallel`, X, degree, type)
 }
@@ -41,7 +45,7 @@ NNS_TSD_uni_cpp <- function(x, y) {
     .Call(`_NNS_NNS_TSD_uni_cpp`, x, y)
 }
 
-NNS_gravity_cpp <- function(xSEXP, discrete = FALSE) {
+NNS_gravity_cpp <- function(xSEXP, discrete) {
     .Call(`_NNS_NNS_gravity_cpp`, xSEXP, discrete)
 }
 
@@ -49,7 +53,7 @@ NNS_rescale_cpp <- function(xSEXP, a, b, method = "minmax", T_ = NULL, type = "T
     .Call(`_NNS_NNS_rescale_cpp`, xSEXP, a, b, method, T_, type)
 }
 
-NNS_mode_cpp <- function(xSEXP, discrete = FALSE, multi = TRUE) {
+NNS_mode_cpp <- function(xSEXP, discrete, multi) {
     .Call(`_NNS_NNS_mode_cpp`, xSEXP, discrete, multi)
 }
 
