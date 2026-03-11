@@ -209,30 +209,13 @@ NumericVector UPM_RCPP(const double &degree,
  }
 
 
-//' @name Co.LPM
-//' @title Co‑Lower Partial Moment
-//' @description
-//'   Computes the co‑lower partial moment (lower‑left quadrant 4) between two
-//'   equal‑length numeric vectors at any degree and target.
-//' @param degree_lpm numeric; degree = 0 gives frequency, degree = 1 gives area.
-//' @param x numeric vector of observations.
-//' @param y numeric vector of the same length as x.
-//' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-//' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
-//' @return Numeric vector of co‑LPM values.
-//' @author Fred Viole, OVVO Financial Systems
-//' @references
-//'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
-//' @examples
-//'   set.seed(123)
-//'   x <- rnorm(100); y <- rnorm(100)
-//'   Co.LPM(0, x, y, mean(x), mean(y))
-//' @export
-// [[Rcpp::export("Co.LPM", rng = false)]]
- NumericVector CoLPM_RCPP(
-     const double &degree_lpm, 
-     const RObject &x, const RObject &y, 
-     const RObject &target_x, const RObject &target_y
+
+// [[Rcpp::export(rng = false)]]
+NumericVector CoLPM_RCPP(
+     const double &degree_lpm,
+     const RObject &x, const RObject &y,
+     const RObject &target_x, const RObject &target_y,
+     const double &degree_y
  ) {
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
@@ -257,34 +240,17 @@ NumericVector UPM_RCPP(const double &degree,
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
-   return CoLPM_CPv(degree_lpm, x_vec, y_vec, target_x_vec, target_y_vec);
+   return CoLPM_CPv(degree_lpm, degree_y, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
 
-//' @name Co.UPM
-//' @title Co‑Upper Partial Moment
-//' @description
-//'   Computes the co‑upper partial moment (upper‑right quadrant 1) between two
-//'   equal‑length numeric vectors at any degree and target.
-//' @param degree_upm numeric; degree = 0 gives frequency, degree = 1 gives area.
-//' @param x numeric vector of observations.
-//' @param y numeric vector of the same length as x.
-//' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-//' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
-//' @return Numeric vector of co‑UPM values.
-//' @author Fred Viole, OVVO Financial Systems
-//' @references
-//'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
-//' @examples
-//'   set.seed(123)
-//'   x <- rnorm(100); y <- rnorm(100)
-//'   Co.UPM(0, x, y, mean(x), mean(y))
-//' @export
-// [[Rcpp::export("Co.UPM", rng = false)]]
- NumericVector CoUPM_RCPP(
-     const double &degree_upm, 
-     const RObject &x, const RObject &y, 
-     const RObject &target_x, const RObject &target_y
+
+// [[Rcpp::export(rng = false)]]
+NumericVector CoUPM_RCPP(
+     const double &degree_upm,
+     const RObject &x, const RObject &y,
+     const RObject &target_x, const RObject &target_y,
+     const double &degree_y
  ) {
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
@@ -309,7 +275,7 @@ NumericVector UPM_RCPP(const double &degree,
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
-   return CoUPM_CPv(degree_upm, x_vec, y_vec, target_x_vec, target_y_vec);
+   return CoUPM_CPv(degree_upm, degree_y, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
 

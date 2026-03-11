@@ -436,15 +436,89 @@ NNS.moments <- function(x, population = TRUE){
 #' @param target numeric vector; thresholds for each column (defaults to colMeans).
 #' @param variable numeric matrix or data.frame.
 #' @param pop_adj logical; TRUE adjusts population vs. sample moments.
-#' @param norm logical; default FALSE. If TRUE, each quadrant matrix is cell-wise normalized so their sum is 1 at each (i,j).
+#' @param norm logical; default FALSE. If TRUE, each quadrant matrix is cell-wise normalized so their sum is 1 at each (i,j).  
 #' @return A list: $cupm, $dupm, $dlpm, $clpm, $cov.matrix.
+#' @note When \code{norm = TRUE}, each cell (i,j) of the four quadrant matrices
+#' is normalized so that their sum equals 1.  In this case, 
+#' \code{$cov.matrix} is computed as 
+#' \code{$cupm + $clpm - $dupm - $dlpm}, yielding a dimensionless,
+#' signed dependence measure bounded between -1 and 1.
+#' This representation discards magnitude information and is therefore
+#' a lossy nonlinear correlation matrix.  A higher fidelity nonlinear
+#' correlation matrix is available via the \code{NNS.dep} function.
 #' @examples
 #' set.seed(123)
 #' A <- cbind(rnorm(100), rnorm(100), rnorm(100))
-#' PM.matrix(1, 1, NULL, A, TRUE)          # uses norm = FALSE by default
-#' PM.matrix(1, 1, NULL, A, TRUE, TRUE)    # enable normalization
+#' 
+#' # Uses norm = FALSE by default
+#' PM.matrix(1, 1, target = NULL, variable = A, pop_adj = TRUE)
+#' 
+#' # Enable normalization
+#' PM.matrix(1, 1, target = NULL, variable = A, pop_adj = TRUE, norm = TRUE)
+#' 
+#' # Use 0's for targets
+#' PM.matrix(1, 1, target = rep(0, ncol(A)), variable = A, pop_adj = TRUE)        
+#' 
+#' # Use variable medians as targets
+#' PM.matrix(1, 1, target = apply(A, 2, "median"), variable = A, pop_adj = TRUE)  
 #' @export
 PM.matrix <- function(LPM_degree, UPM_degree, target, variable, pop_adj, norm = FALSE) {
   .Call(`_NNS_PMMatrix_RCPP`, LPM_degree, UPM_degree, target, variable, pop_adj, norm)
 }
 
+#' @name Co.LPM
+#' @title Co‑Lower Partial Moment
+#' @description
+#'   Computes the co‑lower partial moment (lower‑left quadrant 4) between two
+#'   equal‑length numeric vectors at any degree and target.
+#' @param degree_lpm numeric; degree for x ("degree_x"). degree = 0 gives frequency, degree = 1 gives area.
+#' @param x numeric vector of observations.
+#' @param y numeric vector of the same length as x.
+#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
+#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+#' @param degree_y numeric; optional degree for y. If omitted, `degree_lpm` is
+#'   used for both x and y.
+#' @return Numeric vector of co‑LPM values.
+#' @author Fred Viole, OVVO Financial Systems
+#' @references
+#'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
+#' @examples
+#'   set.seed(123)
+#'   x <- rnorm(100); y <- rnorm(100)
+#'   Co.LPM(0, x, y, mean(x), mean(y))
+#' @export
+Co.LPM <- function(degree_lpm, x, y, target_x, target_y, degree_y = NULL) {
+  if (is.null(degree_y)) {
+    degree_y <- degree_lpm
+  }
+  .Call(`_NNS_CoLPM_RCPP`, degree_lpm, x, y, target_x, target_y, degree_y)
+}
+
+
+#' @name Co.UPM
+#' @title Co‑Upper Partial Moment
+#' @description
+#'   Computes the co‑upper partial moment (upper‑right quadrant 1) between two
+#'   equal‑length numeric vectors at any degree and target.
+#' @param degree_upm numeric; degree for x ("degree_x"). degree = 0 gives frequency, degree = 1 gives area.
+#' @param x numeric vector of observations.
+#' @param y numeric vector of the same length as x.
+#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
+#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+#' @param degree_y numeric; optional degree for y. If omitted, `degree_upm` is
+#'   used for both x and y.
+#' @return Numeric vector of co‑UPM values.
+#' @author Fred Viole, OVVO Financial Systems
+#' @references
+#'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
+#' @examples
+#'   set.seed(123)
+#'   x <- rnorm(100); y <- rnorm(100)
+#'   Co.UPM(0, x, y, mean(x), mean(y))
+#' @export
+Co.UPM <- function(degree_upm, x, y, target_x, target_y, degree_y = NULL) {
+  if (is.null(degree_y)) {
+    degree_y <- degree_upm
+  }
+  .Call(`_NNS_CoUPM_RCPP`, degree_upm, x, y, target_x, target_y, degree_y)
+}

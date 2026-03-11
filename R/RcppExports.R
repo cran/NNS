@@ -93,8 +93,8 @@ ARMA.seas.weighting <- function(sf, mat) {
     .Call(`_NNS_ARMA_seas_weighting`, sf, mat)
 }
 
-NNS.meboot.part <- function(x, n, z, xmin, xmax, desintxb, reachbnd) {
-    .Call(`_NNS_NNS_meboot_part`, x, n, z, xmin, xmax, desintxb, reachbnd)
+NNS.meboot.part <- function(xx, n, z, xmin, xmax, desintxb, reachbnd) {
+    .Call(`_NNS_NNS_meboot_part`, xx, n, z, xmin, xmax, desintxb, reachbnd)
 }
 
 NNS.meboot.expand.sd <- function(x, ensemble, fiv = 5.0) {
@@ -192,50 +192,12 @@ UPM.ratio <- function(degree, target, variable) {
     .Call(`_NNS_UPM_ratio_RCPP`, degree, target, variable)
 }
 
-#' @name Co.LPM
-#' @title Co‑Lower Partial Moment
-#' @description
-#'   Computes the co‑lower partial moment (lower‑left quadrant 4) between two
-#'   equal‑length numeric vectors at any degree and target.
-#' @param degree_lpm numeric; degree = 0 gives frequency, degree = 1 gives area.
-#' @param x numeric vector of observations.
-#' @param y numeric vector of the same length as x.
-#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
-#' @return Numeric vector of co‑LPM values.
-#' @author Fred Viole, OVVO Financial Systems
-#' @references
-#'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
-#' @examples
-#'   set.seed(123)
-#'   x <- rnorm(100); y <- rnorm(100)
-#'   Co.LPM(0, x, y, mean(x), mean(y))
-#' @export
-Co.LPM <- function(degree_lpm, x, y, target_x, target_y) {
-    .Call(`_NNS_CoLPM_RCPP`, degree_lpm, x, y, target_x, target_y)
+CoLPM_RCPP <- function(degree_lpm, x, y, target_x, target_y, degree_y) {
+    .Call(`_NNS_CoLPM_RCPP`, degree_lpm, x, y, target_x, target_y, degree_y)
 }
 
-#' @name Co.UPM
-#' @title Co‑Upper Partial Moment
-#' @description
-#'   Computes the co‑upper partial moment (upper‑right quadrant 1) between two
-#'   equal‑length numeric vectors at any degree and target.
-#' @param degree_upm numeric; degree = 0 gives frequency, degree = 1 gives area.
-#' @param x numeric vector of observations.
-#' @param y numeric vector of the same length as x.
-#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
-#' @return Numeric vector of co‑UPM values.
-#' @author Fred Viole, OVVO Financial Systems
-#' @references
-#'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
-#' @examples
-#'   set.seed(123)
-#'   x <- rnorm(100); y <- rnorm(100)
-#'   Co.UPM(0, x, y, mean(x), mean(y))
-#' @export
-Co.UPM <- function(degree_upm, x, y, target_x, target_y) {
-    .Call(`_NNS_CoUPM_RCPP`, degree_upm, x, y, target_x, target_y)
+CoUPM_RCPP <- function(degree_upm, x, y, target_x, target_y, degree_y) {
+    .Call(`_NNS_CoUPM_RCPP`, degree_upm, x, y, target_x, target_y, degree_y)
 }
 
 #' @name D.LPM
