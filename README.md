@@ -3,12 +3,12 @@
 
 
 
-[![packageversion](https://img.shields.io/badge/NNS%20version-11.6.5-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![packageversion](https://img.shields.io/badge/NNS%20version-12.0-blue.svg?style=flat-square)](https://github.com/OVVO-Financial/NNS/commits/NNS-Beta-Version)   [![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 <h2 style="margin: 0; padding: 0; border: none; height: 40px;"></h2>
 
 # NNS
-NNS (Nonlinear Nonparametric Statistics) leverages partial moments – the fundamental [elements of variance](https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/Partial%20Moments%20Equivalences.md) that asymptotically approximate the area under f(x) – to provide a robust foundation for nonlinear analysis while maintaining linear equivalences.
+NNS (Nonlinear Nonparametric Statistics) leverages partial moments – the fundamental [elements of variance](https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/Partial%20Moments%20Equivalences.md) that [asymptotically approximate the area of f(x)](https://ovvo-financial.github.io/NNS/book/numerical-integration-via-partial-moments.html) – to provide a robust foundation for nonlinear analysis while maintaining linear equivalences.  Designed for real-world data that violates symmetry, linearity, or distributional assumptions.
 
 NNS delivers a comprehensive suite of advanced statistical techniques, including:
   - Numerical Integration & Numerical Differentiation
@@ -19,15 +19,17 @@ NNS delivers a comprehensive suite of advanced statistical techniques, including
   - ANOVA
   - Seasonality & Autoregressive Modeling
   - Normalization 
-  - Stochastic Dominance
+  - Stochastic Superiority / Dominance
   - Advanced Monte Carlo Sampling
 
 
 Companion R-package and datasets to: 
 #### Viole, F. and Nawrocki, D. (2013) "*Nonlinear Nonparametric Statistics: Using Partial Moments*" (ISBN: 1490523995)
 
+2nd edition available here: https://ovvo-financial.github.io/NNS/book/
 
-#### For a quantitative finance implementation of NNS, see [OVVO Labs](https://www.ovvolabs.com)
+
+#### For a direct quantitative finance implementation of NNS, see [OVVO Labs](https://www.ovvolabs.com)
 
 
 ## Current Version
@@ -54,7 +56,7 @@ Please see https://github.com/OVVO-Financial/NNS/blob/NNS-Beta-Version/examples/
     title = {NNS: Nonlinear Nonparametric Statistics},
     author = {Fred Viole},
     year = {2016},
-    note = {R package version 11.6.5},
+    note = {R package version 12.0},
     url = {https://CRAN.R-project.org/package=NNS},
   }
 ```

@@ -9,11 +9,16 @@ LPM(degree, target, variable, excess_ret = FALSE)
 \arguments{
 \item{degree}{numeric; \code{(degree = 0)} is frequency, \code{(degree = 1)} is area.}
 
-\item{target}{numeric; Set to \code{target = mean(variable)} for classical equivalences, but does not have to be. (Vectorized)}
+\item{target}{numeric; Set to \code{target = mean(variable)} for classical equivalences, but does not have to be.
+When \code{excess_ret = FALSE}, this can be a scalar or a vectorized target for the standard partial moment calculation.
+When \code{excess_ret = TRUE}, it is interpreted element-wise as the benchmark/threshold relative to \code{variable}.}
 
-\item{variable}{a numeric vector.   \link{data.frame} or \link{list} type objects are not permissible.}
+\item{variable}{a numeric vector. \link{data.frame} or \link{list} type objects are not permissible.}
 
-\item{excess_ret}{logical; \code{FALSE} (default)}
+\item{excess_ret}{logical; \code{FALSE} (default). If \code{TRUE}, switches from the standard vectorized-target
+partial moment to an element-wise excess-deviation calculation. For \code{LPM}, this computes
+\code{pmax(target - variable, 0)} raised to \code{degree} and averaged. In this mode, \code{target}
+must have length 1 or the same length as \code{variable}.}
 }
 \value{
 LPM of variable
@@ -27,7 +32,7 @@ x <- rnorm(100)
 LPM(0, mean(x), x)
 }
 \references{
-Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995)
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995, 2nd edition: \url{https://ovvo-financial.github.io/NNS/book/})
 }
 \author{
 Fred Viole, OVVO Financial Systems

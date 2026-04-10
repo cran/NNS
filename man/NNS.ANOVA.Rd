@@ -45,9 +45,9 @@ Returns a list containing:
   \item \code{Treatment_CDF}: CDF value at grand statistic (treatment)
   \item \code{Certainty}: Probability that the groups are the \emph{same}
         (means-only or full distribution depending on \code{means.only}).
-  \item \code{Effect_Size_LB}: Lower bound of treatment effect (if CI requested)
-  \item \code{Effect_Size_UB}: Upper bound of treatment effect (if CI requested)
-  \item \code{Confidence_Level}: Confidence level used (if CI requested)
+  \item \code{Effect_Size_LB}: Lower bound of treatment effect (if confidence.interval requested)
+  \item \code{Effect_Size_UB}: Upper bound of treatment effect (if confidence.interval requested)
+  \item \code{Confidence_Level}: Confidence level used (if confidence.interval requested)
 }
 }
 \description{
@@ -98,7 +98,7 @@ NNS.ANOVA(A)
 }
 }
 \references{
-Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995)
+Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995, 2nd edition: \url{https://ovvo-financial.github.io/NNS/book/})
 
 Viole, F. (2017) "Continuous CDFs and ANOVA with NNS"  \doi{10.2139/ssrn.3007373}
 }
