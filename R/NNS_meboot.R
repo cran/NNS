@@ -4,7 +4,7 @@
 #'
 #' @param x vector of data.
 #' @param reps numeric; number of replicates to generate.
-#' @param rho numeric [-1,1] (vectorized); A \code{rho} must be provided, otherwise a blank list will be returned.
+#' @param rho numeric [-1,1] (vectorized); A \code{rho} must be provided, otherwise a blank list will be returned.  The dependence target is applied to each individual \code{replicate} (every replicate is mixed to the requested dependence with the original series); it is \strong{not} applied to the \code{ensemble}.  See \code{Note}.
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
 #' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
 #' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
@@ -30,7 +30,7 @@
 #' \itemize{
 #'   \item{x} original data provided as input.
 #' \item{replicates} maximum entropy bootstrap replicates.
-#' \item{ensemble} average observation over all replicates.
+#' \item{ensemble} average observation over all replicates.  Being a per-observation mean it is a central summary, not a single series carrying the target dependence; a rank or linear correlation taken directly on the \code{ensemble} tends to read higher than \code{rho} (averaging amplifies the shared order), so assess \code{rho} on the \code{replicates}.
 #' \item{xx} sorted order stats (xx[1] is minimum value).
 #' \item{z} class intervals limits.
 #' \item{dv} deviations of consecutive data values.
@@ -44,6 +44,8 @@
 #' }
 #' 
 #' @note Vectorized \code{rho} and \code{drift} parameters will not vectorize both simultaneously.  Also, do not specify \code{target_drift = NULL}.
+#'
+#' @note The \code{rho} dependence alignment is calibrated on each individual \code{replicate}: every replicate is mixed so that its dependence on the original series matches \code{rho}, in the metric implied by \code{type}.  Assess a result in that \strong{same} metric -- a \code{"NNSdep"} target with \link{NNS.dep}\code{$Dependence} (unsigned) and a \code{"spearman"}/\code{"pearson"} target with rank/linear correlation -- because a signed correlation taken on an unsigned \code{"NNSdep"} target is not comparable to \code{rho} (it can even read negative while the dependence target is met).  Separately, the \code{ensemble} is the per-observation mean of the replicates -- a central summary, not a single series carrying the target dependence -- so a rank or linear correlation computed directly on the \code{ensemble} tends to read higher than the per-replicate \code{rho} (averaging amplifies the shared order).  Verify \code{rho} on the \code{replicates}, in the metric implied by \code{type}, rather than on the \code{ensemble}.
 #'
 #' @references
 #' \itemize{
@@ -162,47 +164,82 @@ NNS.meboot <- function(x,
   aux <- colSums(t(cbind(xx[-c(1,2)], xx[-c(1,n)], xx[-c((n-1),n)])) * c(0.25, 0.5, 0.25))
   desintxb <- c(0.75*xx[1] + 0.25*xx[2], aux, 0.25*xx[n-1] + 0.75*xx[n])
   
-  # Quantile draws from max-entropy bootstrap IN RESIDUAL SPACE
-  res_mat <- matrix(rr, nrow = n, ncol = reps)
-  res_mat <- apply(
-    res_mat,
-    2,
-    function(col) {
-      NNS.meboot.part(xx, n, z, xmin, xmax, desintxb, reachbnd)
-    }
+  # Quantile draws from max-entropy bootstrap IN RESIDUAL SPACE.
+  # Each replicate column is an independent draw (the per-column input is not
+  # used), so build the n x reps matrix directly with replicate() instead of
+  # allocating matrix(rr, n, reps) only to overwrite it column-by-column. The
+  # number and order of NNS.meboot.part() calls is unchanged, so the RNG stream
+  # (and result) is identical.
+  res_mat <- replicate(
+    reps,
+    NNS.meboot.part(xx, n, z, xmin, xmax, desintxb, reachbnd)
   )
+  if (is.null(dim(res_mat))) dim(res_mat) <- c(n, reps)
   qseq <- apply(res_mat, 2, sort)
   res_mat[ordxx, ] <- qseq
   
   # ===== Optional dependence targeting ρ in residual space (per replicate, time-aligned) =====
+  # Each replicate column is mixed as a convex combination comb = t*m + (1-t)*e
+  # of its anti-aligned (m) and aligned (e) reorderings, with the single weight
+  # t in [0, 1] chosen so comb's dependence on the original residuals matches the
+  # target rho. This mirrors the Python port (src/nns/meboot.py::_target_rho):
+  #   * one bounded 1-D solve via optimize() instead of a 2-D optim() search, and
+  #   * a closed-form correlation (centered dot product / norms) with the target
+  #     precomputed once, so no length-n vector is re-allocated per evaluation.
+  # The two ports thus use the same algorithm (results still differ by RNG).
   if (!is.null(rho)) {
     rho_vec <- if (length(rho) == 1L) rep(rho, reps) else rep_len(rho, reps)
-    
-    # Ranks of original residuals for aligned vs anti-aligned extremes
+
+    # Ranks of original residuals for aligned vs anti-aligned extremes. Average
+    # ranks can be fractional under ties; floor + clamp to valid 1..n indices
+    # (matching base R's integer truncation when indexing with a double).
     r_o    <- rank(orig_res, ties.method = "average")
     r_anti <- max(r_o) + 1 - r_o
-    
+    r_o_idx    <- pmin(pmax(as.integer(floor(r_o)),    1L), n)
+    r_anti_idx <- pmin(pmax(as.integer(floor(r_anti)), 1L), n)
+
+    # Correlation target, centered and normed ONCE. For Spearman the target is
+    # the ranks of the residuals; otherwise the residuals themselves.
+    use_spearman  <- type == "spearman"
+    use_corr_path <- type %in% c("spearman", "pearson")
+    target_values   <- if (use_spearman) r_o else orig_res
+    target_centered <- target_values - mean(target_values)
+    target_norm     <- sqrt(sum(target_centered^2))
+    if (target_norm == 0 || !is.finite(target_norm))
+      stop("function cannot be evaluated at initial parameters")
+
+    # Closed-form Pearson/Spearman correlation of a candidate vector against the
+    # precomputed target. No allocation beyond the (unavoidable) centered copy.
+    fast_corr <- function(v) {
+      xv <- if (use_spearman) rank(v, ties.method = "average") else v
+      xc <- xv - mean(xv)
+      xn <- sqrt(sum(xc * xc))
+      if (xn == 0) return(NA_real_)
+      sum(xc * target_centered) / (xn * target_norm)
+    }
+
     for (i in 1:reps) {
-      # start from each residual replicate column
-      res_i      <- res_mat[, i]
-      res_sorted <- sort(res_i)
-      e <- res_sorted[r_o]     # aligned with ranks of orig_res
-      m <- res_sorted[r_anti]  # anti-aligned
-      
+      res_sorted <- sort(res_mat[, i])
+      e <- res_sorted[r_o_idx]     # aligned with ranks of orig_res
+      m <- res_sorted[r_anti_idx]  # anti-aligned
+
       rho_target <- rho_vec[i]
-      obj <- function(ab){
-        a <- ab[1]; b <- ab[2]
-        comb <- (a*m + b*e) / (a + b)
-        if (type %in% c("spearman","pearson")) {
-          abs(cor(comb, orig_res, method = type) - rho_target)
+      obj <- function(t) {
+        comb <- t * m + (1 - t) * e
+        corr <- if (use_corr_path) {
+          fast_corr(comb)
         } else if (type == "nnsdep") {
-          abs(NNS.dep(comb, orig_res)$Dependence - rho_target)   
+          NNS.dep(comb, orig_res)$Dependence
         } else {
-          abs(NNS.dep(comb, orig_res)$Correlation - rho_target)
+          NNS.dep(comb, orig_res)$Correlation
         }
+        if (!is.finite(corr)) return(Inf)
+        abs(corr - rho_target)
       }
-      opt <- optim(c(0.5, 0.5), obj, control = list(abstol = 0.01))
-      res_mat[, i] <- (opt$par[1]*m + opt$par[2]*e) / sum(abs(opt$par))
+
+      opt <- optimize(obj, interval = c(0, 1), tol = 0.01)
+      t_hat <- opt$minimum
+      res_mat[, i] <- t_hat * m + (1 - t_hat) * e
     }
   }
   
@@ -210,7 +247,9 @@ NNS.meboot <- function(x,
   res_mat <- NNS.meboot.expand.sd(x = orig_res, ensemble = res_mat, ...) 
   
   # ===== Reconstruct levels: baseline + residuals =====
-  ensemble <- sweep(res_mat, 1, baseline, "+")
+  # baseline has length n (= nrow); column-major recycling adds it down each
+  # column, identical to sweep(MARGIN = 1) but without aperm/array copies.
+  ensemble <- res_mat + baseline
   
   # Keep legacy “identical(ordxx_2, ordxx)” reshuffle 
   if (identical(ordxx_2, ordxx)) {
@@ -239,9 +278,13 @@ NNS.meboot <- function(x,
     ensemble <- ensemble + kappa * (ensemble - xb)
   } else kappa <- NULL
   
-  # Enforce min / max if provided
-  if (!is.null(trim[[2]])) ensemble <- apply(ensemble, 2, function(z) pmax(trim[[2]], z))
-  if (!is.null(trim[[3]])) ensemble <- apply(ensemble, 2, function(z) pmin(trim[[3]], z))
+  # Enforce min / max if provided. pmax/pmin recycle the scalar bound across the
+  # whole matrix elementwise, replacing the previous per-column apply(). Assign
+  # in place (ensemble[]) so the matrix dim/dimnames are preserved: pmax/pmin
+  # copy attributes from their FIRST argument, so pmax(scalar, matrix) would
+  # silently drop the dim and break the later dimnames() assignment.
+  if (!is.null(trim[[2]])) ensemble[] <- pmax(ensemble, trim[[2]])
+  if (!is.null(trim[[3]])) ensemble[] <- pmin(ensemble, trim[[3]])
   
   # ts attributes
   if (is.ts(x)) {
@@ -253,11 +296,11 @@ NNS.meboot <- function(x,
   
   final <- list(x = x,
                 replicates = round(ensemble, digits = digits),
-                ensemble = Rfast::rowmeans(ensemble),
+                ensemble = rowMeans(ensemble),
                 xx = xx, z = z, dv = dv, dvtrim = dvtrim,
                 xmin = xmin, xmax = xmax, desintxb = desintxb,
                 ordxx = ordxx, kappa = kappa)
-  return(final)
+  return(.NNS.out(final))
 }
 
 NNS.meboot <- Vectorize(NNS.meboot,

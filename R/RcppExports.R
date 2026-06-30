@@ -25,8 +25,12 @@ NNS_distance_path_parallel_cpp <- function(RPM, yhat, Xtest, kmax, is_class, nth
     .Call(`_NNS_NNS_distance_path_parallel_cpp`, RPM, yhat, Xtest, kmax, is_class, nthreads)
 }
 
-NNS_part_cpp <- function(x, y, type, order_in, obs_req, min_obs_stop, noise_reduction) {
-    .Call(`_NNS_NNS_part_cpp`, x, y, type, order_in, obs_req, min_obs_stop, noise_reduction)
+NNS_distance_path_single_parallel_cpp <- function(RPM, yhat, Xtest, k, is_class, nthreads = -1L) {
+    .Call(`_NNS_NNS_distance_path_single_parallel_cpp`, RPM, yhat, Xtest, k, is_class, nthreads)
+}
+
+NNS_part_cpp <- function(x, y, type, order_in, obs_req, min_obs_stop, noise_reduction, quadrants_only = FALSE) {
+    .Call(`_NNS_NNS_part_cpp`, x, y, type, order_in, obs_req, min_obs_stop, noise_reduction, quadrants_only)
 }
 
 NNS_seas_cpp <- function(variable, modulo = NULL, mod_only = TRUE) {
@@ -89,8 +93,8 @@ factor_2_dummy_FR <- function(x) {
     .Call(`_NNS_factor_2_dummy_FR`, x)
 }
 
-generate.vectors <- function(x, l) {
-    .Call(`_NNS_generate_vectors`, x, l)
+generate.vectors <- function(x, l, len = -1L) {
+    .Call(`_NNS_generate_vectors`, x, l, len)
 }
 
 generate.lin.vectors <- function(x, l, h = 1L) {
@@ -121,12 +125,24 @@ upSample <- function(x, y, list = FALSE, yname = "Class") {
     .Call(`_NNS_upSample`, x, y, list, yname)
 }
 
+NNS_reg_points_cpp <- function(x_, y_, rpx_, rpy_, dependence, stn) {
+    .Call(`_NNS_NNS_reg_points_cpp`, x_, y_, rpx_, rpy_, dependence, stn)
+}
+
+CoLPM_nD_batch_RCPP <- function(data, targets, degree = 0.0, norm = TRUE) {
+    .Call(`_NNS_CoLPM_nD_batch_RCPP`, data, targets, degree, norm)
+}
+
 LPM_CPv <- function(degree, target, variable) {
     .Call(`_NNS_LPM_CPv`, degree, target, variable)
 }
 
 UPM_CPv <- function(degree, target, variable) {
     .Call(`_NNS_UPM_CPv`, degree, target, variable)
+}
+
+PMMatrix_CPv <- function(LPM_degree, UPM_degree, target, variable, pop_adj, norm) {
+    .Call(`_NNS_PMMatrix_CPv`, LPM_degree, UPM_degree, target, variable, pop_adj, norm)
 }
 
 CoLPM_nD_RCPP <- function(data, target, degree, norm) {
@@ -266,5 +282,9 @@ NNS_bin <- function(x, width, origin = 0, missinglast = FALSE) {
 
 stoch_superiority_cpp <- function(x, y) {
     .Call(`_NNS_stoch_superiority_cpp`, x, y)
+}
+
+NNS_mreg_reduce_cpp <- function(X, dv, ids, reducer, class_mode) {
+    .Call(`_NNS_NNS_mreg_reduce_cpp`, X, dv, ids, reducer, class_mode)
 }
 

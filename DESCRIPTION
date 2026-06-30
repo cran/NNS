@@ -1,11 +1,12 @@
 Package: NNS
 Type: Package
 Title: Nonlinear Nonparametric Statistics
-Version: 12.1
-Date: 2026-06-04
+Version: 13.0
+Date: 2026-06-30
 Authors@R: c(
   person("Fred", "Viole", role=c("aut","cre"), email="ovvo.open.source@gmail.com"),
-  person("Roberto", "Spadim", role=c("ctb"))
+  person("Roberto", "Spadim", role="ctb"),
+  person("Rasheed", "Khoshnaw", role ="ctb")
   )
 Maintainer: Fred Viole <ovvo.open.source@gmail.com>
 Description: NNS (Nonlinear Nonparametric Statistics) leverages partial moments – the fundamental elements of variance that asymptotically approximate the area under f(x) – to provide a robust foundation for nonlinear analysis while maintaining linear equivalences.  Designed for real-world data that violates symmetry, linearity, or distributional assumptions, NNS delivers a comprehensive suite of advanced statistical techniques, including: Numerical integration, Numerical differentiation, Clustering, Correlation, Dependence, Causal analysis, ANOVA, Regression, Classification, Seasonality, Autoregressive modeling, Normalization, Stochastic superiority / dominance and Advanced Monte Carlo sampling.  All routines based on: Viole, F. and Nawrocki, D. (2013), Nonlinear Nonparametric Statistics: Using Partial Moments (ISBN: 1490523995, Second edition: <https://ovvo-financial.github.io/NNS/book/>).
@@ -13,9 +14,8 @@ BugReports: https://github.com/OVVO-Financial/NNS/issues
 License: GPL-3
 URL: https://github.com/OVVO-Financial/NNS
 Depends: R (>= 3.6.0)
-Imports: data.table, doParallel, foreach, Rcpp, RcppParallel, Rfast,
-        rgl, xts, zoo
-Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+Imports: Rcpp, RcppParallel
+Suggests: knitr, rgl, rmarkdown, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 LinkingTo: Rcpp, RcppParallel
 SystemRequirements: GNU make
@@ -23,8 +23,9 @@ Config/testthat/edition: 3
 RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2026-06-04 16:54:27 UTC; fredv
+Packaged: 2026-06-30 15:04:30 UTC; fredv
 Author: Fred Viole [aut, cre],
-  Roberto Spadim [ctb]
+  Roberto Spadim [ctb],
+  Rasheed Khoshnaw [ctb]
 Repository: CRAN
-Date/Publication: 2026-06-05 14:50:11 UTC
+Date/Publication: 2026-06-30 17:50:14 UTC

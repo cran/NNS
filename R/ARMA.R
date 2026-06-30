@@ -81,8 +81,10 @@ NNS.ARMA <- function(variable,
   options(warn = -1)
   
   if(!is.null(best.periods) && !is.numeric(seasonal.factor)) seasonal.factor <- FALSE
-  mc <- match.call()
-  label <- deparse(mc$variable)
+  # label is only used for plot axis titles; deparse(match.call()) is otherwise
+  # pure per-call overhead (NNS.ARMA.optim calls NNS.ARMA hundreds of times with
+  # plot = FALSE).  Defer it to the plotting branch.
+  label <- if (isTRUE(plot)) deparse(match.call()$variable) else NULL
   variable <- as.numeric(variable)
   OV <- variable
   
@@ -107,13 +109,17 @@ NNS.ARMA <- function(variable,
     lag <- seasonal.factor
     output <- numeric(length(seasonal.factor))
     for(i in 1 : length(seasonal.factor)){
-      rev.var <- variable[seq(length(variable), 1, -i)]
+      rev.var <- variable[seq(length(variable), 1, -seasonal.factor[i])]
       output[i] <- abs(sd(rev.var) / mean(rev.var))
     }
     
     if(is.null(weights)){
       Relative.seasonal <- output / abs(sd(variable)/mean(variable))
-      Seasonal.weighting <- 1 / Relative.seasonal
+      # Floor the CV ratio: a perfectly stable lag-subsample (CV 0) in an otherwise-
+      # varying series gives Relative.seasonal 0 -> 1/0 = Inf -> Inf/Inf = NaN in the
+      # normalisation below, silently poisoning the forecast.  pmax keeps a fully
+      # constant series (Relative.seasonal NaN) propagating NaN, matching prior behaviour.
+      Seasonal.weighting <- 1 / pmax(Relative.seasonal, .Machine$double.eps)
       Observation.weighting <- 1 / sqrt(seasonal.factor)
       Weights <- (Seasonal.weighting * Observation.weighting) / sum(Observation.weighting * Seasonal.weighting)
       seasonal.plot <- FALSE
@@ -219,17 +225,18 @@ NNS.ARMA <- function(variable,
           x <- Component.index[[i]]
           y <- Component.series[[i]]
           
-          last.y <- tail(y, 1)
+          last.y <- y[length(y)]
           
           reg.points <- NNS.reg(x, y, return.values = FALSE, plot = FALSE, multivariate.call = TRUE)
           
           reg.points <- reg.points[complete.cases(reg.points), ]
           
-          xs <- tail(reg.points$x, 1) - reg.points$x
-          ys <- tail(reg.points$y, 1) - reg.points$y
+          rpx <- reg.points$x; rpy <- reg.points$y
+          xs <- rpx[length(rpx)] - rpx
+          ys <- rpy[length(rpy)] - rpy
           
-          xs <- head(xs, -1)
-          ys <- head(ys, -1)
+          xs <- xs[-length(xs)]
+          ys <- ys[-length(ys)]
           
           run <- mean(rep(xs, (1:length(xs))^2))
           rise <- mean(rep(ys, (1:length(ys))^2))
@@ -243,8 +250,9 @@ NNS.ARMA <- function(variable,
       
       if ((method %in% c("lin", "both", "means")) || is.numeric(pred.int)) {
         Lin.Regression.Estimates <- sapply(seq_along(lag), function(i) {
-          last.x <- tail(Component.index[[i]], 1)
-          lin.reg <- fast_lm(Component.index[[i]], Component.series[[i]])
+          ci <- Component.index[[i]]
+          last.x <- ci[length(ci)]
+          lin.reg <- fast_lm(ci, Component.series[[i]])
           coefs <- lin.reg$coef
           return(as.numeric(coefs[1] + coefs[2] * (last.x + 1)))
         })
@@ -270,7 +278,10 @@ NNS.ARMA <- function(variable,
   }
   
   if(!is.null(pred.int)){
-    if (method != "means") lin.resid <- mean(abs(Lin.Regression.Estimates - mean(Lin.Regression.Estimates)))
+    if (method != "means"){
+      Lin.Regression.Estimates <- unlist(Lin.Regression.Estimates)
+      lin.resid <- mean(abs(Lin.Regression.Estimates - mean(Lin.Regression.Estimates)))
+    }
     PIs <- do.call(cbind, NNS.MC(Estimates, lower_rho = -1, upper_rho = 1, by = .2)$replicates)
     lin.resid <- mean(unlist(lin.resid))
     lin.resid[is.na(lin.resid)] <- 0
@@ -350,7 +361,7 @@ NNS.ARMA <- function(variable,
     colnames(results) = c("Estimates",
                           paste0("Lower ", round(pred.int*100,2), "% pred.int"),
                           paste0("Upper ", round(pred.int*100,2), "% pred.int"))
-    return(data.table::data.table(results))
+    return(.NNS.df(results))
   } else {
     return(Estimates)
   }
