@@ -12,7 +12,7 @@ NNS.stack(
   obj.fn = expression(sum((predicted - actual)^2)),
   objective = "min",
   optimize.threshold = TRUE,
-  dist = "L2",
+  dist = NULL,
   CV.size = NULL,
   balance = FALSE,
   ts.test = NULL,
@@ -23,7 +23,8 @@ NNS.stack(
   dim.red.method = "cor",
   pred.int = NULL,
   status = TRUE,
-  ncores = NULL
+  ncores = NULL,
+  seed = 123L
 )
 }
 \arguments{
@@ -41,7 +42,7 @@ NNS.stack(
 
 \item{optimize.threshold}{logical; \code{TRUE} (default) Will optimize the probability threshold value for rounding in classification problems.  If \code{FALSE}, returns 0.5.}
 
-\item{dist}{options:("L1", "L2", "DTW", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} selects the Manhattan distance; \code{(dist = "DTW")} selects the dynamic time warping distance; \code{(dist = "FACTOR")} uses a frequency.}
+\item{dist}{options:(NULL, "NNS", "L1", "L2", "FACTOR") the method of distance calculation. \code{dist = NULL} is the default and selects the native blended NNS distance; \code{dist = "NNS"} is an explicit alias for the default. \code{dist = "L2"} selects Euclidean distance; \code{dist = "L1"} selects Manhattan distance; \code{dist = "FACTOR"} uses a frequency.}
 
 \item{CV.size}{numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size if \code{(IVs.test = NULL)}.  Defaults to a random value between 0.2 and 0.33 for a random sampling of the training set.}
 
@@ -64,6 +65,8 @@ NNS.stack(
 \item{status}{logical; \code{TRUE} (default) Prints status update message in console.}
 
 \item{ncores}{integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
+
+\item{seed}{Optional integer random seed used for reproducible resampling, fold construction, and stochastic fitting steps. If `NULL`, the current random-number-generator state is used.}
 }
 \value{
 Returns a vector of fitted values for the dependent variable test set for all models.

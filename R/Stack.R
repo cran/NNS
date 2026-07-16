@@ -9,7 +9,7 @@
 #' @param obj.fn expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param optimize.threshold logical; \code{TRUE} (default) Will optimize the probability threshold value for rounding in classification problems.  If \code{FALSE}, returns 0.5.
-#' @param dist options:("L1", "L2", "DTW", "FACTOR") the method of distance calculation; Selects the distance calculation used. \code{dist = "L2"} (default) selects the Euclidean distance and \code{(dist = "L1")} selects the Manhattan distance; \code{(dist = "DTW")} selects the dynamic time warping distance; \code{(dist = "FACTOR")} uses a frequency.
+#' @param dist options:(NULL, "NNS", "L1", "L2", "FACTOR") the method of distance calculation. \code{dist = NULL} is the default and selects the native blended NNS distance; \code{dist = "NNS"} is an explicit alias for the default. \code{dist = "L2"} selects Euclidean distance; \code{dist = "L1"} selects Manhattan distance; \code{dist = "FACTOR"} uses a frequency.
 #' @param CV.size numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size if \code{(IVs.test = NULL)}.  Defaults to a random value between 0.2 and 0.33 for a random sampling of the training set.
 #' @param balance logical; \code{FALSE} (default) Uses both up and down sampling to balance the classes.  \code{type="CLASS"} required.
 #' @param ts.test integer; NULL (default) Sets the length of the test set for time-series data; typically \code{2*h} parameter value from \link{NNS.ARMA} or double known periods to forecast.
@@ -21,6 +21,7 @@
 #' @param pred.int numeric [0,1]; \code{NULL} (default) Returns the associated prediction intervals with each \code{method}.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
+#' @param seed Optional integer random seed used for reproducible resampling, fold construction, and stochastic fitting steps. If `NULL`, the current random-number-generator state is used.
 #'
 #' @return Returns a vector of fitted values for the dependent variable test set for all models.
 #' \itemize{
@@ -67,14 +68,15 @@
 #'  }
 #' @export
 
+
 NNS.stack <- function(IVs.train,
                       DV.train,
                       IVs.test = NULL,
                       type = NULL,
-                      obj.fn = expression( sum((predicted - actual)^2) ),
+                      obj.fn = expression(sum((predicted - actual)^2)),
                       objective = "min",
                       optimize.threshold = TRUE,
-                      dist = "L2",
+                      dist = NULL,
                       CV.size = NULL,
                       balance = FALSE,
                       ts.test = NULL,
@@ -85,705 +87,1819 @@ NNS.stack <- function(IVs.train,
                       dim.red.method = "cor",
                       pred.int = NULL,
                       status = TRUE,
-                      ncores = NULL){
+                      ncores = NULL,
+                      seed = 123L) {
   
-  if(anyNA(cbind(IVs.train,DV.train))) stop("You have some missing values, please address.")
-  if(is.null(obj.fn)) stop("Please provide an objective function")
+  # -------------------------------------------------------------------------
+  # Validation, coercion, and state helpers
+  # -------------------------------------------------------------------------
   
-  if(balance && is.null(type)) warning("type = 'CLASS' selected due to balance = TRUE.")
-  if(balance) type <- "CLASS"
-  
-  if(!is.null(type) && min(as.numeric(DV.train))==0) warning("Base response variable category should be 1, not 0.")
-  
-  if(any(class(IVs.train)%in%c("tbl","data.table"))) IVs.train <- as.data.frame(IVs.train)
-  if(any(class(DV.train)%in%c("tbl","data.table"))) DV.train <- as.vector(unlist(DV.train))
-  
-  if(is.vector(IVs.train) || is.null(dim(IVs.train)) || ncol(IVs.train)==1){
-    IVs.train <- data.frame(IVs.train)
-    method <- 1
-    order <- NULL
+  .scalar_logical <- function(x, name) {
+    if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+      stop(sprintf("[%s] must be TRUE or FALSE.", name), call. = FALSE)
+    }
+    x
   }
   
-  if(!is.null(type)){
-    type <- tolower(type)
-    if(type == "class" && identical(obj.fn,expression( sum((predicted - actual)^2) ))){
-      obj.fn <- expression(mean( predicted == as.numeric(actual)))
+  .scalar_integer <- function(x, name, minimum = 0L, allow_null = FALSE) {
+    if (allow_null && is.null(x)) return(NULL)
+    if (!is.numeric(x) || length(x) != 1L || !is.finite(x) ||
+        x < minimum || x != floor(x)) {
+      stop(sprintf("[%s] must be an integer >= %d.", name, minimum),
+           call. = FALSE)
+    }
+    as.integer(x)
+  }
+  
+  .as_train_frame <- function(x) {
+    if (any(class(x) %in% c("tbl", "data.table"))) x <- as.data.frame(x)
+    if (is.null(dim(x))) x <- data.frame(X1 = x, check.names = FALSE)
+    x <- as.data.frame(x, check.names = FALSE, stringsAsFactors = FALSE)
+    if (ncol(x) < 1L) {
+      stop("[IVs.train] must contain at least one predictor.", call. = FALSE)
+    }
+    if (is.null(names(x)) || any(names(x) == "")) {
+      names(x) <- paste0("X", seq_len(ncol(x)))
+    }
+    # De-duplicate repeated predictor names with make.unique() exactly as
+    # NNS.reg's .nns_reg_as_frame() does, so the cbind(x, x) dimension trick
+    # works in NNS.stack instead of erroring. c("x", "x") becomes
+    # c("x", "x.1").
+    names(x) <- make.unique(names(x), sep = ".")
+    x
+  }
+  
+  .as_test_frame <- function(x, train_names) {
+    p <- length(train_names)
+    had_names <- !is.null(dim(x)) && !is.null(colnames(x)) &&
+      length(colnames(x)) == NCOL(x) && all(colnames(x) != "")
+    
+    if (any(class(x) %in% c("tbl", "data.table"))) {
+      had_names <- !is.null(names(x)) && all(names(x) != "")
+      x <- as.data.frame(x)
+    }
+    
+    if (is.null(dim(x))) {
+      if (p == 1L) {
+        x <- data.frame(x, check.names = FALSE)
+        names(x) <- train_names
+      } else if (length(x) == p) {
+        supplied <- names(x)
+        if (!is.null(supplied) && all(nzchar(supplied)) &&
+            !identical(make.unique(supplied, sep = "."), train_names)) {
+          if (anyDuplicated(supplied) || !setequal(supplied, train_names)) {
+            stop("Named [IVs.test] values must exactly match the training predictors.",
+                 call. = FALSE)
+          }
+          x <- x[train_names]
+        }
+        x <- as.data.frame(as.list(x), check.names = FALSE,
+                           stringsAsFactors = FALSE)
+        names(x) <- train_names
+      } else {
+        stop(paste0(
+          "A vector [IVs.test] must contain one complete test row, unless ",
+          "[IVs.train] has one predictor."
+        ), call. = FALSE)
+      }
+    } else {
+      x <- as.data.frame(x, check.names = FALSE, stringsAsFactors = FALSE)
+    }
+    
+    if (ncol(x) != p) {
+      stop("[IVs.test] must have the same number of predictors as [IVs.train].",
+           call. = FALSE)
+    }
+    
+    if (!had_names) {
+      names(x) <- train_names
+    } else {
+      # Normalize duplicate names with make.unique() identically to the
+      # training frame (and to NNS.reg), so cbind(x, x) test input aligns
+      # with the c("x", "x.1") training columns rather than erroring.
+      names(x) <- make.unique(names(x), sep = ".")
+      missing_names <- setdiff(train_names, names(x))
+      extra_names <- setdiff(names(x), train_names)
+      if (length(missing_names) || length(extra_names)) {
+        stop(sprintf(
+          paste0("[IVs.test] columns must exactly match [IVs.train]. ",
+                 "Missing: %s; extra: %s."),
+          if (length(missing_names)) paste(missing_names, collapse = ", ") else "none",
+          if (length(extra_names)) paste(extra_names, collapse = ", ") else "none"
+        ), call. = FALSE)
+      }
+      x <- x[, train_names, drop = FALSE]
+    }
+    
+    x
+  }
+  
+  .align_predictors <- function(train, test) {
+    for (j in seq_along(train)) {
+      nm <- names(train)[j]
+      tr <- train[[j]]
+      te <- test[[j]]
+      
+      if (inherits(tr, "Date")) {
+        if (!inherits(te, "Date")) {
+          stop(sprintf("Test predictor [%s] must also be a Date.", nm),
+               call. = FALSE)
+        }
+        train[[j]] <- as.numeric(tr)
+        test[[j]] <- as.numeric(te)
+      } else if (inherits(tr, c("POSIXct", "POSIXlt"))) {
+        if (!inherits(te, c("POSIXct", "POSIXlt"))) {
+          stop(sprintf("Test predictor [%s] must also be a date-time value.", nm),
+               call. = FALSE)
+        }
+        train[[j]] <- as.numeric(tr)
+        test[[j]] <- as.numeric(te)
+      } else if (is.factor(tr) || is.character(tr)) {
+        tr_chr <- as.character(tr)
+        te_chr <- as.character(te)
+        lev <- if (is.factor(tr)) levels(tr) else unique(tr_chr)
+        unseen <- setdiff(unique(te_chr), lev)
+        if (length(unseen)) {
+          stop(sprintf(
+            "Test predictor [%s] contains unseen level(s): %s.",
+            nm, paste(unseen, collapse = ", ")
+          ), call. = FALSE)
+        }
+        train[[j]] <- factor(tr_chr, levels = lev, ordered = is.ordered(tr))
+        test[[j]] <- factor(te_chr, levels = lev, ordered = is.ordered(tr))
+      } else if (is.logical(tr)) {
+        if (!is.logical(te)) {
+          stop(sprintf("Test predictor [%s] must also be logical.", nm),
+               call. = FALSE)
+        }
+      } else if (is.numeric(tr) || is.integer(tr)) {
+        if (!(is.numeric(te) || is.integer(te))) {
+          stop(sprintf("Test predictor [%s] must be numeric.", nm),
+               call. = FALSE)
+        }
+        train[[j]] <- as.numeric(tr)
+        test[[j]] <- as.numeric(te)
+      } else {
+        stop(sprintf("Unsupported predictor type for [%s].", nm),
+             call. = FALSE)
+      }
+    }
+    list(train = train, test = test)
+  }
+  
+  .check_predictors <- function(x, name) {
+    if (anyNA(x)) stop(sprintf("[%s] contains missing values.", name), call. = FALSE)
+    for (j in seq_along(x)) {
+      if (is.numeric(x[[j]]) && any(!is.finite(x[[j]]))) {
+        stop(sprintf("[%s] predictor [%s] contains non-finite values.",
+                     name, names(x)[j]), call. = FALSE)
+      }
+    }
+  }
+  
+  .restore_rng <- local({
+    existed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    old <- if (existed) get(".Random.seed", envir = .GlobalEnv,
+                            inherits = FALSE) else NULL
+    function() {
+      if (existed) {
+        assign(".Random.seed", old, envir = .GlobalEnv)
+      } else if (exists(".Random.seed", envir = .GlobalEnv,
+                        inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    }
+  })
+  on.exit(.restore_rng(), add = TRUE)
+  
+  optimize.threshold <- .scalar_logical(optimize.threshold, "optimize.threshold")
+  balance <- .scalar_logical(balance, "balance")
+  stack <- .scalar_logical(stack, "stack")
+  status <- .scalar_logical(status, "status")
+  folds <- .scalar_integer(folds, "folds", minimum = 1L)
+  ts.test <- .scalar_integer(ts.test, "ts.test", minimum = 1L,
+                             allow_null = TRUE)
+  
+  if (!is.null(seed)) {
+    seed <- .scalar_integer(seed, "seed", minimum = 0L)
+    set.seed(seed)
+  }
+  
+  if (is.null(obj.fn) || !(is.expression(obj.fn) || is.call(obj.fn))) {
+    stop("[obj.fn] must be a non-NULL expression or call.", call. = FALSE)
+  }
+  if (is.expression(obj.fn) && length(obj.fn) != 1L) {
+    stop("[obj.fn] must contain exactly one expression.", call. = FALSE)
+  }
+  
+  if (!is.character(objective) || length(objective) != 1L || is.na(objective)) {
+    stop("[objective] must be exactly 'min' or 'max'.", call. = FALSE)
+  }
+  objective <- match.arg(tolower(objective), c("min", "max"))
+  
+  if (!is.null(type)) {
+    if (!is.character(type) || length(type) != 1L || is.na(type)) {
+      stop("[type] must be NULL or 'CLASS'.", call. = FALSE)
+    }
+    type <- match.arg(tolower(type), "class")
+  }
+  
+  if (!is.null(order)) {
+    if (is.character(order)) {
+      if (length(order) != 1L || tolower(order) != "max") {
+        stop("[order] must be NULL, a positive integer, or 'max'.",
+             call. = FALSE)
+      }
+      order <- "max"
+    } else {
+      order <- .scalar_integer(order, "order", minimum = 1L)
+    }
+  }
+  
+  if (!is.numeric(method) || !length(method) || any(!is.finite(method)) ||
+      any(method != floor(method))) {
+    stop("[method] must contain only 1 and/or 2.", call. = FALSE)
+  }
+  method <- sort(unique(as.integer(method)))
+  if (!all(method %in% c(1L, 2L))) {
+    stop("[method] must contain only 1 and/or 2.", call. = FALSE)
+  }
+  
+  if (!is.null(CV.size)) {
+    if (!is.numeric(CV.size) || length(CV.size) != 1L ||
+        !is.finite(CV.size) || CV.size <= 0 || CV.size >= 1) {
+      stop("[CV.size] must be a finite scalar strictly between 0 and 1.",
+           call. = FALSE)
+    }
+    CV.size <- as.numeric(CV.size)
+  }
+  
+  if (!is.null(pred.int)) {
+    if (!is.numeric(pred.int) || length(pred.int) != 1L ||
+        !is.finite(pred.int) || pred.int <= 0 || pred.int >= 1) {
+      stop("[pred.int] must be a finite scalar strictly between 0 and 1.",
+           call. = FALSE)
+    }
+    pred.int <- as.numeric(pred.int)
+  }
+  
+  if (is.null(ncores)) {
+    detected <- suppressWarnings(parallel::detectCores())
+    if (!is.finite(detected)) detected <- 2L
+    ncores <- max(1L, as.integer(detected) - 1L)
+  } else {
+    ncores <- .scalar_integer(ncores, "ncores", minimum = 1L)
+  }
+  
+  dist <- .nns_reg_validate_dist(dist)
+  
+  # -------------------------------------------------------------------------
+  # Input data and response coding
+  # -------------------------------------------------------------------------
+  
+  x <- .as_train_frame(IVs.train)
+  
+  if (any(class(DV.train) %in% c("tbl", "data.table"))) {
+    DV.train <- as.vector(unlist(DV.train))
+  }
+  if (is.data.frame(DV.train) || is.matrix(DV.train)) {
+    if (NCOL(DV.train) != 1L) {
+      stop("[DV.train] must contain exactly one response column.",
+           call. = FALSE)
+    }
+    DV.train <- as.vector(unlist(DV.train))
+  }
+  
+  if (length(DV.train) != nrow(x)) {
+    stop("nrow(IVs.train) must equal length(DV.train).", call. = FALSE)
+  }
+  if (length(DV.train) < 4L) {
+    stop("NNS.stack requires at least four training observations.",
+         call. = FALSE)
+  }
+  if (anyNA(DV.train)) {
+    stop("[DV.train] contains missing values.", call. = FALSE)
+  }
+  if ((is.numeric(DV.train) || is.integer(DV.train)) &&
+      any(!is.finite(DV.train))) {
+    stop("[DV.train] contains non-finite values.", call. = FALSE)
+  }
+  
+  response_was_factor <- is.factor(DV.train)
+  response_was_ordered <- is.ordered(DV.train)
+  response_was_character <- is.character(DV.train)
+  response_was_logical <- is.logical(DV.train)
+  response_was_numeric <- is.numeric(DV.train) || is.integer(DV.train)
+  
+  auto_class <- response_was_factor || response_was_character ||
+    response_was_logical ||
+    (response_was_numeric && length(unique(DV.train)) == 2L)
+  
+  if (auto_class && is.null(type)) type <- "class"
+  if (balance && is.null(type)) {
+    warning("type = 'CLASS' selected because balance = TRUE.", call. = FALSE)
+    type <- "class"
+  }
+  is_class <- identical(type, "class")
+  
+  original_response <- DV.train
+  class_values <- NULL
+  
+  if (is_class) {
+    if (response_was_factor) {
+      response_factor <- droplevels(DV.train)
+      class_values <- levels(response_factor)
+      y <- as.integer(response_factor)
+    } else if (response_was_character) {
+      class_values <- unique(DV.train)
+      y <- match(DV.train, class_values)
+    } else if (response_was_logical) {
+      class_values <- sort(unique(DV.train))
+      y <- match(DV.train, class_values)
+    } else if (response_was_numeric) {
+      class_values <- sort(unique(as.numeric(DV.train)))
+      y <- match(as.numeric(DV.train), class_values)
+    } else {
+      stop("Unsupported classification response type.", call. = FALSE)
+    }
+    
+    y <- as.numeric(y)
+    if (length(unique(y)) < 2L) {
+      stop("Classification requires at least two response classes.",
+           call. = FALSE)
+    }
+    if (min(table(y)) < 2L) {
+      stop("Each response class requires at least two observations for cross-validation.",
+           call. = FALSE)
+    }
+    
+    if (identical(obj.fn, expression(sum((predicted - actual)^2)))) {
+      obj.fn <- expression(mean(predicted == actual))
       objective <- "max"
     }
-  }
-  
-  objective <- tolower(objective)
-  
-  if(!is.null(type) && type=="class"){
-    DV.train <- as.numeric(factor(DV.train))
-    smoothness <- FALSE
   } else {
-    smoothness <- FALSE
-    DV.train <- as.numeric(DV.train)
-  }
-  
-  n <- ncol(IVs.train)
-  l <- floor(sqrt(length(IVs.train[ , 1])))
-  
-  if(is.null(IVs.test)){
-    IVs.test <- IVs.train
-  } else {
-    if(any(class(IVs.test)%in%c("tbl","data.table"))) IVs.test <- as.data.frame(IVs.test)
-  }
-  
-  if(is.null(dim(IVs.test))) IVs.test <- data.frame(t(IVs.test)) else IVs.test <- data.frame(IVs.test)
-  
-  dist <- tolower(dist)
-  
-  i_s <- numeric()
-  THRESHOLDS <- vector(mode = "list", folds)
-  best.k <- vector(mode = "list", folds)
-  best.nns.cv <- vector(mode = "list", folds)
-  best.nns.ord <- vector(mode = "list", folds)
-  
-  if(is.null(colnames(IVs.train))){
-    colnames.list <- lapply(1 : ncol(IVs.train), function(i) paste0("X", i))
-    colnames(IVs.test) <- colnames(IVs.train) <- as.character(colnames.list)
-  } else {
-    # FIX: if names exist on training and dimensions match, mirror them on the test matrix
-    if(!is.null(IVs.test) && ncol(IVs.test) == ncol(IVs.train))
-      colnames(IVs.test) <- colnames(IVs.train)
-  }
-  
-  # var.cutoffs_1 (full-data importance scores) removed: computing importance on the
-  # entire training set before any CV split leaks held-out information into every
-  # fold's threshold grid.  The grid is now built solely from fold-local scores
-  # (var.cutoffs_2) computed inside the fold loop on CV.IVs.train only.
-  
-  # Balance applied ONCE before any fold splitting -- fixes the bug where
-  # IVs.train/DV.train were overwritten on each fold iteration, causing the same
-  # balanced dataset to be reused across folds and leaking information between them.
-  if (balance) {
-    y_train  <- as.factor(DV.train)
-    ycol <- "Class"
-    training_1 <- downSample(IVs.train, y_train, list = FALSE, yname = ycol)
-    training_2 <- upSample(IVs.train,   y_train, list = FALSE, yname = ycol)
-    training_bal <- rbind.data.frame(training_1, training_2)
-    IVs.train <- training_bal[, setdiff(names(training_bal), ycol), drop = FALSE]
-    DV.train  <- as.numeric(as.factor(training_bal[[ycol]]))
-    colnames(IVs.test) <- colnames(IVs.train)
-  }
-  
-  if(is.null(CV.size)) new.CV.size <- round(runif(1, .2, 1/3), 3) else new.CV.size <- CV.size
-  
-  for(b in 1 : folds){
-    if(status) message("Folds Remaining = " , folds-b," ","\r",appendLF=TRUE)
-    
-    set.seed(123 * b)
-    
-    test.set <- as.integer(seq(b, length(unlist(IVs.train[ , 1])), length.out = as.integer(new.CV.size * length(unlist(IVs.train[ , 1])))))
-    
-    if(!is.null(ts.test)){
-      test.set <- 1:(length(DV.train) - ts.test)
+    if (!response_was_numeric) {
+      stop("A nonnumeric response requires type = 'CLASS'.", call. = FALSE)
     }
+    y <- as.numeric(DV.train)
+  }
+  
+  if (balance && !is_class) {
+    stop("[balance = TRUE] requires classification.", call. = FALSE)
+  }
+  
+  if (is.null(IVs.test)) {
+    z <- x
+  } else {
+    z <- .as_test_frame(IVs.test, names(x))
+  }
+  
+  aligned <- .align_predictors(x, z)
+  x <- aligned$train
+  z <- aligned$test
+  .check_predictors(x, "IVs.train")
+  .check_predictors(z, "IVs.test")
+  
+  n_obs <- nrow(x)
+  original_p <- ncol(x)
+  
+  if (!is.null(ts.test) && ts.test >= n_obs) {
+    stop("[ts.test] must be smaller than the number of training observations.",
+         call. = FALSE)
+  }
+  
+  if (original_p == 1L && 2L %in% method) {
+    warning("Method 2 was removed because dimension reduction requires more than one original predictor.",
+            call. = FALSE)
+    method <- setdiff(method, 2L)
+    if (!length(method)) method <- 1L
+  }
+  
+  if (2L %in% method) {
+    if (is.numeric(dim.red.method)) {
+      if (!length(dim.red.method) || any(!is.finite(dim.red.method))) {
+        stop("Numeric [dim.red.method] coefficients must be finite.",
+             call. = FALSE)
+      }
+    } else {
+      if (!is.character(dim.red.method) || length(dim.red.method) != 1L ||
+          is.na(dim.red.method)) {
+        stop("[dim.red.method] must be one supported character value or a numeric vector.",
+             call. = FALSE)
+      }
+      dim.red.method <- match.arg(
+        tolower(dim.red.method),
+        c("cor", "nns.dep", "nns.caus", "equal", "all")
+      )
+    }
+  }
+  
+  # Add a constant non-integer translation to every fitting response. This keeps
+  # NNS.reg from silently auto-switching integer-valued regression or class-code
+  # targets into its internal classification path. Predictions and intervals are
+  # translated back before scoring or returning.
+  response_offset <- 0.123456789
+  y_fit_all <- y + response_offset
+  
+  # -------------------------------------------------------------------------
+  # Shared helpers
+  # -------------------------------------------------------------------------
+  
+  .score <- function(predicted, actual) {
+    if (length(predicted) != length(actual)) {
+      stop("The objective received predicted and actual vectors of different lengths.",
+           call. = FALSE)
+    }
+    value <- eval(obj.fn,
+                  envir = list(predicted = predicted, actual = actual),
+                  enclos = parent.frame())
+    if (!is.numeric(value) || length(value) != 1L) {
+      stop("[obj.fn] must return one numeric scalar.", call. = FALSE)
+    }
+    value <- as.numeric(value)
+    if (!is.finite(value)) return(NA_real_)
+    value
+  }
+  
+  .sanitize_raw <- function(predicted, fallback_y) {
+    predicted <- as.numeric(predicted)
+    bad <- !is.finite(predicted)
+    if (any(bad)) {
+      good <- predicted[!bad]
+      replacement <- if (length(good)) gravity(good) else gravity(fallback_y)
+      if (!is.finite(replacement)) replacement <- mean(fallback_y)
+      if (!is.finite(replacement)) {
+        stop("NNS.reg returned no finite predictions.", call. = FALSE)
+      }
+      predicted[bad] <- replacement
+    }
+    predicted
+  }
+  
+  .round_codes <- function(raw, threshold) {
+    raw <- pmin(pmax(as.numeric(raw), 1), length(class_values))
+    lo <- floor(raw)
+    hi <- ceiling(raw)
+    frac <- raw - lo
+    out <- ifelse(frac < threshold, lo, hi)
+    as.integer(pmin(pmax(out, 1L), length(class_values)))
+  }
+  
+  .best_threshold <- function(raw, actual) {
+    if (!is_class || !optimize.threshold) return(0.5)
+    grid <- seq(0.01, 0.99, by = 0.01)
+    scores <- vapply(grid, function(th) {
+      .score(.round_codes(raw, th), actual)
+    }, numeric(1L))
+    valid <- which(is.finite(scores))
+    if (!length(valid)) return(0.5)
+    best_value <- if (objective == "min") {
+      min(scores[valid])
+    } else {
+      max(scores[valid])
+    }
+    tied <- valid[scores[valid] == best_value]
+    grid[tied[ceiling(length(tied) / 2)]]
+  }
+  
+  .evaluate_raw <- function(raw, actual) {
+    threshold <- if (is_class) .best_threshold(raw, actual) else 0.5
+    predicted <- if (is_class) .round_codes(raw, threshold) else raw
+    list(score = .score(predicted, actual), threshold = threshold)
+  }
+  
+  .decode_codes <- function(code) {
+    as.numeric(as.integer(pmin(pmax(code, 1L), length(class_values))))
+  }
+  
+  .decode_interval <- function(interval, threshold) {
+    if (is.null(interval)) return(NULL)
+    interval <- as.data.frame(interval, check.names = FALSE)
+    interval[] <- lapply(interval, function(v) {
+      .decode_codes(.round_codes(v, threshold))
+    })
+    interval
+  }
+  
+  .translate_interval <- function(interval) {
+    if (is.null(interval)) return(NULL)
+    interval <- as.data.frame(interval, check.names = FALSE)
+    interval[] <- lapply(interval, function(v) as.numeric(v) - response_offset)
+    interval
+  }
+  
+  .has_all_classes <- function(train_y) {
+    !is_class || identical(sort(unique(train_y)), sort(unique(y)))
+  }
+  
+  .balance_indices <- function(train_y) {
+    if (!balance) return(seq_along(train_y))
+    groups <- split(seq_along(train_y), train_y)
+    if (length(groups) < 2L || any(lengths(groups) == 0L)) {
+      stop("Balancing requires at least two non-empty classes in the fitting split.",
+           call. = FALSE)
+    }
+    smallest <- min(lengths(groups))
+    largest <- max(lengths(groups))
+    down_idx <- unlist(lapply(groups, function(g) {
+      sample(g, smallest, replace = FALSE)
+    }), use.names = FALSE)
+    up_idx <- unlist(lapply(groups, function(g) {
+      sample(g, largest, replace = TRUE)
+    }), use.names = FALSE)
+    sample(c(down_idx, up_idx), replace = FALSE)
+  }
+  
+  .numeric_design <- function(train, test) {
+    train_blocks <- vector("list", ncol(train))
+    test_blocks <- vector("list", ncol(train))
     
-    test.set <- unlist(test.set)
-    
-    CV.IVs.train <- data.frame(IVs.train[c(-test.set), ])
-    
-    if(dim(CV.IVs.train)[2]!=dim(IVs.train)[2]) CV.IVs.train <- t(CV.IVs.train)
-    if(dim(CV.IVs.train)[2]!=dim(IVs.train)[2]) CV.IVs.train <- t(CV.IVs.train)
-    
-    CV.IVs.test <- data.frame(IVs.train[test.set, ])
-    if(dim(CV.IVs.test)[2]!=dim(IVs.train)[2]) CV.IVs.test <- t(CV.IVs.test)
-    if(dim(CV.IVs.test)[2]!=dim(IVs.train)[2]) CV.IVs.test <- t(CV.IVs.test)
-    
-    CV.DV.train <- DV.train[c(-test.set)]
-    CV.DV.test <- DV.train[c(test.set)]
-    
-    training <- cbind(IVs.train[c(-test.set),], DV.train[c(-test.set)])
-    training <- training[complete.cases(training),]
-    
-    CV.IVs.train <- data.frame(training[, -(ncol(training))])
-    CV.DV.train <- as.numeric(training[, ncol(training)])
-    
-    
-    # Dimension Reduction Regression Output
-    if (2 %in% method && ncol(IVs.train) > 1) {
-      actual <- CV.DV.test
+    for (j in seq_along(train)) {
+      nm <- names(train)[j]
+      tr <- train[[j]]
+      te <- test[[j]]
       
-      # --- compute per-variable scores for threshold grid ---
-      if (dim.red.method == "cor") {
-        var.cutoffs_2 <- abs(round(suppressWarnings(
-          cor(data.matrix(cbind(CV.DV.train, CV.IVs.train)), method = "spearman")
-        )[-1, 1], digits = 2))
+      if (is.factor(tr)) {
+        lev <- levels(tr)
+        tr_chr <- as.character(tr)
+        te_chr <- as.character(te)
+        tr_block <- vapply(lev, function(level) {
+          as.numeric(tr_chr == level)
+        }, numeric(length(tr_chr)))
+        te_block <- vapply(lev, function(level) {
+          as.numeric(te_chr == level)
+        }, numeric(length(te_chr)))
+        if (is.null(dim(tr_block))) tr_block <- matrix(tr_block, ncol = 1L)
+        if (is.null(dim(te_block))) te_block <- matrix(te_block, ncol = 1L)
+        block_names <- paste0(nm, "__", make.names(lev, unique = TRUE))
+        colnames(tr_block) <- block_names
+        colnames(te_block) <- block_names
       } else {
-        var.cutoffs_2 <- abs(round(suppressWarnings(
-          NNS.reg(CV.IVs.train, CV.DV.train,
-                  dim.red.method = dim.red.method,
-                  plot = FALSE, residual.plot = FALSE,
-                  order = order, ncores = ncores,
-                  type = type, point.only = TRUE, smooth = smoothness)$equation$Coefficient[-(n + 1)]
-        ), digits = 2))
+        tr_block <- matrix(as.numeric(tr), ncol = 1L,
+                           dimnames = list(NULL, nm))
+        te_block <- matrix(as.numeric(te), ncol = 1L,
+                           dimnames = list(NULL, nm))
       }
       
-      # Threshold grid built solely from fold-local scores -- no full-data leakage.
-      var.cutoffs <- var.cutoffs_2
-      var.cutoffs <- var.cutoffs[var.cutoffs < 1 & var.cutoffs >= 0]
-      var.cutoffs[is.na(var.cutoffs)] <- 0
-      var.cutoffs <- rev(sort(unique(var.cutoffs)))[-1]
-      if (length(var.cutoffs) == 0 || is.null(var.cutoffs)) var.cutoffs <- 0
-      if (n == 2) var.cutoffs <- unique(c(var.cutoffs, 0))
-      if (dist == "factor" && length(var.cutoffs) > 1) var.cutoffs <- var.cutoffs[-1]
-      if (dim.red.method == "equal") var.cutoffs <- 0
-      
-      # --- evaluate ALL thresholds (no early stopping) ---
-      threshold_results_2 <- vector(mode = "list", length = length(var.cutoffs))
-      nns.ord <- rep(NA_real_, length(var.cutoffs))
-      
-      for (i in seq_along(var.cutoffs)) {
-        
-        predicted <- suppressWarnings(
-          NNS.reg(CV.IVs.train, CV.DV.train,
-                  point.est = CV.IVs.test,
-                  plot = FALSE,
-                  dim.red.method = dim.red.method,
-                  threshold = var.cutoffs[i],
-                  order = order, ncores = ncores,
-                  type = NULL, dist = dist,
-                  point.only = TRUE, smooth = smoothness)$Point.est
+      train_blocks[[j]] <- tr_block
+      test_blocks[[j]] <- te_block
+    }
+    
+    train_matrix <- do.call(cbind, train_blocks)
+    test_matrix <- do.call(cbind, test_blocks)
+    storage.mode(train_matrix) <- "double"
+    storage.mode(test_matrix) <- "double"
+    colnames(train_matrix) <- make.unique(colnames(train_matrix), sep = "_")
+    colnames(test_matrix) <- colnames(train_matrix)
+    
+    train_min <- apply(train_matrix, 2L, min)
+    train_max <- apply(train_matrix, 2L, max)
+    train_range <- train_max - train_min
+    train_range[!is.finite(train_range) | train_range == 0] <- 1
+    
+    train_scaled <- sweep(train_matrix, 2L, train_min, "-")
+    train_scaled <- sweep(train_scaled, 2L, train_range, "/")
+    test_scaled <- sweep(test_matrix, 2L, train_min, "-")
+    test_scaled <- sweep(test_scaled, 2L, train_range, "/")
+    
+    train_scaled <- as.data.frame(train_scaled, check.names = FALSE)
+    test_scaled <- as.data.frame(test_scaled, check.names = FALSE)
+    
+    list(train = train_scaled, test = test_scaled,
+         minimum = train_min, range = train_range)
+  }
+  
+  .make_splits <- function() {
+    all_index <- seq_len(n_obs)
+    
+    if (!is.null(ts.test)) {
+      possible <- floor((n_obs - 1L) / ts.test)
+      if (possible < 1L) {
+        stop("Not enough observations for the requested [ts.test].",
+             call. = FALSE)
+      }
+      use_folds <- min(folds, possible)
+      if (use_folds < folds) {
+        warning(sprintf(
+          "Only %d non-overlapping chronological fold(s) are available.",
+          use_folds
+        ), call. = FALSE)
+      }
+      starts <- n_obs - (use_folds:1L) * ts.test + 1L
+      out <- lapply(starts, function(start) {
+        validation <- seq.int(start, start + ts.test - 1L)
+        training <- seq_len(start - 1L)
+        list(train = training, validation = validation)
+      })
+      keep <- vapply(out, function(s) {
+        length(s$train) >= 3L && .has_all_classes(y[s$train])
+      }, logical(1L))
+      out <- out[keep]
+      if (!length(out)) {
+        stop(paste0(
+          "No chronological fold retained enough training observations and ",
+          "all response classes."
+        ), call. = FALSE)
+      }
+      return(out)
+    }
+    
+    # Historical compatibility: folds = 1 means one repeated holdout even when
+    # CV.size is omitted. The original implementation drew a validation
+    # fraction between 0.20 and 1/3, so retain that behavior under the local
+    # seed while still keeping validation observations completely unbalanced.
+    holdout_size <- CV.size
+    if (is.null(holdout_size) && folds == 1L) {
+      holdout_size <- round(stats::runif(1L, 0.20, 1 / 3), 3L)
+    }
+    
+    if (!is.null(holdout_size)) {
+      out <- vector("list", folds)
+      for (b in seq_len(folds)) {
+        if (is_class) {
+          groups <- split(all_index, y)
+          validation <- unlist(lapply(groups, function(g) {
+            size <- min(length(g) - 1L,
+                        max(1L, as.integer(round(holdout_size * length(g)))))
+            if (size <= 0L) integer() else sample(g, size, replace = FALSE)
+          }), use.names = FALSE)
+          validation <- sort(unique(validation))
+        } else {
+          size <- max(1L, min(n_obs - 1L,
+                              as.integer(round(holdout_size * n_obs))))
+          validation <- sort(sample.int(n_obs, size, replace = FALSE))
+        }
+        training <- setdiff(all_index, validation)
+        if (length(training) < 3L || !.has_all_classes(y[training])) {
+          stop(paste0(
+            "Unable to create a repeated holdout retaining enough fitting ",
+            "observations and every response class."
+          ), call. = FALSE)
+        }
+        out[[b]] <- list(train = training, validation = validation)
+      }
+      return(out)
+    }
+    
+    use_folds <- min(folds, n_obs)
+    if (is_class) {
+      class_counts <- table(y)
+      if (min(class_counts) < 2L) {
+        stop("Each response class requires at least two observations for cross-validation.",
+             call. = FALSE)
+      }
+      use_folds <- min(use_folds, max(class_counts))
+    }
+    if (use_folds < 2L) {
+      stop("At least two folds are required when [CV.size] and [ts.test] are NULL.",
+           call. = FALSE)
+    }
+    if (use_folds < folds) {
+      warning(sprintf("Cross-validation folds reduced to %d for the available data.",
+                      use_folds), call. = FALSE)
+    }
+    
+    fold_id <- integer(n_obs)
+    if (is_class) {
+      groups <- split(all_index, y)
+      for (g in groups) {
+        shuffled <- sample(g, length(g), replace = FALSE)
+        fold_id[shuffled] <- rep(seq_len(use_folds), length.out = length(g))
+      }
+    } else {
+      shuffled <- sample(all_index, n_obs, replace = FALSE)
+      fold_id[shuffled] <- rep(seq_len(use_folds), length.out = n_obs)
+    }
+    
+    out <- lapply(seq_len(use_folds), function(b) {
+      validation <- which(fold_id == b)
+      training <- setdiff(all_index, validation)
+      list(train = training, validation = validation)
+    })
+    keep <- vapply(out, function(s) {
+      length(s$validation) > 0L && length(s$train) >= 3L &&
+        .has_all_classes(y[s$train])
+    }, logical(1L))
+    out <- out[keep]
+    if (length(out) < 2L) {
+      stop("Unable to create at least two valid cross-validation folds.",
+           call. = FALSE)
+    }
+    out
+  }
+  
+  splits <- .make_splits()
+  
+  .coefficient_vector <- function(X, response) {
+    X <- as.matrix(X)
+    p <- ncol(X)
+    
+    if (is.numeric(dim.red.method)) {
+      coef <- as.numeric(dim.red.method)
+      if (!is.null(names(dim.red.method))) {
+        if (!setequal(names(dim.red.method), colnames(X))) {
+          stop(paste0(
+            "Named numeric [dim.red.method] coefficients must exactly match ",
+            "the encoded design columns."
+          ), call. = FALSE)
+        }
+        coef <- as.numeric(dim.red.method[colnames(X)])
+      } else if (length(coef) != p) {
+        stop(sprintf(
+          "Numeric [dim.red.method] must contain %d encoded coefficients.", p
+        ), call. = FALSE)
+      }
+      coef[!is.finite(coef)] <- 0
+      return(coef)
+    }
+    
+    cor_coef <- function() {
+      out <- vapply(seq_len(p), function(j) {
+        suppressWarnings(stats::cor(X[, j], response, method = "spearman"))
+      }, numeric(1L))
+      out[!is.finite(out)] <- 0
+      out
+    }
+    
+    dep_coef <- function() {
+      out <- vapply(seq_len(p), function(j) {
+        tryCatch(
+          as.numeric(NNS.dep(X[, j], response,
+                             print.map = FALSE, asym = TRUE)$Dependence)[1L],
+          error = function(e) 0
         )
+      }, numeric(1L))
+      out[!is.finite(out)] <- 0
+      out
+    }
+    
+    caus_coef <- function() {
+      tau_value <- if (is.null(ts.test)) "cs" else "ts"
+      out <- vapply(seq_len(p), function(j) {
+        tryCatch(
+          as.numeric(Uni.caus(response, X[, j],
+                              tau = tau_value, plot = FALSE))[1L],
+          error = function(e) 0
+        )
+      }, numeric(1L))
+      out[!is.finite(out)] <- 0
+      out
+    }
+    
+    coef <- switch(
+      dim.red.method,
+      "cor" = cor_coef(),
+      "nns.dep" = dep_coef(),
+      "nns.caus" = caus_coef(),
+      "equal" = rep(1, p),
+      "all" = rowMeans(cbind(caus_coef(), dep_coef(), cor_coef(), rep(1, p))),
+      stop("Unsupported [dim.red.method].", call. = FALSE)
+    )
+    
+    coef[!is.finite(coef)] <- 0
+    if (!any(abs(coef) > 0)) coef <- rep(1, p)
+    coef
+  }
+  
+  .active_coefficients <- function(coef, count) {
+    coef <- as.numeric(coef)
+    count <- max(1L, min(as.integer(count), length(coef)))
+    ord <- order(abs(coef), decreasing = TRUE, na.last = NA, method = "radix")
+    active <- ord[seq_len(min(count, length(ord)))]
+    out <- rep(0, length(coef))
+    out[active] <- coef[active]
+    if (!any(abs(out) > 0)) {
+      out[active] <- 1
+    }
+    out
+  }
+  
+  .project_xstar <- function(train_design, test_design, coef) {
+    denom <- sum(abs(coef) > 0)
+    if (denom < 1L) stop("No active dimension-reduction coefficients.",
+                         call. = FALSE)
+    list(
+      train = as.numeric(as.matrix(train_design) %*% coef / denom),
+      test = as.numeric(as.matrix(test_design) %*% coef / denom)
+    )
+  }
+  
+  .xstar_path <- function(train_design, test_design, coef) {
+    ord <- order(abs(coef), decreasing = TRUE, na.last = NA, method = "radix")
+    if (isTRUE(getOption("NNS.native.stack", TRUE))) {
+      tryCatch(NNS_xstar_path_cpp(as.matrix(train_design), as.matrix(test_design),
+                                  as.numeric(coef), as.integer(ord), as.integer(ncores)),
+               error = function(e) NULL)
+    } else NULL
+  }
+  
+  .fit_univariate_raw <- function(train_x, train_y_fit, test_x,
+                                  confidence.interval = NULL,
+                                  point.only = TRUE,
+                                  allow_failure = FALSE) {
+    fit <- tryCatch(
+      suppressWarnings({
+        if (point.only && isTRUE(getOption("NNS.native.univariate", TRUE))) {
+          fast <- .nns_reg_univariate_fast(as.numeric(train_x), as.numeric(train_y_fit),
+                                           as.numeric(test_x), order = order,
+                                           noise.reduction = "off", is.class = FALSE)
+          list(Point.est = fast$prediction)
+        } else {
+          NNS.reg(
+            as.numeric(train_x),
+            as.numeric(train_y_fit),
+            point.est = as.numeric(test_x),
+            plot = FALSE,
+            residual.plot = FALSE,
+            order = order,
+            type = NULL,
+            factor.2.dummy = FALSE,
+            dist = dist,
+            ncores = ncores,
+            point.only = point.only,
+            confidence.interval = confidence.interval
+          )
+        }
+      }),
+      error = function(e) {
+        if (allow_failure) return(NULL)
+        stop(e)
+      }
+    )
+    if (is.null(fit)) {
+      return(list(raw = rep(NA_real_, length(test_x)), fit = NULL))
+    }
+    raw <- .sanitize_raw(as.numeric(fit$Point.est) - response_offset,
+                         train_y_fit - response_offset)
+    list(raw = raw, fit = fit)
+  }
+  
+  
+  # Score every k with exactly the estimator the final NNS.reg fit uses:
+  # NNS_mreg_predict_path_cpp implements the repaired multivariate prediction
+  # rule (range-normalized metric, stable ties, ensemble weights) for
+  # k = 1..kmax. The repaired NNS.M.reg no longer extrapolates outside the
+  # training support, so no gradient extension is applied here either.
+  .production_multivariate_path <- function(rpm, Xtest, train_design, kmax = NULL) {
+    Xtest <- as.data.frame(Xtest, check.names = FALSE)
+    feature_names <- setdiff(names(rpm), "y.hat")
+    Xtest <- Xtest[, feature_names, drop = FALSE]
+    train_design <- as.data.frame(train_design, check.names = FALSE)
+    train_design <- train_design[, feature_names, drop = FALSE]
+    if (is.null(kmax)) kmax <- nrow(rpm)
+    kmax <- min(kmax, nrow(rpm))
+    
+    rpm_x <- as.matrix(rpm[, feature_names, drop = FALSE])
+    storage.mode(rpm_x) <- "double"
+    test_matrix <- as.matrix(Xtest)
+    storage.mode(test_matrix) <- "double"
+    minimums <- vapply(train_design, min, numeric(1L))
+    maximums <- vapply(train_design, max, numeric(1L))
+    dist_code <- match(dist, c("NNS", "L2", "L1", "FACTOR")) - 1L
+    
+    path <- if (isTRUE(getOption("NNS.native.stack", TRUE))) {
+      NNS_mreg_predict_path_v2_cpp(
+        rpm_x, as.numeric(rpm$y.hat), test_matrix, as.integer(kmax),
+        dist_code, as.numeric(minimums), as.numeric(maximums), FALSE,
+        as.integer(ncores)
+      )
+    } else {
+      NNS_mreg_predict_path_cpp(
+        rpm_x, as.numeric(rpm$y.hat), test_matrix, as.integer(kmax),
+        dist_code, as.numeric(minimums), as.numeric(maximums), FALSE
+      )
+    }
+    if (nrow(path) != nrow(test_matrix)) {
+      stop("The production distance path returned an invalid row count.",
+           call. = FALSE)
+    }
+    path
+  }
+  
+  .candidate_from_oof <- function(sum_matrix, count_matrix, candidate) {
+    count <- count_matrix[, candidate]
+    valid <- count > 0L
+    raw <- rep(NA_real_, n_obs)
+    raw[valid] <- sum_matrix[valid, candidate] / count[valid]
+    valid <- valid & is.finite(raw)
+    if (!any(valid)) {
+      return(list(score = NA_real_, threshold = 0.5, raw = raw))
+    }
+    evaluation <- .evaluate_raw(raw[valid], y[valid])
+    list(score = evaluation$score,
+         threshold = evaluation$threshold,
+         raw = raw)
+  }
+  
+  .select_best <- function(scores) {
+    valid <- which(is.finite(scores))
+    if (!length(valid)) {
+      stop("No candidate produced a finite out-of-fold objective.",
+           call. = FALSE)
+    }
+    best_value <- if (objective == "min") {
+      min(scores[valid])
+    } else {
+      max(scores[valid])
+    }
+    tied <- valid[scores[valid] == best_value]
+    as.integer(tied[ceiling(length(tied) / 2)])
+  }
+  
+  # Full-data encoded design establishes the fixed encoded column domain.
+  full_design <- .numeric_design(x, z)
+  encoded_p <- ncol(full_design$train)
+  
+  if (2L %in% method && is.numeric(dim.red.method) &&
+      is.null(names(dim.red.method)) && length(dim.red.method) != encoded_p) {
+    stop(sprintf(
+      "Numeric [dim.red.method] must contain %d encoded coefficients.",
+      encoded_p
+    ), call. = FALSE)
+  }
+  
+  # -------------------------------------------------------------------------
+  # Method 2: select active dimension count from OOF predictions
+  # -------------------------------------------------------------------------
+  
+  dim_best_count <- NA_integer_
+  dim_best_score <- NA_real_
+  dim_component_threshold <- 0.5
+  dim_oof_raw <- rep(NA_real_, n_obs)
+  dim_threshold_report <- NA_real_
+  dim_full_coef <- NULL
+  dim_full_xstar_train <- NULL
+  dim_full_xstar_test <- NULL
+  
+  if (2L %in% method) {
+    dim_sum <- matrix(0, nrow = n_obs, ncol = encoded_p)
+    dim_count <- matrix(0L, nrow = n_obs, ncol = encoded_p)
+    
+    for (b in seq_along(splits)) {
+      split <- splits[[b]]
+      train_idx <- split$train
+      valid_idx <- split$validation
+      fold_design <- .numeric_design(
+        x[train_idx, , drop = FALSE],
+        x[valid_idx, , drop = FALSE]
+      )
+      coef_fold <- .coefficient_vector(fold_design$train, y[train_idx])
+      balanced_idx <- .balance_indices(y[train_idx])
+      
+      if (status) message(sprintf("Method 2 fold %d/%d: generating %d cumulative projections", b, length(splits), encoded_p))
+      native_path <- .xstar_path(fold_design$train, fold_design$test, coef_fold)
+      representatives <- if (!is.null(native_path)) as.integer(native_path$representative) else seq_len(encoded_p)
+      unique_candidates <- unique(representatives)
+      if (status) message(sprintf("Method 2 fold %d/%d: evaluating %d unique candidates", b, length(splits), length(unique_candidates)))
+      candidate_raw <- vector("list", encoded_p)
+      for (m in unique_candidates) {
+        if (!is.null(native_path)) {
+          projected <- list(train = native_path$train[, m], test = native_path$test[, m])
+        } else {
+          active_coef <- .active_coefficients(coef_fold, m)
+          projected <- .project_xstar(fold_design$train, fold_design$test, active_coef)
+        }
+        fit <- .fit_univariate_raw(projected$train[balanced_idx],
+                                   y_fit_all[train_idx][balanced_idx],
+                                   projected$test,
+                                   point.only = TRUE,
+                                   allow_failure = TRUE)
+        candidate_raw[[m]] <- fit$raw
+      }
+      for (m in seq_len(encoded_p)) {
+        raw <- candidate_raw[[representatives[m]]]
+        good <- is.finite(raw)
+        if (any(good)) {
+          rows <- valid_idx[good]
+          dim_sum[rows, m] <- dim_sum[rows, m] + raw[good]
+          dim_count[rows, m] <- dim_count[rows, m] + 1L
+        }
+      }
+      if (status) message(sprintf("Method 2 fold %d/%d complete", b, length(splits)))
+    }
+    
+    dim_scores <- rep(NA_real_, encoded_p)
+    dim_thresholds <- rep(0.5, encoded_p)
+    dim_raw_candidates <- vector("list", encoded_p)
+    
+    for (m in seq_len(encoded_p)) {
+      candidate <- .candidate_from_oof(dim_sum, dim_count, m)
+      dim_scores[m] <- candidate$score
+      dim_thresholds[m] <- candidate$threshold
+      dim_raw_candidates[[m]] <- candidate$raw
+      if (status) {
+        message(sprintf(
+          paste0("Current dimension count = %d | OOF eval(obj.fn) = %s | ",
+                 "Iterations remaining = %d"),
+          m,
+          if (is.finite(dim_scores[m]))
+            format(dim_scores[m], digits = 6) else "NA",
+          encoded_p - m
+        ))
+      }
+    }
+    
+    dim_best_count <- .select_best(dim_scores)
+    dim_best_score <- dim_scores[dim_best_count]
+    dim_component_threshold <- dim_thresholds[dim_best_count]
+    dim_oof_raw <- dim_raw_candidates[[dim_best_count]]
+    
+    dim_full_coef_original <- .coefficient_vector(full_design$train, y)
+    dim_full_coef <- .active_coefficients(dim_full_coef_original,
+                                          dim_best_count)
+    dim_full_projection <- .xstar_path(full_design$train, full_design$test,
+                                       dim_full_coef)
+    if (is.null(dim_full_projection)) {
+      dim_full_projection <- .project_xstar(
+        full_design$train,
+        full_design$test,
+        dim_full_coef
+      )
+      dim_full_xstar_train <- dim_full_projection$train
+      dim_full_xstar_test <- dim_full_projection$test
+    } else {
+      dim_full_xstar_train <- dim_full_projection$train[, dim_best_count]
+      dim_full_xstar_test <- dim_full_projection$test[, dim_best_count]
+    }
+    
+    active_magnitudes <- abs(dim_full_coef[abs(dim_full_coef) > 0])
+    dim_threshold_report <- if (dim_best_count >= length(dim_full_coef)) {
+      0
+    } else if (length(active_magnitudes)) {
+      min(active_magnitudes)
+    } else {
+      0
+    }
+    if (!is.finite(dim_threshold_report)) dim_threshold_report <- 0
+  }
+  
+  # -------------------------------------------------------------------------
+  # Method 1: bounded small-k search + mandatory all-points candidate
+  # -------------------------------------------------------------------------
+  
+  reg_best_k <- NA_integer_
+  reg_best_score <- NA_real_
+  reg_component_threshold <- 0.5
+  reg_oof_raw <- rep(NA_real_, n_obs)
+  
+  .method1_design_for_split <- function(train_idx, valid_idx) {
+    fold_design <- .numeric_design(
+      x[train_idx, , drop = FALSE],
+      x[valid_idx, , drop = FALSE]
+    )
+    
+    if (stack && 2L %in% method) {
+      coef_fold <- .coefficient_vector(fold_design$train, y[train_idx])
+      active_coef <- .active_coefficients(coef_fold, dim_best_count)
+      projected <- .project_xstar(
+        fold_design$train,
+        fold_design$test,
+        active_coef
+      )
+      list(
+        train = data.frame(
+          Xstar = projected$train,
+          Xstar2 = projected$train,
+          check.names = FALSE
+        ),
+        test = data.frame(
+          Xstar = projected$test,
+          Xstar2 = projected$test,
+          check.names = FALSE
+        )
+      )
+    } else {
+      list(train = fold_design$train, test = fold_design$test)
+    }
+  }
+  
+  if (1L %in% method) {
+    # Intended NNS.stack search geometry:
+    #
+    #   local candidates = 1:floor(sqrt(n))
+    #   limit candidate  = ALL regression points
+    #
+    # Every local candidate is first evaluated across every fold. The
+    # diminishing-returns stop is then applied to the complete pooled OOF
+    # objectives. This prevents fold-specific early stopping from giving larger
+    # candidates partial or zero OOF coverage.
+    l <- max(1L, floor(sqrt(n_obs)))
+    candidate_ids <- c(as.character(seq_len(l)), "all")
+    
+    sum_list <- setNames(vector("list", length(candidate_ids)), candidate_ids)
+    count_list <- setNames(vector("list", length(candidate_ids)), candidate_ids)
+    for (id in candidate_ids) {
+      sum_list[[id]] <- rep(0, n_obs)
+      count_list[[id]] <- rep(0L, n_obs)
+    }
+    
+    fold_small_kmax <- integer(length(splits))
+    
+    for (b in seq_along(splits)) {
+      split <- splits[[b]]
+      train_idx <- split$train
+      valid_idx <- split$validation
+      
+      if (status) {
+        message(sprintf(
+          "Method 1 fold %d/%d: preparing fold design",
+          b, length(splits)
+        ))
+      }
+      
+      design <- .method1_design_for_split(train_idx, valid_idx)
+      balanced_idx <- .balance_indices(y[train_idx])
+      train_design <- design$train[balanced_idx, , drop = FALSE]
+      train_y_fit <- y_fit_all[train_idx][balanced_idx]
+      valid_design <- design$test
+      
+      if (ncol(train_design) == 1L) {
+        train_x <- as.numeric(train_design[[1L]])
+        test_x <- as.numeric(valid_design[[1L]])
+        small_kmax <- min(l, length(train_x))
+        fold_small_kmax[b] <- small_kmax
         
-        # fill NA predictions with gravity of non-NA (original behavior)
-        predicted[is.na(predicted)] <- gravity(na.omit(predicted))
-        
-        # per-threshold classification rounding (if needed)
-        if (!is.null(type)) {
-          if (length(unique(predicted)) == 1) {
-            pred_matrix <- matrix(replicate(100, predicted), nrow = length(predicted))
-          } else {
-            pred_matrix <- sapply(seq(.01, .99, .01),
-                                  function(z) ifelse(predicted %% 1 < z,
-                                                     as.integer(floor(predicted)),
-                                                     as.integer(ceiling(predicted))))
-          }
-          z <- apply(pred_matrix, 2, function(z) mean(z == as.numeric(actual)))
-          threshold_results_2[[i]] <- seq(.01, .99, .01)[as.integer(median(which(z == max(z))))]
-          predicted <- ifelse(predicted %% 1 < threshold_results_2[[i]],
-                              floor(predicted), ceiling(predicted))
-          end_if <- TRUE
-        } # end if classification
-        
-        # objective at this threshold
-        nns.ord[i] <- eval(obj.fn)
-        
-        # print threshold + eval(obj.fn) when status = TRUE
         if (status) {
           message(sprintf(
-            "Current NNS.reg(... , threshold = %.4f ) | eval(obj.fn) = %.6f | MAX Iterations Remaining = %d",
-            var.cutoffs[i],
-            nns.ord[i],
-            length(var.cutoffs) - i
+            paste0(
+              "Method 1 fold %d/%d: local candidates = 1...%d; ",
+              "limit candidate = ALL (%d observations)"
+            ),
+            b, length(splits), small_kmax, length(train_x)
           ))
         }
-      } # end for each threshold
-      
-      # --- pick best threshold across ALL tested ---
-      if (objective == "min") {
-        best.idx <- which.min(na.omit(nns.ord))
-        best.nns.ord[[b]] <- min(na.omit(nns.ord))
-      } else {
-        best.idx <- which.max(na.omit(nns.ord))
-        best.nns.ord[[b]] <- max(na.omit(nns.ord))
-      }
-      if (length(best.idx) == 0) best.idx <- 1L  # fallback if all NA
-      best.threshold <- var.cutoffs[best.idx]
-      THRESHOLDS[[b]] <- best.threshold
-      
-      # --- downstream: finalize relevant vars and fit once using the chosen threshold ---
-      relevant_vars <- colnames(IVs.train)
-      if (is.null(relevant_vars)) relevant_vars <- 1:n
-      
-      # Compute per-fold X* (synthetic dim-red predictor) for use in Method 1 CV
-      # when stack = TRUE and both methods are requested.
-      # Replicates NNS.reg internals exactly (Regression.R lines 379-419):
-      #   norm.x    <- apply(original.variable, 2, function(b) (b-min(b))/(max(b)-min(b)))
-      #   X*_train  <- rowSums(eachrow(norm.x, coef, "*")) / sum(abs(coef)>0)
-      # For point.est NNS.reg does: points.norm <- apply(rbind(point.est, x), 2, rescale)
-      # then new.point.est <- points.norm[test_rows,] %*% coef / xn
-      if (stack && identical(sort(method), c(1, 2))) {
-        xstar_cv_fit <- suppressWarnings(
-          NNS.reg(CV.IVs.train, CV.DV.train,
-                  point.est = CV.IVs.test,
-                  dim.red.method = dim.red.method,
-                  plot = FALSE, residual.plot = FALSE,
-                  order = order, threshold = best.threshold,
-                  ncores = ncores, type = NULL,
-                  dist = dist, point.only = FALSE, smooth = smoothness)
+        
+        pred_mat <- matrix(
+          NA_real_,
+          nrow = length(test_x),
+          ncol = small_kmax
         )
-        # X* for training rows -- returned directly
-        xstar_CV_train <- as.numeric(unlist(xstar_cv_fit$x.star))
         
-        # X* for test rows -- replicate NNS.reg point.est projection exactly:
-        # coefficients from equation (all rows except last DENOMINATOR row)
-        eq        <- xstar_cv_fit$equation
-        coef_vals <- as.numeric(eq$Coefficient[-nrow(eq)])
-        xn        <- sum(abs(coef_vals) > 0)
-        if (xn == 0) xn <- 1L
-        train_mat <- data.matrix(CV.IVs.train)
-        test_mat  <- data.matrix(CV.IVs.test)
-        np_cv     <- nrow(test_mat)
-        # joint normalisation: rbind(test, train) then rescale each column
-        joint     <- rbind(test_mat, train_mat)
-        joint_norm <- apply(joint, 2, function(b) {
-          rng <- max(b) - min(b)
-          (b - min(b)) / ifelse(rng == 0, 1, rng)
-        })
-        test_norm <- joint_norm[seq_len(np_cv), , drop = FALSE]
-        # guard: coef_vals must match ncol of test_norm
-        if (length(coef_vals) == ncol(test_norm)) {
-          xstar_CV_test <- as.numeric(test_norm %*% coef_vals / xn)
-        } else {
-          # fallback: use training X* mean
-          xstar_CV_test <- rep(mean(xstar_CV_train, na.rm = TRUE), np_cv)
+        for (i in seq_along(test_x)) {
+          dists <- abs(train_x - test_x[i])
+          ord <- order(dists, method = "radix")
+          cumsum_y <- cumsum(train_y_fit[ord])
+          pred_mat[i, ] <-
+            cumsum_y[seq_len(small_kmax)] / seq_len(small_kmax)
         }
-        xstar_CV_test[is.na(xstar_CV_test)] <- gravity(na.omit(xstar_CV_test))
-      }
-      
-      if (b == folds) {
-        threshold.table <- sort(table(unlist(THRESHOLDS)), decreasing = TRUE)
-        nns.ord.threshold <- gravity(as.numeric(names(threshold.table[threshold.table == max(threshold.table)])))
-        if (is.na(nns.ord.threshold)) nns.ord.threshold <- 0
         
-        nns.method.2 <- NNS.reg(IVs.train, DV.train,
-                                point.est = IVs.test,
-                                dim.red.method = dim.red.method,
-                                plot = FALSE,
-                                order = order, threshold = nns.ord.threshold,
-                                ncores = ncores,
-                                type = type, point.only = FALSE,
-                                confidence.interval = pred.int,
-                                smooth = smoothness)
-        
-        actual    <- nns.method.2$Fitted.xy$y
-        predicted <- nns.method.2$Fitted.xy$y.hat
-        pred.int.2 <- nns.method.2$pred.int
-        best.nns.ord <- eval(obj.fn)
-        
-        # Capture full-data X* for Method 1's final fit (when stacking)
-        # Use $x.star for training rows; replicate NNS.reg's joint normalisation for test rows
-        if (stack && identical(sort(method), c(1, 2))) {
-          xstar_full_train <- as.numeric(unlist(nns.method.2$x.star))
-          
-          eq        <- nns.method.2$equation
-          coef_vals <- as.numeric(eq$Coefficient[-nrow(eq)])
-          xn        <- sum(abs(coef_vals) > 0)
-          if (xn == 0) xn <- 1L
-          train_mat <- data.matrix(IVs.train)
-          test_mat  <- data.matrix(IVs.test)
-          np_full   <- nrow(test_mat)
-          joint     <- rbind(test_mat, train_mat)
-          joint_norm <- apply(joint, 2, function(b) {
-            rng <- max(b) - min(b)
-            (b - min(b)) / ifelse(rng == 0, 1, rng)
-          })
-          test_norm <- joint_norm[seq_len(np_full), , drop = FALSE]
-          if (length(coef_vals) == ncol(test_norm)) {
-            xstar_full_test <- as.numeric(test_norm %*% coef_vals / xn)
-          } else {
-            xstar_full_test <- rep(mean(xstar_full_train, na.rm = TRUE), np_full)
+        # Aggregate every available local candidate for this fold. No
+        # fold-specific early stopping is allowed because it creates
+        # incomparable OOF coverage across candidates.
+        for (k in seq_len(small_kmax)) {
+          id <- as.character(k)
+          raw <- pred_mat[, k] - response_offset
+          good <- is.finite(raw)
+          if (any(good)) {
+            rows <- valid_idx[good]
+            sum_list[[id]][rows] <-
+              sum_list[[id]][rows] + raw[good]
+            count_list[[id]][rows] <-
+              count_list[[id]][rows] + 1L
           }
-          xstar_full_test[is.na(xstar_full_test)] <- gravity(na.omit(xstar_full_test))
         }
         
-        rel_vars <- nns.method.2$equation
-        rel_vars <- which(rel_vars$Coefficient > 0)
-        rel_vars <- rel_vars[rel_vars <= n]
-        if (length(rel_vars) == 0 || is.null(rel_vars)) rel_vars <- 1:n
-        
-        if (!stack) relevant_vars <- 1:n else relevant_vars <- rel_vars
-        if (all(relevant_vars == "FALSE")) relevant_vars <- 1:n
-        
-        if (!is.null(type) && !is.null(nns.method.2$Point.est)) {
-          threshold_results_2 <- mean(unlist(threshold_results_2))
-          nns.method.2 <- ifelse(nns.method.2$Point.est %% 1 < threshold_results_2,
-                                 floor(nns.method.2$Point.est), ceiling(nns.method.2$Point.est))
-          nns.method.2 <- pmin(nns.method.2, max(as.numeric(DV.train)))
-          nns.method.2 <- pmax(nns.method.2, min(as.numeric(DV.train)))
-        } else {
-          nns.method.2 <- nns.method.2$Point.est
+        # ALL is the separate full-support limit condition and is always
+        # evaluated, irrespective of the later local stopping point.
+        all_raw <- rep(
+          mean(train_y_fit) - response_offset,
+          length(test_x)
+        )
+        good <- is.finite(all_raw)
+        if (any(good)) {
+          rows <- valid_idx[good]
+          sum_list[["all"]][rows] <-
+            sum_list[["all"]][rows] + all_raw[good]
+          count_list[["all"]][rows] <-
+            count_list[["all"]][rows] + 1L
         }
-      }
-      
-    } else {
-      THRESHOLDS <- NA
-      test.set.2 <- NULL
-      nns.method.2 <- NA
-      if (objective == "min") { best.nns.ord <- Inf } else { best.nns.ord <- -Inf }
-      nns.ord.threshold <- NA
-      threshold_results_2 <- NA
-      relevant_vars <- 1:n
-    } # 2 %in% method
-    
-    
-    
-    # --- Method 1 (NNS.reg / k-NN path) — optimized: only 1..l plus q, safe C++ calls ---
-    if (1 %in% method) {
-      actual <- CV.DV.test
-      
-      # When stacking with Method 2, replace the CV design matrices with cbind(X*, X*)
-      # so that n.best is cross-validated over the synthetic dim-red predictor.
-      if (stack && identical(sort(method), c(1, 2)) &&
-          exists("xstar_CV_train") && !anyNA(xstar_CV_train)) {
-        CV.IVs.train <- data.frame(Xstar = xstar_CV_train,
-                                   Xstar2 = xstar_CV_train)
-        CV.IVs.test  <- data.frame(Xstar = xstar_CV_test,
-                                   Xstar2 = xstar_CV_test)
+        
       } else {
-        if (is.character(relevant_vars)) relevant_vars <- relevant_vars != ""
-        if (is.logical(relevant_vars)) {
-          CV.IVs.train <- data.frame(CV.IVs.train[, relevant_vars, drop = FALSE])
-          CV.IVs.test  <- data.frame(CV.IVs.test[,  relevant_vars, drop = FALSE])
-        }
-        if (ncol(CV.IVs.train) != n) CV.IVs.train <- t(CV.IVs.train)
-        if (ncol(CV.IVs.train) != n) CV.IVs.train <- t(CV.IVs.train)
-        if (ncol(CV.IVs.test)  != n) CV.IVs.test  <- t(CV.IVs.test)
-        if (ncol(CV.IVs.test)  != n) CV.IVs.test  <- t(CV.IVs.test)
-      }
-      
-      threshold_results_1 <- vector(mode = "list", length = length(c(1:l, length(IVs.train[, 1]))))
-      nns.cv.1 <- numeric()
-      
-      q     <- length(IVs.train[, 1])
-      Kcand <- c(1:l, q)
-      
-      # build *aligned* dummy matrices for TRAIN and TEST in one shot
-      build_design_pair <- function(train_df, test_df) {
-        tr <- as.data.frame(train_df, stringsAsFactors = TRUE)
-        te <- as.data.frame(test_df,  stringsAsFactors = TRUE)
-        
-        # If either has no names, synthesize consistent names
-        if (is.null(names(tr)) || anyNA(names(tr))) names(tr) <- paste0("X", seq_len(ncol(tr)))
-        if (is.null(names(te)) || anyNA(names(te))) names(te) <- paste0("X", seq_len(ncol(te)))
-        
-        # 1) take the UNION of names
-        alln <- union(names(tr), names(te))
-        
-        # 2) add any missing columns as NA (they’ll dummy to zeros after factor -> dummy)
-        add_missing <- function(df, alln) {
-          miss <- setdiff(alln, names(df))
-          for (m in miss) df[[m]] <- NA
-          # reorder to the common order
-          df[, alln, drop = FALSE]
-        }
-        tr <- add_missing(tr, alln)
-        te <- add_missing(te, alln)
-        
-        # proceed with factor_2_dummy_FR on the combined columns
-        pieces_tr <- list(); pieces_te <- list()
-        for (nm in names(tr)) {
-          combo <- c(tr[[nm]], te[[nm]])
-          block <- factor_2_dummy_FR(combo)
-          if (is.null(dim(block))) block <- matrix(as.numeric(block), ncol = 1L)
-          ntr <- NROW(tr)
-          pieces_tr[[nm]] <- block[seq_len(ntr), , drop = FALSE]
-          pieces_te[[nm]] <- block[(ntr + 1L):(ntr + NROW(te)), , drop = FALSE]
-        }
-        Xtr <- do.call(cbind, pieces_tr); storage.mode(Xtr) <- "double"
-        Xte <- do.call(cbind, pieces_te); storage.mode(Xte) <- "double"
-        list(Xtr = Xtr, Xte = Xte)
-      }
-      
-      pred_path_small <- NULL   # |Xtest| x l (k = 1..l)
-      pred_q          <- NULL   # |Xtest| vector (k = q)
-      
-      for (i in Kcand) {
-        index <- which(Kcand == i)[1L]
-        
-        if (index == 1L) {
-          # One NNS.reg call per fold to get fitted y.hat and
-          # a baseline prediction for threshold optimisation
-          setup <- suppressWarnings(
-            NNS.reg(
-              CV.IVs.train, CV.DV.train,
-              point.est = CV.IVs.test,
-              plot = FALSE, residual.plot = FALSE,
-              n.best = 1, order = order,
-              type = type, factor.2.dummy = TRUE,
-              dist = dist, ncores = ncores,
-              point.only = FALSE, smooth = smoothness
-            )
-          )
-          
-          # y.hat for each TRAINING point – used as the value aggregated by k-NN
-          yhat_vec <- as.numeric(setup$Fitted.xy$y.hat)
-          if (length(yhat_vec) != NROW(CV.IVs.train)) {
-            stop("Internal: length(yhat_vec) must equal nrow(CV.IVs.train).")
-          }
-          
-          # Build aligned numeric design matrices directly from TRAIN & TEST IVs
-          design   <- build_design_pair(CV.IVs.train, CV.IVs.test)
-          RPM_num   <- design$Xtr   # one row per training observation
-          Xtest_num <- design$Xte   # one row per test observation
-          
-          # Sanity guards (fail fast instead of crashing in C++)
-          stopifnot(
-            is.matrix(RPM_num), is.double(RPM_num),
-            is.matrix(Xtest_num), is.double(Xtest_num),
-            nrow(RPM_num) == length(yhat_vec),
-            ncol(RPM_num) == ncol(Xtest_num)
-          )
-          
-          # Index == 1: original point estimates from NNS.reg for thresholding
-          predicted <- setup$Point.est
-          predicted[is.na(predicted)] <- mean(predicted, na.rm = TRUE)
-          
-          if (!is.null(type)) {
-            pred_matrix <- if (length(unique(predicted)) == 1L) {
-              matrix(replicate(100L, predicted), nrow = length(predicted))
-            } else {
-              sapply(seq(.01, .99, .01),
-                     function(z)
-                       ifelse(predicted %% 1 < z,
-                              floor(predicted),
-                              ceiling(predicted)))
-            }
-            threshold_results_1[[index]] <-
-              seq(.01, .99, .01)[
-                which.max(apply(pred_matrix, 2L,
-                                function(z) mean(z == as.numeric(actual))))
-              ]
-            predicted <- ifelse(predicted %% 1 < threshold_results_1[[index]],
-                                floor(predicted), ceiling(predicted))
-          }
-          
-          # Precompute only what we need via C++ for k = 1..min(l, n_train)
-          kmax_use <- min(l, nrow(RPM_num))
-          pred_path_small <- NNS_distance_path_cpp(
-            RPM   = RPM_num,
-            yhat  = yhat_vec,
-            Xtest = Xtest_num,
-            kmax  = kmax_use,
-            is_class = !is.null(type)
-          )
-          
-          # Cache the "all training points" prediction for k = min(q, n_train)
-          n_train_fold <- nrow(RPM_num)
-          if (q > ncol(pred_path_small) || q > kmax_use) {
-            pred_q <- NNS_distance_bulk_cpp(
-              RPM   = RPM_num,
-              yhat  = yhat_vec,
-              Xtest = Xtest_num,
-              k     = min(q, n_train_fold),
-              is_class = !is.null(type)
-            )
-          } else {
-            pred_q <- pred_path_small[, q, drop = TRUE]
-          }
-          
-        } else {
-          if (!is.null(dim(CV.IVs.train)) && ncol(CV.IVs.train) > 1) {
-            if (i <= ncol(pred_path_small)) {
-              predicted <- pred_path_small[, i, drop = TRUE]
-            } else if (i == q) {
-              predicted <- pred_q
-            } else {
-              predicted <- NNS_distance_bulk_cpp(
-                RPM   = RPM_num,
-                yhat  = yhat_vec,
-                Xtest = Xtest_num,
-                k     = min(i, nrow(RPM_num)),
-                is_class = !is.null(type)
-              )
-            }
-          } else {
-            predicted <- suppressWarnings(
-              NNS.reg(
-                CV.IVs.train, CV.DV.train,
-                point.est = if (is.null(dim(CV.IVs.test))) unlist(CV.IVs.test) else CV.IVs.test,
-                plot = FALSE, residual.plot = FALSE,
-                n.best = i, order = order, ncores = ncores,
-                type = type, factor.2.dummy = TRUE,
-                dist = dist, point.only = TRUE, smooth = smoothness
-              )$Point.est
-            )
-          }
-          
-          if (!is.null(type)) {
-            pred_matrix <- if (length(unique(predicted)) == 1) {
-              matrix(replicate(100, predicted), nrow = length(predicted))
-            } else {
-              sapply(seq(.01, .99, .01),
-                     function(z) ifelse(predicted %% 1 < z, floor(predicted), ceiling(predicted)))
-            }
-            z <- apply(pred_matrix, 2, function(z) mean(z == as.numeric(actual)))
-            threshold_results_1[[index]] <- seq(.01, .99, .01)[as.integer(median(which(z == max(z))))]
-            predicted <- ifelse(predicted %% 1 < threshold_results_1[[index]],
-                                floor(predicted), ceiling(predicted))
-          }
-        }
-        
-        # objective at this n.best
-        nns.cv.1[index] <- eval(obj.fn)
-        
-        # print n.best + eval(obj.fn) when status = TRUE
         if (status) {
           message(sprintf(
-            "Current NNS.reg(. , n.best = %d ) | eval(obj.fn) = %.6f | MAX Iterations Remaining = %d",
-            i,
-            nns.cv.1[index],
-            length(Kcand) - index
+            "Method 1 fold %d/%d: building partitions",
+            b, length(splits)
           ))
         }
         
-        if (length(na.omit(nns.cv.1)) > 3) {
-          if (objective == 'min') nns.cv.1[is.na(nns.cv.1)] <- max(na.omit(nns.cv.1)) else
-            nns.cv.1[is.na(nns.cv.1)] <- min(na.omit(nns.cv.1))
-          if (objective == 'min' && nns.cv.1[index] >= nns.cv.1[index - 1] && nns.cv.1[index] >= nns.cv.1[index - 2]) break
-          if (objective == 'max' && nns.cv.1[index] <= nns.cv.1[index - 1] && nns.cv.1[index] <= nns.cv.1[index - 2]) break
+        setup <- .nns_mreg_prepare_model(
+          train_design,
+          train_y_fit,
+          order = order,
+          noise.reduction = "off",
+          is.class = FALSE,
+          use.native = isTRUE(getOption("NNS.native.mreg", TRUE))
+        )
+        rpm <- setup$RPM
+        
+        if (is.null(rpm) || !is.data.frame(rpm) ||
+            nrow(rpm) < 1L || !"y.hat" %in% names(rpm)) {
+          stop(
+            "NNS.reg did not return a usable regression-point matrix.",
+            call. = FALSE
+          )
+        }
+        
+        nRPM <- nrow(rpm)
+        small_kmax <- min(l, nRPM)
+        fold_small_kmax[b] <- small_kmax
+        
+        if (status) {
+          message(sprintf(
+            paste0(
+              "Method 1 fold %d/%d: RPM rows = %d; validation rows = %d; ",
+              "local candidates = 1...%d; limit candidate = ALL (%d)"
+            ),
+            b, length(splits), nRPM, length(valid_idx),
+            small_kmax, nRPM
+          ))
+        }
+        
+        small_path <- .production_multivariate_path(
+          rpm = rpm,
+          Xtest = valid_design,
+          train_design = train_design,
+          kmax = small_kmax
+        )
+        small_path <- small_path - response_offset
+        
+        for (k in seq_len(small_kmax)) {
+          id <- as.character(k)
+          raw <- .sanitize_raw(
+            small_path[, k],
+            y[train_idx]
+          )
+          good <- is.finite(raw)
+          if (any(good)) {
+            rows <- valid_idx[good]
+            sum_list[[id]][rows] <-
+              sum_list[[id]][rows] + raw[good]
+            count_list[[id]][rows] <-
+              count_list[[id]][rows] + 1L
+          }
+        }
+        
+        # Preserve the current full-support limit behavior from this version:
+        # all RPM points reduce to the balanced fitting-response mean. The ALL
+        # candidate is always populated for every fold.
+        all_raw <- rep(
+          mean(train_y_fit) - response_offset,
+          length(valid_idx)
+        )
+        good <- is.finite(all_raw)
+        if (any(good)) {
+          rows <- valid_idx[good]
+          sum_list[["all"]][rows] <-
+            sum_list[["all"]][rows] + all_raw[good]
+          count_list[["all"]][rows] <-
+            count_list[["all"]][rows] + 1L
         }
       }
       
-      ks <- Kcand[!is.na(nns.cv.1)]
-      if (objective == 'min') {
-        k <- ks[which.min(na.omit(nns.cv.1))]; nns.cv.1 <- min(na.omit(nns.cv.1))
-      } else {
-        k <- ks[which.max(na.omit(nns.cv.1))]; nns.cv.1 <- max(na.omit(nns.cv.1))
+      if (status) {
+        message(sprintf(
+          "Method 1 fold %d/%d complete",
+          b, length(splits)
+        ))
+      }
+    }
+    
+    common_small_kmax <- min(fold_small_kmax)
+    if (!is.finite(common_small_kmax) || common_small_kmax < 1L) {
+      stop(
+        "No Method 1 local candidate was available in every fold.",
+        call. = FALSE
+      )
+    }
+    
+    candidate_scores <- setNames(
+      rep(NA_real_, length(candidate_ids)),
+      candidate_ids
+    )
+    candidate_thresholds <- setNames(
+      rep(0.5, length(candidate_ids)),
+      candidate_ids
+    )
+    candidate_raws <- setNames(
+      vector("list", length(candidate_ids)),
+      candidate_ids
+    )
+    
+    # Candidate 1 is evaluated in every valid Method 1 fold. Its count vector
+    # defines the required complete OOF coverage pattern. A candidate may
+    # compete only when it has exactly the same coverage.
+    reference_count <- count_list[["1"]]
+    
+    .score_method1_candidate <- function(id) {
+      sum_vec <- sum_list[[id]]
+      count_vec <- count_list[[id]]
+      
+      raw <- rep(NA_real_, n_obs)
+      covered <- count_vec > 0L
+      raw[covered] <- sum_vec[covered] / count_vec[covered]
+      candidate_raws[[id]] <<- raw
+      
+      complete_coverage <- identical(
+        as.integer(count_vec),
+        as.integer(reference_count)
+      )
+      valid <- covered & is.finite(raw)
+      
+      if (!complete_coverage || !any(valid)) {
+        candidate_scores[id] <<- NA_real_
+        candidate_thresholds[id] <<- 0.5
+        return(FALSE)
       }
       
-      best.k[[b]]      <- k
-      best.nns.cv[[b]] <- if (!is.null(type)) min(max(nns.cv.1, 0), 1) else nns.cv.1
+      evaluation <- .evaluate_raw(raw[valid], y[valid])
+      candidate_scores[id] <<-
+        unname(as.numeric(evaluation$score))
+      candidate_thresholds[id] <<-
+        unname(as.numeric(evaluation$threshold))
       
-      if (b == folds) {
-        ks_tab <- table(unlist(best.k))
-        best.k <- mode_class(as.numeric(rep(names(ks_tab), as.numeric(unlist(ks_tab)))))
-        best.k <- ifelse(best.k %% 1 < 0.5, floor(best.k), ceiling(best.k))
+      is.finite(candidate_scores[id])
+    }
+    
+    evaluated_small_ids <- character()
+    
+    # Apply diminishing marginal returns only after each candidate has complete
+    # pooled OOF predictions. This is the statistically comparable stopping
+    # rule that the fold-local implementation was trying to approximate.
+    for (k in seq_len(common_small_kmax)) {
+      id <- as.character(k)
+      usable <- .score_method1_candidate(id)
+      
+      if (!usable) {
+        if (status) {
+          message(sprintf(
+            paste0(
+              "Method 1 local candidate k = %d lacks complete OOF coverage; ",
+              "stopping the local search"
+            ),
+            k
+          ))
+        }
+        break
+      }
+      
+      evaluated_small_ids <- c(evaluated_small_ids, id)
+      
+      if (status) {
+        message(sprintf(
+          paste0(
+            "Current NNS.reg(..., n.best = %d) | OOF eval(obj.fn) = %s | ",
+            "local iterations remaining = %d"
+          ),
+          k,
+          format(candidate_scores[id], digits = 6),
+          common_small_kmax - k
+        ))
+      }
+      
+      if (length(evaluated_small_ids) >= 4L) {
+        recent_ids <- tail(evaluated_small_ids, 3L)
+        recent <- as.numeric(candidate_scores[recent_ids])
         
-        # When stacking with Method 2, fit Method 1 on cbind(X*, X*) using full data
-        if (stack && identical(sort(method), c(1, 2)) &&
-            exists("xstar_full_train") && !anyNA(xstar_full_train)) {
-          IVs.train.m1 <- data.frame(Xstar  = xstar_full_train,
-                                     Xstar2 = xstar_full_train)
-          IVs.test.m1  <- data.frame(Xstar  = xstar_full_test,
-                                     Xstar2 = xstar_full_test)
-          nns.method.1 <- suppressWarnings(
-            NNS.reg(
-              IVs.train.m1, DV.train,
-              point.est = IVs.test.m1,
-              plot = FALSE, n.best = best.k, order = order, ncores = ncores,
-              type = type, point.only = FALSE, confidence.interval = pred.int, smooth = smoothness
-            )
-          )
-        } else if (length(relevant_vars) > 1) {
-          nns.method.1 <- suppressWarnings(
-            NNS.reg(
-              IVs.train[, relevant_vars], DV.train,
-              point.est = IVs.test[, relevant_vars],
-              plot = FALSE, n.best = best.k, order = order, ncores = ncores,
-              type = type, point.only = FALSE, confidence.interval = pred.int, smooth = smoothness
-            )
-          )
+        stop_local <- if (objective == "min") {
+          recent[3L] >= recent[2L] &&
+            recent[3L] >= recent[1L]
         } else {
-          nns.method.1 <- suppressWarnings(
-            NNS.reg(
-              IVs.train[, relevant_vars], DV.train,
-              point.est = unlist(IVs.test[, relevant_vars]),
-              plot = FALSE, n.best = best.k, order = order, ncores = ncores,
-              type = type, point.only = FALSE, confidence.interval = pred.int, smooth = smoothness
-            )
+          recent[3L] <= recent[2L] &&
+            recent[3L] <= recent[1L]
+        }
+        
+        if (stop_local) {
+          if (status) {
+            message(sprintf(
+              paste0(
+                "Method 1 local search stopped at k = %d; ",
+                "ALL remains eligible"
+              ),
+              k
+            ))
+          }
+          break
+        }
+      }
+    }
+    
+    # ALL is a separate limit condition. It is always scored after the local
+    # sequence and is never subject to the diminishing-returns stop.
+    all_usable <- .score_method1_candidate("all")
+    if (status) {
+      message(sprintf(
+        "Current NNS.reg(..., n.best = ALL) | OOF eval(obj.fn) = %s",
+        if (all_usable) {
+          format(candidate_scores["all"], digits = 6)
+        } else {
+          "NA (incomplete OOF coverage)"
+        }
+      ))
+    }
+    
+    eligible_ids <- evaluated_small_ids
+    if (all_usable) eligible_ids <- c(eligible_ids, "all")
+    eligible_ids <- eligible_ids[
+      is.finite(candidate_scores[eligible_ids])
+    ]
+    
+    if (!length(eligible_ids)) {
+      stop(
+        "No Method 1 candidate produced a finite complete-coverage OOF objective.",
+        call. = FALSE
+      )
+    }
+    
+    best_val <- if (objective == "min") {
+      min(candidate_scores[eligible_ids])
+    } else {
+      max(candidate_scores[eligible_ids])
+    }
+    best_ids <- eligible_ids[
+      candidate_scores[eligible_ids] == best_val
+    ]
+    
+    # Preserve this version's first-candidate tie rule.
+    best_id <- best_ids[1L]
+    
+    if (identical(best_id, "all")) {
+      reg_best_k <- NA_integer_
+      reg_best_label <- "all"
+    } else {
+      reg_best_k <- as.integer(best_id)
+      reg_best_label <- "integer"
+    }
+    
+    reg_best_score <-
+      unname(as.numeric(candidate_scores[best_id]))
+    reg_component_threshold <-
+      unname(as.numeric(candidate_thresholds[best_id]))
+    reg_oof_raw <- candidate_raws[[best_id]]
+    
+    .reg_best_id <- best_id
+    .reg_best_label <- reg_best_label
+    
+    if (status) {
+      if (identical(best_id, "all")) {
+        message(sprintf(
+          paste0(
+            "Best Method 1 candidate: ALL (all RPM rows), ",
+            "score = %s"
+          ),
+          format(reg_best_score, digits = 6)
+        ))
+      } else {
+        message(sprintf(
+          "Best Method 1 candidate: k = %d, score = %s",
+          reg_best_k,
+          format(reg_best_score, digits = 6)
+        ))
+      }
+    }
+  } else {
+    .reg_best_id <- NA_character_
+    .reg_best_label <- NA_character_
+  }
+  
+  # -------------------------------------------------------------------------
+  # Optimize the actual OOF blend and its final classification threshold
+  # -------------------------------------------------------------------------
+  
+  component_weights <- c(reg = 0, dim.red = 0)
+  probability.threshold <- if (is_class) 0.5 else 0.5
+  
+  if (identical(method, 1L)) {
+    component_weights["reg"] <- 1
+    probability.threshold <- reg_component_threshold
+  } else if (identical(method, 2L)) {
+    component_weights["dim.red"] <- 1
+    probability.threshold <- dim_component_threshold
+  } else {
+    valid <- is.finite(reg_oof_raw) & is.finite(dim_oof_raw)
+    if (!any(valid)) {
+      stop("The two component models have no common finite OOF predictions.",
+           call. = FALSE)
+    }
+    
+    weight_grid <- seq(0, 1, by = 0.01)
+    blend_scores <- rep(NA_real_, length(weight_grid))
+    blend_thresholds <- rep(0.5, length(weight_grid))
+    
+    for (i in seq_along(weight_grid)) {
+      w <- weight_grid[i]
+      raw <- w * reg_oof_raw[valid] + (1 - w) * dim_oof_raw[valid]
+      evaluation <- .evaluate_raw(raw, y[valid])
+      blend_scores[i] <- evaluation$score
+      blend_thresholds[i] <- evaluation$threshold
+    }
+    
+    valid_grid <- which(is.finite(blend_scores))
+    if (!length(valid_grid)) {
+      stop("No ensemble weight produced a finite OOF objective.",
+           call. = FALSE)
+    }
+    best_value <- if (objective == "min") {
+      min(blend_scores[valid_grid])
+    } else {
+      max(blend_scores[valid_grid])
+    }
+    tied <- valid_grid[blend_scores[valid_grid] == best_value]
+    selected_index <- as.integer(tied[ceiling(length(tied) / 2)])
+    selected_weight <- weight_grid[selected_index]
+    
+    component_weights <- c(reg = selected_weight,
+                           dim.red = 1 - selected_weight)
+    probability.threshold <- blend_thresholds[selected_index]
+  }
+  
+  # -------------------------------------------------------------------------
+  # Final production fits on complete training data
+  # -------------------------------------------------------------------------
+  
+  if (status) message("Generating final estimates")
+  
+  reg_raw_final <- NULL
+  reg_pred_int_raw <- NULL
+  dim_raw_final <- NULL
+  dim_pred_int_raw <- NULL
+  
+  if (2L %in% method) {
+    balanced_idx <- .balance_indices(y)
+    dim_final_fit <- .fit_univariate_raw(
+      dim_full_xstar_train[balanced_idx],
+      y_fit_all[balanced_idx],
+      dim_full_xstar_test,
+      confidence.interval = pred.int,
+      point.only = FALSE
+    )
+    dim_raw_final <- dim_final_fit$raw
+    dim_pred_int_raw <- .translate_interval(dim_final_fit$fit$pred.int)
+  }
+  
+  .method1_full_design <- function() {
+    if (stack && 2L %in% method) {
+      list(
+        train = data.frame(Xstar = dim_full_xstar_train,
+                           Xstar2 = dim_full_xstar_train,
+                           check.names = FALSE),
+        test = data.frame(Xstar = dim_full_xstar_test,
+                          Xstar2 = dim_full_xstar_test,
+                          check.names = FALSE)
+      )
+    } else {
+      list(train = full_design$train, test = full_design$test)
+    }
+  }
+  
+  if (1L %in% method) {
+    final_design <- .method1_full_design()
+    balanced_idx <- .balance_indices(y)
+    train_design <- final_design$train[balanced_idx, , drop = FALSE]
+    train_y_fit <- y_fit_all[balanced_idx]
+    test_design <- final_design$test
+    
+    # Determine n.best for final fit
+    if (.reg_best_label == "all") {
+      # For all candidate, we need n.best = "all" (or numeric nrow(RPM))
+      # We'll use n.best = "all" in NNS.reg
+      n.best <- "all"
+    } else {
+      n.best <- reg_best_k
+    }
+    
+    if (ncol(train_design) == 1L) {
+      # Univariate final fit
+      # Use NNS.reg with n.best = n.best
+      if (is.character(n.best) && n.best == "all") {
+        # For univariate, "all" means use all training points; we can pass n.best = "all"
+        # but NNS.reg univariate might not accept "all"? We'll use NNS.reg with n.best = "all"
+        reg_final_fit <- .fit_univariate_raw(
+          train_design[[1L]],
+          train_y_fit,
+          test_design[[1L]],
+          confidence.interval = pred.int,
+          point.only = FALSE
+        )
+        # But that uses default n.best? Actually .fit_univariate_raw does not pass n.best.
+        # We need to handle separately.
+        # For univariate, we can just use NNS.reg with n.best = "all" explicitly.
+        reg_final_fit <- suppressWarnings(
+          NNS.reg(
+            as.numeric(train_design[[1L]]),
+            as.numeric(train_y_fit),
+            point.est = as.numeric(test_design[[1L]]),
+            plot = FALSE,
+            residual.plot = FALSE,
+            order = order,
+            n.best = "all",
+            type = NULL,
+            factor.2.dummy = FALSE,
+            dist = dist,
+            ncores = ncores,
+            point.only = FALSE,
+            confidence.interval = pred.int
           )
-        }
-        
-        actual    <- nns.method.1$Fitted.xy$y
-        predicted <- nns.method.1$Fitted.xy$y.hat
-        
-        best.nns.cv <- eval(obj.fn)
-        
-        pred.int.1   <- nns.method.1$pred.int
-        nns.method.1 <- nns.method.1$Point.est
-        
-        if (!is.null(type) && !is.null(nns.method.1)) {
-          threshold_results_1 <- mean(unlist(threshold_results_1))
-          nns.method.1 <- ifelse(nns.method.1 %% 1 < threshold_results_1,
-                                 floor(nns.method.1), ceiling(nns.method.1))
-          nns.method.1 <- pmin(nns.method.1, max(as.numeric(DV.train)))
-          nns.method.1 <- pmax(nns.method.1, min(as.numeric(DV.train)))
-        }
+        )
+        reg_raw_final <- .sanitize_raw(
+          as.numeric(reg_final_fit$Point.est) - response_offset,
+          y
+        )
+        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
+      } else {
+        # numeric n.best
+        reg_final_fit <- suppressWarnings(
+          NNS.reg(
+            as.numeric(train_design[[1L]]),
+            as.numeric(train_y_fit),
+            point.est = as.numeric(test_design[[1L]]),
+            plot = FALSE,
+            residual.plot = FALSE,
+            order = order,
+            n.best = n.best,
+            type = NULL,
+            factor.2.dummy = FALSE,
+            dist = dist,
+            ncores = ncores,
+            point.only = FALSE,
+            confidence.interval = pred.int
+          )
+        )
+        reg_raw_final <- .sanitize_raw(
+          as.numeric(reg_final_fit$Point.est) - response_offset,
+          y
+        )
+        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
       }
-      
     } else {
-      test.set.1          <- NULL
-      best.k              <- NA
-      nns.method.1        <- NA
-      threshold_results_1 <- NA
-      if (objective == 'min') { best.nns.cv <- Inf } else { best.nns.cv <- -Inf }
-    } # end: 1 %in% method
-    
-  } # errors (b) loop
-  
-  
-  ### Weights for combining NNS techniques
-  best.nns.cv[best.nns.cv == 0] <- 1e-10
-  best.nns.ord[best.nns.ord == 0] <- 1e-10
-  
-  if(objective=="min"){
-    weights <- c(max(1e-10, 1 / best.nns.cv^2), max(1e-10, 1 / best.nns.ord^2))
-  } else {
-    weights <- c(max(1e-10, best.nns.cv^2), max(1e-10, best.nns.ord^2))
+      # Multivariate final fit
+      if (is.character(n.best) && n.best == "all") {
+        # Use NNS.reg with n.best = "all"
+        reg_final_fit <- suppressWarnings(
+          NNS.reg(
+            train_design,
+            train_y_fit,
+            point.est = test_design,
+            plot = FALSE,
+            residual.plot = FALSE,
+            n.best = "all",
+            order = order,
+            type = NULL,
+            factor.2.dummy = FALSE,
+            dist = dist,
+            ncores = ncores,
+            point.only = FALSE,
+            confidence.interval = pred.int
+          )
+        )
+        reg_raw_final <- .sanitize_raw(
+          as.numeric(reg_final_fit$Point.est) - response_offset,
+          y
+        )
+        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
+        # Also set reg_best_k to the full RPM row count for return field
+        # We need to get the RPM row count from the final fit? We can compute from the fit object.
+        # But we can also compute by calling .nns_mreg_prepare_model on full data.
+        # We'll compute later if needed.
+        # For now, we'll set a placeholder.
+        # Actually we'll compute after the fit.
+        # We'll store the nRPM in a variable.
+        # Let's compute RPM row count for full data:
+        setup_full <- .nns_mreg_prepare_model(train_design, train_y_fit, order = order,
+                                              noise.reduction = "off", is.class = FALSE,
+                                              use.native = isTRUE(getOption("NNS.native.mreg", TRUE)))
+        if (!is.null(setup_full$RPM)) {
+          reg_best_k <- nrow(setup_full$RPM)
+        } else {
+          reg_best_k <- nrow(train_design)  # fallback
+        }
+      } else {
+        # numeric n.best
+        reg_final_fit <- suppressWarnings(
+          NNS.reg(
+            train_design,
+            train_y_fit,
+            point.est = test_design,
+            plot = FALSE,
+            residual.plot = FALSE,
+            n.best = n.best,
+            order = order,
+            type = NULL,
+            factor.2.dummy = FALSE,
+            dist = dist,
+            ncores = ncores,
+            point.only = FALSE,
+            confidence.interval = pred.int
+          )
+        )
+        reg_raw_final <- .sanitize_raw(
+          as.numeric(reg_final_fit$Point.est) - response_offset,
+          y
+        )
+        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
+      }
+    }
   }
   
-  
-  weights <- pmax(weights, c(0, 0))
-  weights[!(c(1, 2) %in% method)] <- 0
-  weights[is.nan(weights)] <- 0
-  weights[is.infinite(weights)] <- 0
-  
-  if(sum(weights)>0)  weights <- weights / sum(weights) else weights <- c(.5, .5)
-  
-  if(!is.null(type)) probability.threshold <-  mean(c(threshold_results_1, threshold_results_2), na.rm = TRUE) else probability.threshold <- .5
-  
-  if(identical(sort(method),c(1,2))){
-    if(anyNA(nns.method.1)){
-      na.1.index <- which(is.na(nns.method.1))
-      nns.method.1[na.1.index] <- nns.method.2[na.1.index]
+  # Component predictions retain their own OOF-optimized thresholds. The stack
+  # uses the threshold optimized directly on the OOF weighted ensemble.
+  if (is_class) {
+    reg_output <- if (!is.null(reg_raw_final)) {
+      .decode_codes(.round_codes(reg_raw_final, reg_component_threshold))
+    } else {
+      NA
     }
-    if(anyNA(nns.method.2)){
-      na.2.index <- which(is.na(nns.method.2))
-      nns.method.2[na.2.index] <- nns.method.1[na.2.index]
-    }
-    
-    estimates <- (weights[1] * nns.method.1 + weights[2] * nns.method.2)
-    if(!is.null(pred.int)) stacked.pred.int <- (weights[1] * pred.int.1 + weights[2] * pred.int.2) else stacked.pred.int <- NULL
-    
-    if(!is.null(type)){
-      estimates <- ifelse(estimates%%1 < probability.threshold, floor(estimates), ceiling(estimates))
-      estimates <- pmin(estimates, max(as.numeric(DV.train)))
-      estimates <- pmax(estimates, min(as.numeric(DV.train)))
-      
-      if(!is.null(pred.int)) stacked.pred.int <- as.data.frame(apply(stacked.pred.int, 2, function(x) ifelse(x%%1 <0.5, floor(x), ceiling(x))))
+    dim_output <- if (!is.null(dim_raw_final)) {
+      .decode_codes(.round_codes(dim_raw_final, dim_component_threshold))
+    } else {
+      NA
     }
   } else {
-    if(method==1){
-      estimates <- nns.method.1
-      pred.int.2 <- NULL
-      stacked.pred.int <- pred.int.1
-    } else {
-      if(method==2){
-        estimates <- nns.method.2
-        pred.int.1 <- NULL
-        stacked.pred.int <- pred.int.2
-      }
-    }
+    reg_output <- if (!is.null(reg_raw_final)) reg_raw_final else NA_real_
+    dim_output <- if (!is.null(dim_raw_final)) dim_raw_final else NA_real_
   }
   
+  if (identical(method, 1L)) {
+    stacked_raw <- reg_raw_final
+  } else if (identical(method, 2L)) {
+    stacked_raw <- dim_raw_final
+  } else {
+    reg_bad <- !is.finite(reg_raw_final)
+    dim_bad <- !is.finite(dim_raw_final)
+    if (any(reg_bad & dim_bad)) {
+      stop("Both final component models failed for at least one test observation.",
+           call. = FALSE)
+    }
+    reg_use <- reg_raw_final
+    dim_use <- dim_raw_final
+    reg_use[reg_bad] <- dim_use[reg_bad]
+    dim_use[dim_bad] <- reg_use[dim_bad]
+    stacked_raw <- component_weights["reg"] * reg_use +
+      component_weights["dim.red"] * dim_use
+  }
   
-  if(is.null(probability.threshold)) probability.threshold <- .5
+  stacked_output <- if (is_class) {
+    .decode_codes(.round_codes(stacked_raw, probability.threshold))
+  } else {
+    stacked_raw
+  }
   
-  return(list(OBJfn.reg = best.nns.cv,
-              NNS.reg.n.best = best.k,
-              probability.threshold = probability.threshold,
-              OBJfn.dim.red = best.nns.ord,
-              NNS.dim.red.threshold = nns.ord.threshold,
-              reg = nns.method.1,
-              reg.pred.int = .NNS.df(pred.int.1),
-              dim.red = nns.method.2,
-              dim.red.pred.int = .NNS.df(pred.int.2),
-              stack = estimates,
-              pred.int = .NNS.df(stacked.pred.int)))
+  reg_pred_int <- if (is_class) {
+    .decode_interval(reg_pred_int_raw, reg_component_threshold)
+  } else {
+    reg_pred_int_raw
+  }
+  dim_pred_int <- if (is_class) {
+    .decode_interval(dim_pred_int_raw, dim_component_threshold)
+  } else {
+    dim_pred_int_raw
+  }
   
+  if (is.null(pred.int)) {
+    stacked_pred_int_raw <- NULL
+  } else if (identical(method, 1L)) {
+    stacked_pred_int_raw <- reg_pred_int_raw
+  } else if (identical(method, 2L)) {
+    stacked_pred_int_raw <- dim_pred_int_raw
+  } else if (is.null(reg_pred_int_raw)) {
+    stacked_pred_int_raw <- dim_pred_int_raw
+  } else if (is.null(dim_pred_int_raw)) {
+    stacked_pred_int_raw <- reg_pred_int_raw
+  } else {
+    reg_pi <- as.data.frame(reg_pred_int_raw, check.names = FALSE)
+    dim_pi <- as.data.frame(dim_pred_int_raw, check.names = FALSE)
+    if (!identical(dim(reg_pi), dim(dim_pi))) {
+      stop("Component prediction intervals have incompatible dimensions.",
+           call. = FALSE)
+    }
+    stacked_pred_int_raw <- as.data.frame(
+      component_weights["reg"] * as.matrix(reg_pi) +
+        component_weights["dim.red"] * as.matrix(dim_pi),
+      check.names = FALSE
+    )
+    names(stacked_pred_int_raw) <- names(reg_pi)
+  }
+  
+  stacked_pred_int <- if (is_class) {
+    .decode_interval(stacked_pred_int_raw, probability.threshold)
+  } else {
+    stacked_pred_int_raw
+  }
+  
+  result <- list(
+    OBJfn.reg = unname(as.numeric(reg_best_score)),
+    NNS.reg.n.best = unname(as.integer(reg_best_k)),
+    probability.threshold = unname(as.numeric(probability.threshold)),
+    OBJfn.dim.red = unname(as.numeric(dim_best_score)),
+    NNS.dim.red.threshold = unname(as.numeric(dim_threshold_report)),
+    reg = reg_output,
+    reg.pred.int = .NNS.df(reg_pred_int),
+    dim.red = dim_output,
+    dim.red.pred.int = .NNS.df(dim_pred_int),
+    stack = stacked_output,
+    pred.int = .NNS.df(stacked_pred_int),
+    weights = component_weights,
+    class.levels = if (is_class) class_values else NULL
+  )
+  
+  .NNS.out(result)
 }

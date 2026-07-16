@@ -69,7 +69,11 @@ NNS.ARMA.optim <- function(variable,
                            seasonal.factor,
                            lin.only = FALSE,
                            negative.values = FALSE,
-                           obj.fn =  expression( mean((predicted - actual)^2) / (NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) + NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) )  ),
+                           obj.fn =  expression( {
+                             .denom <- NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) +
+                                       NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual))
+                             if (.denom == 0) Inf else mean((predicted - actual)^2) / .denom
+                           } ),
                            objective = "min",
                            linear.approximation = TRUE,
                            ncores = NULL,
@@ -93,7 +97,7 @@ NNS.ARMA.optim <- function(variable,
   
   if(min(variable) < 0) negative.values <- TRUE
   
-  if(!is.null(h) && h > 0) h_oos <- h_is <- h else {
+  if(!is.null(h) && h > 0) h_oos <- h else {
     h <- NULL
     h_oos <- NULL
   }
@@ -101,7 +105,7 @@ NNS.ARMA.optim <- function(variable,
   if(is.null(training.set)) training.set <- floor(.8 * n)
   training.set <- as.integer(training.set)
   
-  h_eval <- h_is <- as.integer(n - training.set)
+  h_eval <- as.integer(n - training.set)
   
   actual <- tail(variable, h_eval)
   
@@ -132,7 +136,8 @@ NNS.ARMA.optim <- function(variable,
     
     if (j == "lin") {
       # Determine the number of cores to use
-      num_cores <- if (is.null(ncores)) {
+      auto_cores <- is.null(ncores)
+      num_cores <- if (auto_cores) {
         max(1L, as.integer(parallel::detectCores()) - 1L, na.rm = TRUE)
       } else {
         max(1L, as.integer(ncores), na.rm = TRUE)
@@ -140,12 +145,14 @@ NNS.ARMA.optim <- function(variable,
 
       # Workload gate: standing up a process cluster costs ~1s (spawn +
       # exporting data to workers). For small series / few seasonal candidates
-      # that fixed cost exceeds the compute it parallelizes, so stay serial.
-      # The per-candidate NNS.ARMA cost scales with the series length, and the
-      # number of candidates scales with seasonal.factor, so gate on both.
+      # that fixed cost can exceed the compute it parallelizes. The series-length
+      # / candidate-count heuristic only gates the AUTOMATIC default
+      # (ncores = NULL); an explicit ncores is an intentional request and is
+      # honored whenever there is more than one seasonal candidate to spread
+      # across cores.
       use_parallel <- num_cores > 1 &&
-        length(variable) >= 500L &&
-        length(seasonal.factor) >= 8L
+        length(seasonal.factor) >= 2L &&
+        (!auto_cores || (length(variable) >= 500L && length(seasonal.factor) >= 8L))
 
       # Manage cluster creation
       cl <- NULL
