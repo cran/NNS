@@ -1,7 +1,7 @@
-211bd8d53db27948181ecfd56e22eee9 *DESCRIPTION
+12ed1b48b53e831d6f0beb4b88004480 *DESCRIPTION
 1c2f67cd9187b9711bb1554e6a569cbf *NAMESPACE
 8db1e17baa1da5633c96e57e56151580 *R/ANOVA.R
-b1c6cba9551331d825807e931f839ed5 *R/ARMA.R
+d37ef7f1444543df970c77ab5b575085 *R/ARMA.R
 63c2d6491c4719e455a0150dd34ea8fe *R/ARMA_optim.R
 33e34a73bed64488bbba763a5f11d95f *R/Binary_ANOVA.R
 de171c8620d292095d77e6fedcb05c9d *R/Boost.R
@@ -17,7 +17,7 @@ a5d2aeec5e97aaa32de17c474eabbece *R/NNS-package.R
 c7304cc09e89e2c11f362b17d97b8026 *R/NNS_Distance.R
 6bf74984537fb35b8c0be9ec34bdb533 *R/NNS_Distance_bulk.R
 9740b3d444c4ade5153aaa1acff8ee4e *R/NNS_MC.R
-db18dce2a63214a4a2c2aea80a51dba6 *R/NNS_VAR.R
+affcfb2040dd848eceb8916b74ef1277 *R/NNS_VAR.R
 28777f0d66d79687eba12cec63397a0d *R/NNS_meboot.R
 996bf553f98b283a6ddc21ceb27ac5e3 *R/Normalization.R
 7ecda1676d4310ff9271298471762643 *R/Numerical_Differentiation.R
@@ -29,7 +29,7 @@ d6914d4e084c24f30fd3c35b22237611 *R/Partial_Moments.R
 ec2994d55ddc273ad4eae3f6cbcb85b8 *R/SD_Efficient_Set.R
 3c4e14c8266f85c8370637b3fd36f128 *R/SSD.R
 f10687072931a5de7cf889427cccf4d4 *R/Seasonality_Test.R
-5b32b627eee7f1b00aa5213baec3e1e8 *R/Stack.R
+df3009329b02b0758c224c1c9a7a1567 *R/Stack.R
 b4f24c092d6f2316057f2a991bd755e6 *R/Stochastic_superiority.R
 bfe2b8cd8e215de0806e349ee3a7b00a *R/TSD.R
 54a015e8d234fbb5c2c24ad751dfda6b *R/Uni_Causation.R
@@ -95,7 +95,7 @@ a04a4ada0ad02f6638e8f800db2293c8 *man/NNS.SSD.Rd
 bd0a28c6aff3f487ae4c7da754e9a5c4 *man/NNS.SSD.uni.Rd
 45404f54f42671b3997d876fa4211714 *man/NNS.TSD.Rd
 f72916915e84f9f24ee8a8af27be1d4e *man/NNS.TSD.uni.Rd
-10acae4d3af7e3bfca74d2c3d3aba228 *man/NNS.VAR.Rd
+b65cf401a3f278eb24ab252d83654fe9 *man/NNS.VAR.Rd
 6302a5de840c3dffdf900ef863d52c0d *man/NNS.boost.Rd
 18cf3fa0f4c98c6536b4fb49eb7f6418 *man/NNS.caus.Rd
 9817c0311845033523107fe4a82f3f0a *man/NNS.copula.Rd
@@ -111,7 +111,7 @@ a69aa715c3abd771374f26464347a11b *man/NNS.mode.Rd
 7738db67d9e03a351de7a95b2f86bd58 *man/NNS.reg.Rd
 c4e49b0fc259c4bd8dc6456f14721506 *man/NNS.rescale.Rd
 059ceda1e346b2cc014fd165d65775c6 *man/NNS.seas.Rd
-fb9b9d1bcf1c7bb3ab960a5ade982822 *man/NNS.stack.Rd
+088578dd7b2ac43c0744813a14fc8a4d *man/NNS.stack.Rd
 689d972cd60a016da8f4f6d6953c1f49 *man/PM.matrix.Rd
 bd8efd7fece298bde2adb920afbfe445 *man/UPM.Rd
 efaf9d272112b35855cb669eea86e589 *man/UPM.VaR.Rd
@@ -142,7 +142,7 @@ ecef6115ac5fb872f19510dc272978b5 *src/partial_moments_rcpp.h
 68a65c2fb23cad8946f02280367fafcb *src/stoch_sup.cpp
 11459e8a5691e21b6930f82105d59404 *src/table_ops.cpp
 6f446e94d8e61035de22cc6c3af556e5 *tests/testthat.R
-e7eb838e524e9a4aa30110ba45d654e0 *tests/testthat/Rplots.pdf
+1454766c8d183df39d16240d13235b8a *tests/testthat/Rplots.pdf
 89d1c65de9448d090f12dcf8a7207f44 *tests/testthat/helper-stack-parity.R
 709e8db7009f4d99b6aa345072503f5e *tests/testthat/test-boost-duplicate-predictors.R
 5cdb68cca970f85dc2d9f86895b79e16 *tests/testthat/test-boost-iris-integration.R

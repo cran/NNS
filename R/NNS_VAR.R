@@ -5,7 +5,7 @@
 #' @param variables a numeric matrix or data.frame of contemporaneous time-series to forecast.
 #' @param h integer; 1 (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.
 #' @param tau positive integer [ > 0]; 1 (default) Number of lagged observations to consider for the time-series data.  Vector for single lag for each respective variable or list for multiple lags per each variable.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for reducing regressors via \link{NNS.stack}.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for selecting the relevant regressors via \link{NNS.reg} dimension reduction.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param naive.weights logical; \code{TRUE} (default) Equal weights applied to univariate and multivariate outputs in ensemble.  \code{FALSE} will apply weights based on the number of relevant variables detected. 
 #' @param obj.fn expression;
 #' \code{expression(mean((predicted - actual)^2)) / (Sum of NNS Co-partial moments)} (default) MSE / co-movements is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.
@@ -17,11 +17,11 @@
 #' @return Returns the following matrices of forecasted variables:
 #' \itemize{
 #'  \item{\code{"interpolated_and_extrapolated"}} Returns a \code{data.frame} of the linear interpolated and \link{NNS.ARMA} extrapolated values to replace \code{NA} values in the original \code{variables} argument.  This is required for working with variables containing different frequencies, e.g. where \code{NA} would be reported for intra-quarterly data when indexed with monthly periods.
-#'  \item{\code{"relevant_variables"}} Returns the relevant variables from the dimension reduction step.
+#'  \item{\code{"relevant_variables"}} Returns the relevant variables from the dimension reduction step: the lagged regressors whose dimension reduction coefficient meets the cross-validated threshold.  These are the only regressors used in the \code{"multivariate"} estimate.
 #'
 #'  \item{\code{"univariate"}} Returns the univariate \link{NNS.ARMA} forecasts.
 #'
-#'  \item{\code{"multivariate"}} Returns the multi-variate \link{NNS.reg} forecasts.
+#'  \item{\code{"multivariate"}} Returns the multi-variate forecasts: a full \link{NNS.stack} \code{(method = c(1, 2), stack = FALSE)} on the relevant variables.
 #'
 #'  \item{\code{"ensemble"}} Returns the ensemble of both \code{"univariate"} and \code{"multivariate"} forecasts.
 #'  }
@@ -109,7 +109,7 @@ NNS.VAR <- function(variables,
                     naive.weights = TRUE,
                     obj.fn = expression( {
                       .denom <- NNS::Co.LPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual)) +
-                                NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual))
+                        NNS::Co.UPM(1, predicted, actual, target_x = mean(predicted), target_y = mean(actual))
                       if (.denom == 0) Inf else mean((predicted - actual)^2) / .denom
                     } ),
                     objective = "min",
@@ -121,11 +121,11 @@ NNS.VAR <- function(variables,
   # touches obj.fn. Only then may NNS.VAR fall back to plain MSE when the
   # co-movement denominator is degenerate for every candidate.
   use_default_objective <- missing(obj.fn) && identical(objective, "min")
-
+  
   oldw <- getOption("warn")
   options(warn = -1)
   on.exit(options(warn = oldw), add = TRUE)
-
+  
   dates <- NULL
   
   # ===================== Lag builder (robust names) =====================
@@ -196,7 +196,7 @@ NNS.VAR <- function(variables,
     out[ok] <- paste(month.abb[mo[ok]], yr[ok])
     out
   }
-
+  
   # Extract a time index (best effort) without zoo/xts.
   idx <- NULL
   if (inherits(variables, "ts")) {
@@ -209,12 +209,12 @@ NNS.VAR <- function(variables,
       if (is.numeric(raw)) idx <- as.POSIXct(raw, origin = "1970-01-01", tz = "UTC") else idx <- raw
     }
   }
-
+  
   if (nowcast && !is.null(idx)) {
     ym <- .index_to_yearmon(idx)
     if (!any(is.na(ym))) dates <- .format_yearmon(c(ym, tail(ym, h) + h/12))
   }
-
+  
   if(any(class(variables)%in%c("tbl","data.table"))) variables <- as.data.frame(variables)
   if (inherits(variables, "xts")) {
     if (is.null(dates) && !is.null(idx)) dates <- .format_yearmon(.index_to_yearmon(idx))
@@ -254,7 +254,7 @@ NNS.VAR <- function(variables,
   } else {
     num_cores <- max(1L, as.integer(ncores), na.rm = TRUE)
   }
-
+  
   # Workload gate: standing up a process cluster costs ~1s (spawn + exporting
   # data to workers). NNS.VAR parallelizes across VARIABLES -- one heavy task per
   # column (NNS.stack + dimension reduction over the ~ncol*tau lagged regressors)
@@ -271,7 +271,7 @@ NNS.VAR <- function(variables,
     (!auto_cores ||
        ncol(variables) >= ncol_parallel_min ||
        nrow(variables) >= 500L)
-
+  
   # Create a single cluster shared by both parallel sections (fork-first, with a
   # PSOCK fallback). Stopped at the end of the multi-variate estimate section.
   cl <- NULL
@@ -294,10 +294,10 @@ NNS.VAR <- function(variables,
     n <- nrow(variables)
     index <- seq_len(n)
     a <- cbind.data.frame("index" = index, variables)
-
+    
     # For Interpolation / Extrapolation of all missing values
     selected_variable <- a[, c(1,(i+1))]
-
+    
     interpolation_point <- tail(which(!is.na(selected_variable[,2])), 1)
     
     missing_index <- which(is.na(selected_variable[,2]))
@@ -348,10 +348,10 @@ NNS.VAR <- function(variables,
       variable_extrapolation <- b$results
       
     } else variable_extrapolation <- NULL
-
+    
     list(variable_interpolation, variable_extrapolation)
   }
-
+  
   nns_IVs <- if (use_parallel) {
     parallel::clusterExport(
       cl,
@@ -362,7 +362,7 @@ NNS.VAR <- function(variables,
   } else {
     lapply(1:ncol(variables), .interp_worker)
   }
-
+  
   interpolation_results <- lapply(nns_IVs, `[[`, 1)
   
   nns_IVs_interpolated_extrapolated <- data.frame(do.call(cbind, interpolation_results))
@@ -381,7 +381,7 @@ NNS.VAR <- function(variables,
   extrapolation_results <- lapply(nns_IVs, `[[`, 2)
   nns_IVs_results <- data.frame(do.call(cbind, extrapolation_results))
   colnames(nns_IVs_results) <- colnames(variables)
-
+  
   # Combine interpolated / extrapolated / forecasted IVs onto training data.frame
   new_values <- lapply(1:ncol(variables), function(i) c(nns_IVs_interpolated_extrapolated[,i], nns_IVs_results[,i]))
   
@@ -409,29 +409,40 @@ NNS.VAR <- function(variables,
   .model_worker <- function(i) {
     if(status) message("Variable ", i, " of ", ncol(variables), appendLF = TRUE)
     
-    IV <- lagged_new_values_train[, -i]
+    IV <- lagged_new_values_train[, -i, drop = FALSE]
     DV <- lagged_new_values_train[, i]
     
     # ts.test must be a whole number: NNS.stack now validates it as an integer
     # >= 1, so round the 0.2 * length(DV) floor up rather than passing the raw
     # fractional value through.
     ts <- max(2 * h, ceiling(.2 * length(DV)))
-
-    # Dimension reduction NNS.reg to reduce variables
+    
+    # Relevant variables: the regressors whose dimension reduction
+    # coefficient meets the cross-validated threshold
+    rel_vars <- .nns_var_relevant(IVs.train = IV,
+                                  DV.train = DV,
+                                  ts.test = ts,
+                                  obj.fn = obj.fn,
+                                  objective = objective,
+                                  dim.red.method = dim.red.method)
+    
+    # Multivariate estimate: a full NNS.stack on exactly the relevant variables.
+    # stack = FALSE runs both methods on them independently; stack = TRUE uses
+    # the dimension reduction output in the n.best optimization.
     .run_var_stack <- function(stack_obj_fn, stack_objective) {
-      NNS.stack(IVs.train = IV,
+      NNS.stack(IVs.train = IV[, rel_vars, drop = FALSE],
                 DV.train = DV,
-                IVs.test = tail(IV, h),
+                IVs.test = tail(IV, h)[, rel_vars, drop = FALSE],
                 ts.test = ts,
                 folds = 1,
                 obj.fn = stack_obj_fn,
                 objective = stack_objective,
-                method = c(1, 2),
+                method = 1,
                 dim.red.method = dim.red.method,
-                order = NULL, ncores = 1, stack = TRUE, status = FALSE)
+                order = NULL, ncores = 1, stack = FALSE, status = FALSE)
     }
-
-    cor_threshold <- tryCatch(
+    
+    multivariate <- tryCatch(
       .run_var_stack(obj.fn, objective),
       error = function(e) {
         no_finite_method1 <- identical(
@@ -448,44 +459,12 @@ NNS.VAR <- function(variables,
       }
     )
     
-    
-    
-    if(dim.red.method %in% c("cor", "all")){
-      rel.1 <- abs(cor(cbind(DV, IV), method = "spearman"))
-    }
-    
-    if(dim.red.method %in% c("nns.dep", "all")){
-      rel.2 <- NNS.dep(cbind(DV, IV))$Dependence
-    }
-    
-    if(dim.red.method %in% c("nns.caus", "all")){
-      rel.3 <- NNS.caus(cbind(DV, IV))
-    }
-    
-    if(dim.red.method == "cor") rel_vars <- rel.1[-1,1]
-    
-    if(dim.red.method == "nns.dep") rel_vars <- rel.2[-1,1]
-    
-    if(dim.red.method == "nns.caus") rel_vars <- rel.3[1,-1]
-    
-    if(dim.red.method == "all") rel_vars <- ((rel.1+rel.2+rel.3)/3)[1, -1]
-    
-    rel_vars <- names(rel_vars[rel_vars > cor_threshold$NNS.dim.red.threshold])
-    # (The self-variable's tau_0 column is already excluded from IV via [, -i]
-    # above; the former rel_vars[rel_vars != i] compared character names to the
-    # integer index i and matched nothing -- a no-op -- so it is removed.)
-    rel_vars <- na.omit(rel_vars)
-    
-    if(length(rel_vars) == 0){
-      rel_vars <- colnames(lagged_new_values_train)
-    }
-    
-    nns_DVs <- cor_threshold$stack
+    nns_DVs <- multivariate$stack
     nns_DVs[is.na(nns_DVs)] <- nns_IVs_results[is.na(nns_DVs),i]
-
+    
     list(nns_DVs, rel_vars)
   }
-
+  
   lists <- if (use_parallel) {
     parallel::clusterExport(
       cl,
@@ -498,13 +477,13 @@ NNS.VAR <- function(variables,
   } else {
     lapply(1:ncol(variables), .model_worker)
   }
-
+  
   if(use_parallel) {
     parallel::stopCluster(cl)
     cl <- NULL
     invisible(gc(verbose = FALSE))
   }
-
+  
   nns_DVs <- lapply(lists, `[[`, 1)
   relevant_vars <- lapply(lists, `[[`, 2)
   
@@ -559,4 +538,65 @@ NNS.VAR <- function(variables,
                multivariate = .NNS.df(nns_DVs),
                ensemble = .NNS.df(forecasts)) )
   
+}
+
+
+# Relevant variables: cross-validate the
+# dimension reduction threshold over NNS.stack cutoff grid
+# (validated on the last ts.test rows) and keep every regressor whose
+# coefficient meets it.  Returns their names.
+.nns_var_relevant <- function(IVs.train, DV.train, ts.test, obj.fn, objective,
+                              dim.red.method) {
+  IVs.train <- data.frame(IVs.train, check.names = FALSE)
+  DV.train <- as.numeric(DV.train)
+  n <- ncol(IVs.train)
+  if (n == 1) return(colnames(IVs.train))
+  N <- nrow(IVs.train)
+  best <- function(x) {
+    i <- if (objective == "min") which.min(x) else which.max(x)
+    if (length(i) == 0) 1L else i
+  }
+  score <- function(predicted, actual) eval(obj.fn)
+  
+  test.set <- (N - ts.test + 1):N
+  CV.IVs.train <- IVs.train[-test.set, , drop = FALSE]
+  CV.IVs.test <- IVs.train[test.set, , drop = FALSE]
+  CV.DV.train <- DV.train[-test.set]
+  actual <- DV.train[test.set]
+  
+  coefficients <- function(x, y) {
+    if (dim.red.method == "cor") {
+      suppressWarnings(cor(data.matrix(cbind(y, x)), method = "spearman"))[-1, 1]
+    } else {
+      suppressWarnings(NNS.reg(x, y, dim.red.method = dim.red.method, plot = FALSE, residual.plot = FALSE,
+                               order = NULL, ncores = 1, point.only = TRUE)$equation$Coefficient[1:n])
+    }
+  }
+  var.cutoffs_1 <- abs(round(coefficients(IVs.train, DV.train), digits = 2))
+  var.cutoffs_2 <- abs(round(coefficients(CV.IVs.train, CV.DV.train), digits = 2))
+  
+  var.cutoffs <- pmin(var.cutoffs_1, (var.cutoffs_1 + var.cutoffs_2) / 2)
+  var.cutoffs <- var.cutoffs[var.cutoffs < 1 & var.cutoffs >= 0]
+  var.cutoffs[is.na(var.cutoffs)] <- 0
+  var.cutoffs <- rev(sort(unique(var.cutoffs)))[-1]
+  if (length(var.cutoffs) == 0) var.cutoffs <- 0
+  if (n == 2) var.cutoffs <- unique(c(var.cutoffs, 0))
+  
+  nns.ord <- sapply(var.cutoffs, function(threshold) {
+    predicted <- suppressWarnings(NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test,
+                                          dim.red.method = dim.red.method, threshold = threshold,
+                                          plot = FALSE, residual.plot = FALSE, order = NULL,
+                                          ncores = 1, point.only = TRUE)$Point.est)
+    predicted[is.na(predicted)] <- gravity(na.omit(predicted))
+    score(predicted, actual)
+  })
+  threshold <- var.cutoffs[best(nns.ord)]
+  
+  # Every regressor the threshold keeps (positive or negative coefficient)
+  coef <- suppressWarnings(NNS.reg(IVs.train, DV.train, dim.red.method = dim.red.method,
+                                   threshold = threshold, plot = FALSE, residual.plot = FALSE,
+                                   order = NULL, ncores = 1, point.only = TRUE)$equation$Coefficient[1:n])
+  relevant_vars <- which(coef != 0)
+  if (length(relevant_vars) == 0) relevant_vars <- 1:n
+  colnames(IVs.train)[relevant_vars]
 }
