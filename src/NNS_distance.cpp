@@ -144,7 +144,8 @@ SEXP NNS_distance_cpp(NumericMatrix X,
   
   std::vector<double> exw(ll, 0.0);
   for (int i = 0; i < ll; ++i){
-    double dens = ::Rf_dexp((double)(i+1), 1.0/(double)ll, 0);
+    // Rf_dexp takes the scale, so this is rate = 1/ll
+    double dens = ::Rf_dexp((double)(i+1), (double)ll, 0);
     exw[i] = std::isfinite(dens) ? dens : 0.0;
   }
   double exsum = std::accumulate(exw.begin(), exw.end(), 0.0);
@@ -207,113 +208,6 @@ SEXP NNS_distance_cpp(NumericMatrix X,
   } else {
     return wrap( mode_class_weighted(ysel, w) );
   }
-}
-
-// ---------- NNS_distance_path_cpp / NNS_distance_bulk_cpp ----------
-namespace {
-inline double safe_eps() { return 1e-12; }
-  
-  // R matrices are column-major: element (i, j) lives at i + j*nrow.
-  inline void compute_distances(const Rcpp::NumericMatrix& rpm,
-                                const Rcpp::NumericMatrix& xtest, int test_row,
-                                std::vector<double>& dist_out) {
-    const int n = rpm.nrow(), p = rpm.ncol();
-    for (int i = 0; i < n; ++i) {
-      double acc = 0.0;
-      for (int j = 0; j < p; ++j) {
-        const double d = rpm(i, j) - xtest(test_row, j);
-        acc += d * d + std::fabs(d);
-      }
-      dist_out[i] = (acc == 0.0 ? safe_eps() : acc);
-    }
-  }
-  
-  inline void argsort_by_distance(const std::vector<double>& dist,
-                                  std::vector<int>& idx) {
-    const int n = static_cast<int>(dist.size());
-    idx.resize(n);
-    std::iota(idx.begin(), idx.end(), 0);
-    std::sort(idx.begin(), idx.end(),
-              [&dist](int a, int b){ return dist[a] < dist[b]; });
-  }
-}
-
-// [[Rcpp::export]]
-Rcpp::NumericMatrix NNS_distance_path_cpp(const Rcpp::NumericMatrix& RPM,
-                                          const Rcpp::NumericVector& yhat,
-                                          const Rcpp::NumericMatrix& Xtest,
-                                          int kmax,
-                                          bool is_class) {
-  (void)is_class;
-  const int n = RPM.nrow(), p = RPM.ncol(), m = Xtest.nrow();
-  if (n <= 0 || p <= 0 || m <= 0) Rcpp::stop("RPM/Xtest must be non-empty");
-  if (yhat.size() != n)          Rcpp::stop("yhat length must equal nrow(RPM)");
-  if (Xtest.ncol() != p)         Rcpp::stop("Xtest and RPM must have same number of columns");
-  if (kmax < 1)                  Rcpp::stop("kmax must be >= 1");
-  if (kmax > n)                  kmax = n;
-  
-  Rcpp::NumericMatrix out(m, kmax);
-  const double* y_ptr    = REAL(yhat);
-  
-  std::vector<double> dist(n), y_sorted(n), d_sorted(n);
-  std::vector<int>    ord(n);
-  
-  for (int r = 0; r < m; ++r) {
-    compute_distances(RPM, Xtest, r, dist);
-    argsort_by_distance(dist, ord);
-    
-    for (int i = 0; i < n; ++i) {
-      const int j = ord[i];
-      y_sorted[i] = y_ptr[j];
-      d_sorted[i] = (dist[j] <= 0.0 ? safe_eps() : dist[j]);
-    }
-    
-    double csum_w  = 0.0, csum_yw = 0.0;
-    for (int k = 1; k <= kmax; ++k) {
-      const double w = 1.0 / d_sorted[k - 1];
-      csum_w  += w;
-      csum_yw += w * y_sorted[k - 1];
-      out(r, k - 1) = (csum_w > 0.0) ? (csum_yw / csum_w) : 0.0;
-    }
-  }
-  return out;
-}
-
-// [[Rcpp::export]]
-Rcpp::NumericVector NNS_distance_bulk_cpp(const Rcpp::NumericMatrix& RPM,
-                                          const Rcpp::NumericVector& yhat,
-                                          const Rcpp::NumericMatrix& Xtest,
-                                          int k,
-                                          bool is_class) {
-  (void)is_class;
-  const int n = RPM.nrow(), p = RPM.ncol(), m = Xtest.nrow();
-  if (n <= 0 || p <= 0 || m <= 0) Rcpp::stop("RPM/Xtest must be non-empty");
-  if (yhat.size() != n)          Rcpp::stop("yhat length must equal nrow(RPM)");
-  if (Xtest.ncol() != p)         Rcpp::stop("Xtest and RPM must have same number of columns");
-  if (k < 1)                     Rcpp::stop("k must be >= 1");
-  if (k > n)                     k = n;
-  
-  Rcpp::NumericVector out(m);
-  const double* y_ptr    = REAL(yhat);
-  
-  std::vector<double> dist(n);
-  std::vector<int>    ord(n);
-  
-  for (int r = 0; r < m; ++r) {
-    compute_distances(RPM, Xtest, r, dist);
-    argsort_by_distance(dist, ord);
-    
-    double csum_w = 0.0, csum_yw = 0.0;
-    for (int i = 0; i < k; ++i) {
-      const int j = ord[i];
-      const double dj = (dist[j] <= 0.0 ? safe_eps() : dist[j]);
-      const double w  = 1.0 / dj;
-      csum_w  += w;
-      csum_yw += w * y_ptr[j];
-    }
-    out[r] = (csum_w > 0.0) ? (csum_yw / csum_w) : 0.0;
-  }
-  return out;
 }
 
 // ---------- worker ----------
@@ -466,7 +360,7 @@ NumericMatrix NNS_distance_path_parallel_cpp(NumericMatrix RPM,
     uniW[k].assign(k, 1.0 / (double)k);
     
     std::vector<double> ex(k);
-    for (int r = 1; r <= k; ++r) ex[r-1] = ::Rf_dexp((double)r, 1.0 / (double)k, 0);
+    for (int r = 1; r <= k; ++r) ex[r-1] = ::Rf_dexp((double)r, (double)k, 0);
     double exs = std::accumulate(ex.begin(), ex.end(), 0.0);
     if (exs > 0) for (double &v: ex) v /= exs; else std::fill(ex.begin(), ex.end(), 0.0);
     expW[k] = std::move(ex);
@@ -479,7 +373,8 @@ NumericMatrix NNS_distance_path_parallel_cpp(NumericMatrix RPM,
     
     std::vector<double> ln(k, 0.0);
     if (k >= 2){
-      double sdlog = std::sqrt(((double)k * (double)k - 1.0) / 12.0);
+      // Match sd(1:k), the sample standard deviation used by the scalar path.
+      double sdlog = std::sqrt(static_cast<double>(k) * (k + 1.0) / 12.0);
       for (int r = 1; r <= k; ++r){ double lp = ::Rf_dlnorm((double)r, 0.0, sdlog, 1); ln[r-1] = std::fabs(lp); }
       std::reverse(ln.begin(), ln.end());
       double lns = std::accumulate(ln.begin(), ln.end(), 0.0);
@@ -671,7 +566,7 @@ NumericVector NNS_distance_path_single_parallel_cpp(NumericMatrix RPM,
   std::vector<double> uniW(k, 1.0 / (double)k);
   
   std::vector<double> expW(k);
-  for (int r = 1; r <= k; ++r) expW[r - 1] = ::Rf_dexp((double)r, 1.0 / (double)k, 0);
+  for (int r = 1; r <= k; ++r) expW[r - 1] = ::Rf_dexp((double)r, (double)k, 0);
   double exs = std::accumulate(expW.begin(), expW.end(), 0.0);
   if (exs > 0.0) for (double &v : expW) v /= exs;
   else std::fill(expW.begin(), expW.end(), 0.0);
@@ -684,7 +579,8 @@ NumericVector NNS_distance_path_single_parallel_cpp(NumericMatrix RPM,
   
   std::vector<double> lnormW(k, 0.0);
   if (k >= 2) {
-    double sdlog = std::sqrt(((double)k * (double)k - 1.0) / 12.0);
+    // Match sd(1:k), the sample standard deviation used by the scalar path.
+    double sdlog = std::sqrt(static_cast<double>(k) * (k + 1.0) / 12.0);
     for (int r = 1; r <= k; ++r) {
       double lp = ::Rf_dlnorm((double)r, 0.0, sdlog, 1);
       lnormW[r - 1] = std::fabs(lp);

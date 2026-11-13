@@ -33,7 +33,7 @@ NNS.boost(
 
 \item{DV.train}{a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.}
 
-\item{IVs.test}{a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  Names that only partly overlap the training predictors are ambiguous and return an error.}
+\item{IVs.test}{a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  A CSV UTF-8 byte-order mark in the first header (for example, \code{Male} becoming \code{X...Male}) is repaired before matching names. Other partial overlaps, including misspelled predictors, are ambiguous and return an error.}
 
 \item{type}{\code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.}
 
@@ -54,7 +54,7 @@ NNS.boost(
 \item{obj.fn}{expression;
 \code{expression( sum((predicted - actual)^2) )} (default) Sum of squared errors is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.  Automatically selects an accuracy measure when \code{(type = "CLASS")}.}
 
-\item{objective}{options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
+\item{objective}{options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.}
 
 \item{extreme}{logical; \code{FALSE} (default) Sets the \link{LPM.VaR} probability to 1 (0) for maximization (minimization) \code{objective}, i.e. the most extreme learner-trial objective value becomes the cutoff.  Overrides \code{threshold}.}
 
@@ -86,15 +86,17 @@ Ensemble method for classification using the NNS multivariate regression \link{N
 }
 }
 \examples{
- ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
+ ## Using 'iris' dataset with a stratified test set of ten rows per species
+ ## (rows 141:150 alone are all virginica).
  \dontrun{
- a <- NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
- IVs.test = iris[141:150, 1:4],
+ test.set <- c(41:50, 91:100, 141:150)
+ a <- NNS.boost(iris[-test.set, 1:4], iris[-test.set, 5],
+ IVs.test = iris[test.set, 1:4],
  epochs = 100, learner.trials = 100,
  type = "CLASS", depth = NULL, balance = TRUE)
 
  ## Test accuracy
- mean(a$results == as.numeric(iris[141:150, 5]))
+ mean(a$results == as.numeric(iris[test.set, 5]))
 
  ## Recover the labels
  a$class.levels[a$results]

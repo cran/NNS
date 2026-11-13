@@ -12,11 +12,17 @@ NNS.ANOVA.bin <- function(control, treatment,
                           par = NULL,
                           n_boot = 1000) {
   
+  constant.1 <- if (length(control) && all(control == control[1L])) control[1L] else NA_real_
+  constant.2 <- if (length(treatment) && all(treatment == treatment[1L])) treatment[1L] else NA_real_
+
   # Calculate grand statistic if not provided
   if(is.null(mean.of.means)) {
     if(medians) {
-      mean.of.means <- (length(control) * median(control) + length(treatment) * median(treatment)) /
-        (length(control) + length(treatment))
+      mean.of.means <- median(c(control, treatment))
+    } else if (isTRUE(constant.1 == constant.2)) {
+      # Multiplication/division in a weighted mean can move a shared constant
+      # by one ULP, spuriously turning its zero deviation area into a step.
+      mean.of.means <- constant.1
     } else {
       mean.of.means <- (length(control) * mean(control) + length(treatment) * mean(treatment)) /
         (length(control) + length(treatment))
@@ -25,10 +31,14 @@ NNS.ANOVA.bin <- function(control, treatment,
   
   # Calculate partial moment targets if not provided
   if(is.null(upper.25.target) && is.null(lower.25.target)) {
-    upper.25.target <- mean(c(UPM.VaR(0.25, 1, control), UPM.VaR(0.25, 1, treatment)))
-    lower.25.target <- mean(c(LPM.VaR(0.25, 1, control), LPM.VaR(0.25, 1, treatment)))
-    upper.125.target <- mean(c(UPM.VaR(0.125, 1, control), UPM.VaR(0.125, 1, treatment)))
-    lower.125.target <- mean(c(LPM.VaR(0.125, 1, control), LPM.VaR(0.125, 1, treatment)))
+    # UPM.VaR(p, 1, x) is LPM.VaR(1 - p, 1, x), and LPM.VaR solves its
+    # percentiles one by one, so one call per group gives all four thresholds.
+    control.var <- LPM.VaR(c(0.75, 0.25, 0.875, 0.125), 1, control)
+    treatment.var <- LPM.VaR(c(0.75, 0.25, 0.875, 0.125), 1, treatment)
+    upper.25.target <- mean(c(control.var[1L], treatment.var[1L]))
+    lower.25.target <- mean(c(control.var[2L], treatment.var[2L]))
+    upper.125.target <- mean(c(control.var[3L], treatment.var[3L]))
+    lower.125.target <- mean(c(control.var[4L], treatment.var[4L]))
   }
   
   # Calculate partial moment ratios
@@ -60,12 +70,32 @@ NNS.ANOVA.bin <- function(control, treatment,
   Lower_125_ratio.2 <- LPM.ratio(1, lower.125.target, treatment)
   
   
+  # A constant sample at its benchmark has LPM = UPM = 0, so the
+  # expectile balance is satisfied at every probability. The public ratio
+  # uses a step convention there; it is not a discrepancy for ANOVA.
+  area.distance <- function(ratio.1, ratio.2, target, probability) {
+    d.1 <- if (isTRUE(constant.1 == target)) 0 else abs(ratio.1 - probability)
+    d.2 <- if (isTRUE(constant.2 == target)) 0 else abs(ratio.2 - probability)
+    min(probability, max(d.1, d.2))
+  }
+
   # Calculate CDF deviations
-  MAD.CDF <- min(0.5, max(c(abs(LPM_ratio.1 - 0.5), abs(LPM_ratio.2 - 0.5))))
-  upper.25.CDF <- min(0.25, max(c(abs(Upper_25_ratio.1 - 0.25), abs(Upper_25_ratio.2 - 0.25))))
-  lower.25.CDF <- min(0.25, max(c(abs(Lower_25_ratio.1 - 0.25), abs(Lower_25_ratio.2 - 0.25))))
-  upper.125.CDF <- min(0.125, max(c(abs(Upper_125_ratio.1 - 0.125), abs(Upper_125_ratio.2 - 0.125))))
-  lower.125.CDF <- min(0.125, max(c(abs(Lower_125_ratio.1 - 0.125), abs(Lower_125_ratio.2 - 0.125))))
+  # A median t satisfies F(t-) <= 0.5 <= F(t). With ties, F(t) alone
+  # need not equal 0.5 even for two identical samples. Measure distance
+  # to this interval; keep the reported CDF values and mean comparison.
+  if (medians) {
+    median.distance.1 <- max(0, mean(control < mean.of.means) - 0.5,
+                             0.5 - LPM_ratio.1)
+    median.distance.2 <- max(0, mean(treatment < mean.of.means) - 0.5,
+                             0.5 - LPM_ratio.2)
+    MAD.CDF <- max(median.distance.1, median.distance.2)
+  } else {
+    MAD.CDF <- area.distance(LPM_ratio.1, LPM_ratio.2, mean.of.means, 0.5)
+  }
+  upper.25.CDF <- area.distance(Upper_25_ratio.1, Upper_25_ratio.2, upper.25.target, 0.25)
+  lower.25.CDF <- area.distance(Lower_25_ratio.1, Lower_25_ratio.2, lower.25.target, 0.25)
+  upper.125.CDF <- area.distance(Upper_125_ratio.1, Upper_125_ratio.2, upper.125.target, 0.125)
+  lower.125.CDF <- area.distance(Lower_125_ratio.1, Lower_125_ratio.2, lower.125.target, 0.125)
   
   # Calculate certainty statistic
   if(means.only) {
@@ -129,15 +159,11 @@ NNS.ANOVA.bin <- function(control, treatment,
     # Calculate confidence bounds
     alpha <- if(tails == "both") (1 - confidence.interval)/2 else 1 - confidence.interval
     
-    if(tails %in% c("both", "right")) {
-      control_upper <- UPM.VaR(alpha, 0, control_stats)
-      treatment_upper <- UPM.VaR(alpha, 0, treatment_stats)
-    }
-    
-    if(tails %in% c("both", "left")) {
-      control_lower <- LPM.VaR(alpha, 0, control_stats)
-      treatment_lower <- LPM.VaR(alpha, 0, treatment_stats)
-    }
+    # One-sided bounds also need both quantiles (lower = treatment_lower - control_upper).
+    control_upper <- UPM.VaR(alpha, 0, control_stats)
+    treatment_upper <- UPM.VaR(alpha, 0, treatment_stats)
+    control_lower <- LPM.VaR(alpha, 0, control_stats)
+    treatment_lower <- LPM.VaR(alpha, 0, treatment_stats)
     
     # Calculate conservative effect size bounds
     if(tails == "both") {

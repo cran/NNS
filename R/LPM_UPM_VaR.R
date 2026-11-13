@@ -3,9 +3,9 @@
 #' Generates a value at risk (VaR) quantile based on the Lower Partial Moment ratio.
 #'
 #' @param percentile numeric [0, 1]; The percentile for left-tail VaR.
-#' @param degree integer; \code{(degree = 0)} for discrete distributions, \code{(degree = 1)} for continuous distributions.
+#' @param degree integer; \code{(degree = 0)} gives the interpolated empirical quantile (\code{quantile(x, percentile, type = 7)}), which on tied data need not be an exact inverse of \code{LPM.ratio(0, ., x)}. Use it for probability statements, such as a VaR exceeded with a given frequency.  \code{(degree = 1)} gives an area-weighted (severity-weighted) threshold, the \code{percentile}-expectile of \code{x} (Newey and Powell 1987): \code{percentile} of the area of deviations, not of the observations, lies below it, so it is not a quantile of \code{x} (for exponential data the degree-1 5\% point has about a quarter of the observations below it).  Higher degrees weight large deviations more.
 #' @param x a numeric vector.
-#' @return Returns a numeric value representing the point at which \code{"percentile"} of the area of \code{x} is below.
+#' @return Returns the type-7 empirical quantile (\code{degree = 0}), whose strict or inclusive sample tail fraction may differ from \code{percentile} because of interpolation or ties, or the threshold with \code{percentile} of the directional deviation area below it (\code{degree > 0}).
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995, 2nd edition: \url{https://ovvo-financial.github.io/NNS/book/})
 #' @examples
@@ -40,9 +40,9 @@ LPM.VaR <- function(percentile, degree, x) {
 #' Generates an upside value at risk (VaR) quantile based on the Upper Partial Moment ratio.
 #'
 #' @param percentile numeric [0, 1]; The percentile for right-tail VaR.
-#' @param degree integer; \code{(degree = 0)} for discrete distributions, \code{(degree = 1)} for continuous distributions.
+#' @param degree integer; \code{(degree = 0)} gives the interpolated empirical quantile (\code{quantile(x, 1 - percentile, type = 7)}), which on tied data need not be an exact inverse of \code{UPM.ratio(0, ., x)}. Use it for probability statements.  \code{(degree = 1)} gives an area-weighted (severity-weighted) threshold, the (1 - \code{percentile})-expectile of \code{x} (Newey and Powell 1987): \code{percentile} of the area of deviations, not of the observations, lies above it, so it is not a quantile of \code{x}.  Higher degrees weight large deviations more.
 #' @param x a numeric vector.
-#' @return Returns a numeric value representing the point at which \code{"percentile"} of the area of \code{x} is above.
+#' @return Returns the type-7 empirical quantile (\code{degree = 0}), whose strict or inclusive sample tail fraction may differ from \code{percentile} because of interpolation or ties, or the threshold with \code{percentile} of the directional deviation area above it (\code{degree > 0}).
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995, 2nd edition: \url{https://ovvo-financial.github.io/NNS/book/})
 #' @examples
@@ -131,7 +131,19 @@ UPM.VaR <- function(percentile, degree, x) {
 #   Vectorize(percentile) -> optimize() -> repeated full LPM.ratio / UPM.ratio scans.
 # ------------------------------------------------------------------------------
 
+# The compiled kernel does this computation with the same arithmetic. It
+# returns NULL for the calls it leaves to the R implementation below: values
+# that are not finite, a missing percentile, or a root search in which
+# uniroot() would warn or stop.
+# Both callers pass percentiles already limited to [0, 1].
 .NNS_LPM_VaR_integer <- function(percentile, degree, x) {
+  out <- NNS_LPM_VaR_integer_cpp(percentile, degree, x)
+  if (is.null(out)) .NNS_LPM_VaR_integer_R(percentile, degree, x) else out
+}
+
+
+
+.NNS_LPM_VaR_integer_R <- function(percentile, degree, x) {
   p <- pmin(pmax(as.numeric(percentile), 0), 1)
   
   n <- length(x)
@@ -199,9 +211,8 @@ UPM.VaR <- function(percentile, degree, x) {
 
 
 .NNS_UPM_VaR_integer <- function(percentile, degree, x) {
-  percentile <- pmin(pmax(as.numeric(percentile), 0), 1)
-  
-  # UPM.ratio(t) = p is equivalent to LPM.ratio(t) = 1 - p.
+  # UPM.ratio(t) = p is equivalent to LPM.ratio(t) = 1 - p. UPM.VaR has
+  # already limited the percentile to [0, 1].
   .NNS_LPM_VaR_integer(1 - percentile, degree, x)
 }
 
@@ -339,16 +350,25 @@ UPM.VaR <- function(percentile, degree, x) {
     )
   }
   
+  # The ratio residual is dimensionless, unlike f, whose size scales with x^degree.
+  ratio_gap <- function(t) {
+    lpm <- .NNS_LPM_raw_integer(t, degree, prefix_power)
+    upm <- .NNS_UPM_raw_integer(t, degree, prefix_power, total_power)
+    lpm / (lpm + upm) - percentile
+  }
+  
   f_lower <- f(lower)
   f_upper <- f(upper)
+  g_lower <- ratio_gap(lower)
+  g_upper <- ratio_gap(upper)
   
-  tol <- .Machine$double.eps^0.5
+  tol <- .Machine$double.eps^0.75
   
-  if (is.finite(f_lower) && abs(f_lower) <= tol) {
+  if (is.finite(g_lower) && abs(g_lower) <= tol) {
     return(lower)
   }
   
-  if (is.finite(f_upper) && abs(f_upper) <= tol) {
+  if (is.finite(g_upper) && abs(g_upper) <= tol) {
     return(upper)
   }
   
@@ -357,23 +377,20 @@ UPM.VaR <- function(percentile, degree, x) {
     is.finite(f_upper) &&
     f_lower * f_upper <= 0
   ) {
+    # Where the ratio is steep a tolerance on t does not bound its residual, so solve to rounding.
     root <- stats::uniroot(
       f,
       interval = c(lower, upper),
-      tol = tol
+      f.lower = f_lower,
+      f.upper = f_upper,
+      tol = .Machine$double.eps^2 * (upper - lower)
     )$root
     
     return(pmin(pmax(root, lower), upper))
   }
   
-  # Numerical safety fallback.
-  # This still uses the cheap prefix-polynomial objective, not full LPM.ratio scans.
-  root <- stats::optimize(
-    function(t) abs(f(t)),
-    interval = c(lower, upper)
-  )$minimum
-  
-  pmin(pmax(root, lower), upper)
+  # No sign change, from rounding at a break: take the closer endpoint.
+  if (abs(g_lower) <= abs(g_upper)) lower else upper
 }
 
 
@@ -392,16 +409,20 @@ UPM.VaR <- function(percentile, degree, x) {
     return(rep(x_min, length(p)))
   }
   
+  # The ratio is monotone in the target: solve ratio(b) = p by bracketing, to a
+  # tolerance relative to the range of x.
+  tol <- .Machine$double.eps^0.5 * (x_max - x_min)
   vapply(
     p,
     function(pp) {
-      func <- function(b) {
-        abs(
-          as.numeric(.Call("_NNS_LPM_ratio_RCPP", degree, b, x)) - pp
-        )
+      g <- function(b) as.numeric(.Call("_NNS_LPM_ratio_RCPP", degree, b, x)) - pp
+      g_lo <- g(x_min); g_hi <- g(x_max)
+      if (g_lo == 0) return(x_min)
+      if (g_hi == 0) return(x_max)
+      if (sign(g_lo) == sign(g_hi)) {
+        return(if (abs(g_lo) <= abs(g_hi)) x_min else x_max)
       }
-      
-      stats::optimize(func, c(x_min, x_max))$minimum
+      stats::uniroot(g, c(x_min, x_max), f.lower = g_lo, f.upper = g_hi, tol = tol)$root
     },
     numeric(1)
   )
@@ -419,16 +440,20 @@ UPM.VaR <- function(percentile, degree, x) {
     return(rep(x_min, length(p)))
   }
   
+  # The ratio is monotone in the target: solve ratio(b) = p by bracketing, to a
+  # tolerance relative to the range of x.
+  tol <- .Machine$double.eps^0.5 * (x_max - x_min)
   vapply(
     p,
     function(pp) {
-      func <- function(b) {
-        abs(
-          as.numeric(.Call("_NNS_UPM_ratio_RCPP", degree, b, x)) - pp
-        )
+      g <- function(b) as.numeric(.Call("_NNS_UPM_ratio_RCPP", degree, b, x)) - pp
+      g_lo <- g(x_min); g_hi <- g(x_max)
+      if (g_lo == 0) return(x_min)
+      if (g_hi == 0) return(x_max)
+      if (sign(g_lo) == sign(g_hi)) {
+        return(if (abs(g_lo) <= abs(g_hi)) x_min else x_max)
       }
-      
-      stats::optimize(func, c(x_min, x_max))$minimum
+      stats::uniroot(g, c(x_min, x_max), f.lower = g_lo, f.upper = g_hi, tol = tol)$root
     },
     numeric(1)
   )

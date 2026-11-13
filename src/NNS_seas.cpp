@@ -1,9 +1,63 @@
 // [[Rcpp::depends(Rcpp)]]
+// [[Rcpp::depends(RcppParallel)]]
 #include <Rcpp.h>
+#include <RcppParallel.h>
 #include <set>
 #include <algorithm>
+#include <cfloat>
+#include <numeric>
+#include <vector>
 
 using namespace Rcpp;
+
+// Running state of one component series while the sorted series is walked.
+struct SeasComponent { int rank; int len; double first; double last; double sum; double acc; };
+
+// Score of lag m: the length-weighted mean over its m component series of the
+// Gini mean difference, divided by the component mean when use_cv. xs holds the
+// series in increasing order and pos the original index of each value, so each
+// value lands in its component (pos mod m) at that component's next rank.
+static double seas_score(int m, int n, const double* xs, const int* pos, bool use_cv,
+                         std::vector<SeasComponent>& comp){
+  if ((int)comp.size() < m) comp.resize(m);
+  const double inv_m = 1.0 / (double)m;
+  for(int j=0;j<m;++j){ SeasComponent& c = comp[j]; c.rank = 0; c.len = (n-1-j)/m + 1; c.sum = 0.0; c.acc = 0.0; }
+  for(int t=0;t<n;++t){
+    const int i = pos[t];
+    int j = i - m * (int)((double)i * inv_m);   // i mod m without a division
+    if (j >= m) j -= m; else if (j < 0) j += m;
+    const double v = xs[t];
+    SeasComponent& c = comp[j];
+    if (c.rank == 0) c.first = v;
+    c.last = v;
+    // The weights sum to 0, so measuring from the component minimum avoids cancelling a large level.
+    c.acc += (2.0 * c.rank + 1.0 - c.len) * (v - c.first);
+    c.sum += v;
+    ++c.rank;
+  }
+  double wsum = 0.0;
+  for(int j=0;j<m;++j){
+    const SeasComponent& c = comp[j];
+    const double k = (double)c.len;
+    // a constant component (smallest value = largest) has dispersion 0
+    const double g = (c.len < 2 || c.first == c.last) ? 0.0 : std::max(0.0, 2.0 * c.acc / (k * (k - 1.0)));
+    wsum += k * (use_cv ? (g == 0.0 ? 0.0 : g / std::fabs(c.sum / k)) : g);
+  }
+  return wsum / (double)n;
+}
+
+// Scores lags begin + 1 .. end into out[begin .. end - 1]. Each lag is O(n) and
+// independent of the others, so the scan is split across threads; each chunk
+// keeps its own component buffer.
+struct SeasScanWorker : public RcppParallel::Worker {
+  const int n; const double* xs; const int* pos; const bool use_cv; double* out;
+  SeasScanWorker(int n_, const double* xs_, const int* pos_, bool use_cv_, double* out_)
+    : n(n_), xs(xs_), pos(pos_), use_cv(use_cv_), out(out_) {}
+  void operator()(std::size_t begin, std::size_t end){
+    std::vector<SeasComponent> comp;
+    for(std::size_t mm = begin; mm < end; ++mm) out[mm] = seas_score((int)mm + 1, n, xs, pos, use_cv, comp);
+  }
+};
 
 
 // --- small utilities (no plotting here) ---
@@ -22,69 +76,11 @@ inline double vec_mean(const NumericVector& x){
   return s / (double)n;
 }
 
-inline double vec_sd(const NumericVector& x){
-  int n = x.size();
-  if(n < 2) return NA_REAL;
-  double m = vec_mean(x);
-  double ss = 0.0;
-  for(int i=0;i<n;++i){
-    double d = x[i]-m; ss += d*d;
-  }
-  return std::sqrt(ss / (double)(n-1));
-}
-
-// lag-1 Pearson autocorrelation
-inline double acf1(const NumericVector& x){
-  int n = x.size();
-  if(n < 2) return NA_REAL;
-  double m = vec_mean(x);
-  double num = 0.0;
-  double den = 0.0;
-  for(int t=1;t<n;++t) num += (x[t]-m)*(x[t-1]-m);
-  for(int t=0;t<n;++t){ double d=x[t]-m; den += d*d; }
-  if(den == 0.0) return NA_REAL;
-  return num / den;
-}
-
-inline double cv_or_fallback(const NumericVector& x, bool use_cv, double var_cov){
-  int n = x.size();
-  if(n < 2) return var_cov;
-  double z;
-  if(use_cv){
-    double m = vec_mean(x);
-    double s = vec_sd(x);
-    z = std::fabs(s / m);
-  } else {
-    double a1 = acf1(x);
-    if (NumericVector::is_na(a1)) return var_cov;
-    z = std::pow(std::fabs(a1), -1.0);
-  }
-  if(!R_finite(z)) return var_cov;
-  return z;
-}
-
-inline IntegerVector rev_step_indices(int n, int step){
-  int len = (n-1) / step + 1;
-  IntegerVector out(len);
-  int v = n;
-  for(int k=0;k<len;++k, v -= step) out[k] = v; // 1-based
-  return out;
-}
-
-inline NumericVector take_by_index(const NumericVector& x, const IntegerVector& idx){
-  int m = idx.size();
-  NumericVector out(m);
-  for(int i=0;i<m;++i){
-    int j = idx[i]-1;
-    out[i] = (j>=0 && j<x.size()) ? x[j] : NA_REAL;
-  }
-  return out;
-}
-
 // [[Rcpp::export]]
 Rcpp::List NNS_seas_cpp(NumericVector variable,
                         Nullable<IntegerVector> modulo = R_NilValue,
-                        bool mod_only = true){
+                        bool mod_only = true,
+                        Nullable<int> max_period = R_NilValue){
   if (variable.size() == 0)  stop("Variable must be numeric and non-empty");
   if (any_na_or_inf(variable)) stop("You have some missing or infinite values, please address.");
   
@@ -102,44 +98,57 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
     );
   }
   
-  NumericVector variable_1(n-1);
-  for(int i=0;i<n-1;++i) variable_1[i] = variable[i];
-  NumericVector variable_2 = (n-1>=2) ? NumericVector(n-2) : NumericVector(0);
-  for(int i=0;i<variable_2.size();++i) variable_2[i] = variable_1[i];
-  
   const int half_n = n/2;
-  const double mean_var = vec_mean(variable);
-  const bool use_cv = (mean_var != 0.0);
-  double var_cov = use_cv ? std::fabs(vec_sd(variable)/mean_var) : std::pow(std::fabs(acf1(variable)), -1.0);
-  if(!R_finite(var_cov)) var_cov = R_PosInf;
-  
-  NumericVector out(half_n), out1(half_n), out2(half_n);
-  IntegerVector inst(half_n), inst1(half_n), inst2(half_n);
-  
-  const int n1 = n-1;
-  const int n2 = variable_2.size();
-  
-  for(int i=1;i<=half_n;++i){
-    IntegerVector idx  = rev_step_indices(n , i);
-    IntegerVector idx1 = rev_step_indices(n1, i);
-    IntegerVector idx2 = (n2>0) ? rev_step_indices(n2, i) : IntegerVector(0);
-    
-    double t  = cv_or_fallback(take_by_index(variable  , idx ), use_cv, var_cov);
-    double t1 = cv_or_fallback(take_by_index(variable_1, idx1), use_cv, var_cov);
-    double t2 = cv_or_fallback(take_by_index(variable_2, idx2), use_cv, var_cov);
-    
-    if (t  <= var_cov){ inst[i-1]  = i; out[i-1]  = t;  }
-    if (t1 <= var_cov){ inst1[i-1] = i; out1[i-1] = t1; }
-    if (t2 <= var_cov){ inst2[i-1] = i; out2[i-1] = t2; }
-  }
-  
-  // build passing set and average CV across the three staggered series
+  const double* x = variable.begin();
+
+  // Dispersion is the Gini mean difference, the degree-1 lower plus upper
+  // partial moment about each observation in turn: as the U-statistic
+  // sum_{i != j} |x_i - x_j| / (k (k - 1)) it is unbiased under iid sampling with a finite first moment
+  // at any component length k, so no normal-theory factor such as c4(k) is
+  // needed (#97). One sort of the series gives every component's order
+  // statistics: walking the sorted values, each lands in its component at
+  // that component's next rank.
+  std::vector<int> ord(n);
+  std::iota(ord.begin(), ord.end(), 0);
+  std::stable_sort(ord.begin(), ord.end(), [&](int a, int b){ return x[a] < x[b]; });
+
+  // The coefficient of variation needs a ratio scale: it is used only when the
+  // series stays on one side of zero, and dispersions are compared otherwise.
+  const bool use_cv = (x[ord[0]] > 0.0) || (x[ord[n - 1]] < 0.0);
+
+  // Minimum component length (#69): every component series of lag m must have
+  // at least MIN_COMPONENT_LENGTH points, i.e. m <= n / MIN_COMPONENT_LENGTH.
+  // max_period caps the scan further; the scan is O(n) per lag.
+  const int MIN_COMPONENT_LENGTH = 5;
+  int max_m = std::min(half_n, n / MIN_COMPONENT_LENGTH);
+  if (max_period.isNotNull()) max_m = std::max(1, std::min(max_m, as<int>(max_period)));
+
+  std::vector<double> xs(n);
+  for(int t=0;t<n;++t) xs[t] = x[ord[t]];
+  std::vector<SeasComponent> comp;
+  auto score = [&](int m){ return seas_score(m, n, xs.data(), ord.data(), use_cv, comp); };
+  // The series itself is the single component of lag 1.
+  const double var_cov = score(1);
+
   std::vector<int> periods_vec;
   std::vector<double> cvmean_vec;
-  for(int i=0;i<half_n;++i){
-    if (inst[i] > 0 && inst1[i] > 0 && inst2[i] > 0){
-      periods_vec.push_back(inst[i]);
-      cvmean_vec.push_back( (out[i] + out1[i] + out2[i]) / 3.0 );
+  // A period the user adds through modulo is scored even beyond the scan limit,
+  // so ARMA.seas.weighting doesn't give it zero weight.
+  auto added_cv = [&](int m){
+    if (m > max_m && m <= half_n){ double c = score(m); if (c < var_cov) return c; }
+    return var_cov;
+  };
+  // The scan visits n values per lag; above a few million visits the lags are
+  // scored in parallel, in chunks of about 2e7 visits.
+  std::vector<double> scan(max_m);
+  SeasScanWorker worker(n, xs.data(), ord.data(), use_cv, scan.data());
+  if ((double)max_m * (double)n < 4e6) worker(0, max_m);
+  else RcppParallel::parallelFor(0, max_m, worker, std::max(1, (int)(2e7 / n)));
+  for(int m=1;m<=max_m;++m){
+    double cv_m = scan[m - 1];
+    if (cv_m < var_cov){
+      periods_vec.push_back(m);
+      cvmean_vec.push_back(cv_m);
     }
   }
   
@@ -154,7 +163,7 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
     VarCoefVar = NumericVector(m);
     for(int k=0;k<m;++k){ Period[k]=periods_vec[k]; CoefVar[k]=cvmean_vec[k]; VarCoefVar[k]=var_cov; }
     IntegerVector ord = seq(0, m-1);
-    std::sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
+    std::stable_sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
     Period = Period[ord]; CoefVar = CoefVar[ord]; VarCoefVar = VarCoefVar[ord];
   }else{
     Period = IntegerVector::create(1);
@@ -182,7 +191,7 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
       for(int i=0;i<Period.size();++i){
         if (per_set.count(Period[i])){ keptP.push_back(Period[i]); keptCV.push_back(CoefVar[i]); }
       }
-      for(int s: per_set) if(!curr.count(s)){ keptP.push_back(s); keptCV.push_back(var_cov); }
+      for(int s: per_set) if(!curr.count(s)){ keptP.push_back(s); keptCV.push_back(added_cv(s)); }
       if(keptP.empty()){
         Period   = IntegerVector::create(1);
         CoefVar  = NumericVector::create(var_cov);
@@ -192,7 +201,7 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
         Period = IntegerVector(m); CoefVar = NumericVector(m); VarCoefVar = NumericVector(m);
         for(int i=0;i<m;++i){ Period[i]=keptP[i]; CoefVar[i]=keptCV[i]; VarCoefVar[i]=var_cov; }
         IntegerVector ord = seq(0, m-1);
-        std::sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
+        std::stable_sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
         Period = Period[ord]; CoefVar = CoefVar[ord]; VarCoefVar = VarCoefVar[ord];
       }
     } else {
@@ -205,10 +214,10 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
         int oldm = Period.size(), addm = (int)add.size();
         IntegerVector P2(oldm+addm); NumericVector CV2(oldm+addm); NumericVector VCV2(oldm+addm);
         for(int i=0;i<oldm;++i){ P2[i]=Period[i]; CV2[i]=CoefVar[i]; VCV2[i]=VarCoefVar[i]; }
-        for(int i=0;i<addm;++i){ P2[oldm+i]=add[i]; CV2[oldm+i]=var_cov; VCV2[oldm+i]=var_cov; }
+        for(int i=0;i<addm;++i){ P2[oldm+i]=add[i]; CV2[oldm+i]=added_cv(add[i]); VCV2[oldm+i]=var_cov; }
         Period=P2; CoefVar=CV2; VarCoefVar=VCV2;
         IntegerVector ord = seq(0, Period.size()-1);
-        std::sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
+        std::stable_sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
         Period = Period[ord]; CoefVar = CoefVar[ord]; VarCoefVar = VarCoefVar[ord];
       }
     }
@@ -225,7 +234,7 @@ Rcpp::List NNS_seas_cpp(NumericVector variable,
       CoefVar = NumericVector(CV.begin(), CV.end());
       VarCoefVar = NumericVector(VCV.begin(), VCV.end());
       IntegerVector ord = seq(0, Period.size()-1);
-      std::sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
+      std::stable_sort(ord.begin(), ord.end(), [&](int a, int b){ return CoefVar[a] < CoefVar[b]; });
       Period = Period[ord]; CoefVar = CoefVar[ord]; VarCoefVar = VarCoefVar[ord];
     } else {
       Period = IntegerVector::create(1);

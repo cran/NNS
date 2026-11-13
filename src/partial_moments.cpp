@@ -8,6 +8,20 @@
 using namespace Rcpp;
 using namespace RcppParallel;
 
+// Dispatching to the thread pool costs tens of microseconds per call, more than
+// the arithmetic on small inputs (an 80 x 3 matrix takes about 25 us on the
+// calling thread and 110 us dispatched). Below NNS_SERIAL_WORK element
+// evaluations the worker runs on the calling thread instead. Every worker here
+// writes only its own output slots, so the results are identical either way.
+static const double NNS_SERIAL_WORK = 4096.0;
+
+template <typename W>
+static inline void nns_parallel_for(std::size_t begin, std::size_t end, W& worker, double work) {
+  if (end <= begin) return;
+  if (work < NNS_SERIAL_WORK) worker(begin, end);
+  else parallelFor(begin, end, worker);
+}
+
 static double repeatMultiplication(double value, int n) {
   double result = 1.0;
   for (int i = 0; i < n; ++i) result *= value;
@@ -141,9 +155,11 @@ struct CoUPM_CountWorker : public Worker {
   void operator()(std::size_t begin, std::size_t end) override {
     std::size_t d = target.length();
     for (std::size_t i = begin; i < end; ++i) {
+      // Strictly above, as Co.UPM does: ties go to the lower side so that at
+      // degree 0 CLPM + CUPM + DPM partition the sample.
       bool above_all = true;
       for (std::size_t j = 0; j < d; ++j) {
-        if (data(i, j) < target[j]) { above_all = false; break; }
+        if (data(i, j) <= target[j]) { above_all = false; break; }
       }
       output[i] = above_all ? 1.0 : 0.0;
     }
@@ -184,10 +200,11 @@ struct DpmCountWorker : public Worker {
   void operator()(std::size_t begin, std::size_t end) override {
     std::size_t d = target.length();
     for (std::size_t i = begin; i < end; ++i) {
+      // Discordant = neither all-lower (x <= target) nor all-upper (x > target).
       bool allBelow = true, allAbove = true;
       for (std::size_t j = 0; j < d; ++j) {
         double diff = data(i, j) - target[j];
-        if (diff >= 0.0) allBelow = false;
+        if (diff > 0.0) allBelow = false;
         if (diff <= 0.0) allAbove = false;
         if (!allBelow && !allAbove) break;
       }
@@ -239,13 +256,13 @@ double clpm_nD_cpp(const NumericMatrix& data,
   if (degree == 0.0) {
     NumericVector counts(n);
     CoLPM_CountWorker countWorker(data, target, counts);
-    parallelFor(0, n, countWorker);
+    nns_parallel_for(0, n, countWorker, double(n) * double(d));
     return sum(counts) / double(n);
   }
   
   NumericVector vals(n);
   CoLPM_SumWorker sumWorker(data, target, degree, vals);
-  parallelFor(0, n, sumWorker);
+  nns_parallel_for(0, n, sumWorker, double(n) * double(d));
   double clpm_un = sum(vals) / double(n);
   double result = clpm_un;
   
@@ -270,13 +287,13 @@ double cupm_nD_cpp(const NumericMatrix& data,
   if (degree == 0.0) {
     NumericVector counts(n);
     CoUPM_CountWorker countWorker(data, target, counts);
-    parallelFor(0, n, countWorker);
+    nns_parallel_for(0, n, countWorker, double(n) * double(d));
     return sum(counts) / double(n);
   }
   
   NumericVector vals(n);
   CoUPM_SumWorker sumWorker(data, target, degree, vals);
-  parallelFor(0, n, sumWorker);
+  nns_parallel_for(0, n, sumWorker, double(n) * double(d));
   double cupm_un = sum(vals) / double(n);
   double result = cupm_un;
   
@@ -301,13 +318,13 @@ double dpm_nD_cpp(const NumericMatrix& data,
   if (degree == 0.0) {
     NumericVector counts(n);
     DpmCountWorker countWorker(data, target, counts);
-    parallelFor(0, n, countWorker);
+    nns_parallel_for(0, n, countWorker, double(n) * double(d));
     return sum(counts) / double(n);
   }
   
   NumericVector vals(n);
   DpmSumWorker sumWorker(data, target, degree, vals);
-  parallelFor(0, n, sumWorker);
+  nns_parallel_for(0, n, sumWorker, double(n) * double(d));
   double dpm_un = sum(vals) / double(n);
   double result = dpm_un;
   
@@ -442,6 +459,7 @@ NumericVector CoLPM_nD_batch_RCPP(const NumericMatrix& data,
                                   const NumericMatrix& targets,
                                   double degree = 0.0,
                                   bool norm = true) {
+  nns_check_degree(degree, "degree");
   if (data.ncol() != targets.ncol()) {
     stop("`targets` must have the same number of columns as `data`");
   }
@@ -453,7 +471,8 @@ NumericVector CoLPM_nD_batch_RCPP(const NumericMatrix& data,
   NumericVector output(targets.nrow());
   
   CoLPMnDBatchWorker worker(data, targets, degree, norm, output);
-  parallelFor(0, targets.nrow(), worker);
+  nns_parallel_for(0, targets.nrow(), worker,
+                   double(targets.nrow()) * double(data.nrow()) * double(data.ncol()));
   
   return output;
 }
@@ -463,7 +482,7 @@ NumericVector CoLPM_nD_batch_RCPP(const NumericMatrix& data,
 size_t target_size=target.size();                        \
 NumericVector output = NumericVector(target_size);       \
 WORKER_CLASS tmp_func(degree, target, variable, output); \
-parallelFor(0, target_size, tmp_func);                   \
+nns_parallel_for(0, target_size, tmp_func, double(target_size) * double(variable.size())); \
 return(output);
 
 // Scalar guard: the prefix backend costs O(n log n + n*degree) to build,
@@ -476,6 +495,7 @@ static const R_xlen_t NNS_DIRECT_PATH_MAX_TARGETS = 32;
 NumericVector LPM_CPv(const double &degree,
                       const NumericVector &target,
                       const NumericVector &variable) {
+  nns_check_degree(degree, "degree");
   if (target.size() <= NNS_DIRECT_PATH_MAX_TARGETS) {
     NumericVector output(target.size());
     RcppParallel::RVector<double> v(variable);
@@ -494,6 +514,7 @@ NumericVector LPM_CPv(const double &degree,
 NumericVector UPM_CPv(const double &degree,
                       const NumericVector &target,
                       const NumericVector &variable) {
+  nns_check_degree(degree, "degree");
   if (target.size() <= NNS_DIRECT_PATH_MAX_TARGETS) {
     NumericVector output(target.size());
     RcppParallel::RVector<double> v(variable);
@@ -537,8 +558,6 @@ double CoUPM_C(
   size_t n_x = x.size(), n_y = y.size();
   size_t max_size = (n_x>n_y ? n_x : n_y);
   size_t min_size = (n_x<n_y ? n_x : n_y);
-  if (n_x != n_y)
-    Rcpp::warning("x vector length != y vector length");
   if (min_size<=0)
     return 0;
   
@@ -578,8 +597,6 @@ double CoLPM_C(
   size_t n_x=x.size(), n_y=y.size();
   size_t max_size=(n_x>n_y?n_x:n_y);
   size_t min_size=(n_x<n_y?n_x:n_y);
-  if (n_x!=n_y)
-    Rcpp::warning("x vector length != y vector length");
   if (min_size<=0)
     return 0;
   double out=0;
@@ -618,8 +635,6 @@ double DLPM_C(
   size_t n_x=x.size(), n_y=y.size();
   size_t max_size=(n_x>n_y?n_x:n_y);
   size_t min_size=(n_x<n_y?n_x:n_y);
-  if (n_x!=n_y)
-    Rcpp::warning("x vector length != y vector length");
   if (min_size<=0)
     return 0;
   double out=0;
@@ -659,8 +674,6 @@ double DUPM_C(
   size_t n_x=x.size(), n_y=y.size();
   size_t max_size=(n_x>n_y?n_x:n_y);
   size_t min_size=(n_x<n_y?n_x:n_y);
-  if (n_x!=n_y)
-    Rcpp::warning("x vector length != y vector length");
   if (min_size<=0)
     return 0;
   double out=0;
@@ -683,11 +696,11 @@ double DUPM_C(
       if(!d_upm_0) y1 = repeatMultiplication(y1, static_cast<int>(degree_upm));
       out += x1 * y1;
     } else if(dont_use_pow_lpm && !dont_use_pow_upm){
-      if(!d_upm_0) y1 = repeatMultiplication(y1, static_cast<int>(degree_upm));
-      out += std::pow(x1, degree_lpm) * y1;
-    } else if(dont_use_pow_upm && !dont_use_pow_lpm){
       if(!d_lpm_0) x1 = repeatMultiplication(x1, static_cast<int>(degree_lpm));
       out += x1 * std::pow(y1, degree_upm);
+    } else if(dont_use_pow_upm && !dont_use_pow_lpm){
+      if(!d_upm_0) y1 = repeatMultiplication(y1, static_cast<int>(degree_upm));
+      out += std::pow(x1, degree_lpm) * y1;
     } else out += std::pow(x1, degree_lpm) * std::pow(y1, degree_upm);
   }
   return out/max_size;
@@ -699,7 +712,7 @@ size_t target_y_size=target_y.size();                                           
 size_t max_target_size=(target_x_size>target_y_size?target_x_size:target_y_size);                   \
 NumericVector output = NumericVector(max_target_size);                                              \
 WORKER_CLASS tmp_func(LPM_DEGREE_VARIABLE, UPM_DEGREE_VARIABLE, x, y, target_x, target_y, output);  \
-parallelFor(0, output.size(), tmp_func);                                                            \
+nns_parallel_for(0, output.size(), tmp_func, double(output.size()) * double(x.size()));             \
 return(output);
 
 NumericVector CoLPM_CPv(
@@ -921,6 +934,8 @@ List PMMatrix_CPv(
     const bool &pop_adj,
     const bool &norm
 ) {
+  nns_check_degree(LPM_degree, "LPM_degree");
+  nns_check_degree(UPM_degree, "UPM_degree");
   size_t variable_cols = variable.cols();
   size_t target_length = target.size();
   if(variable_cols != target_length){
@@ -937,7 +952,7 @@ List PMMatrix_CPv(
   
   // 2. Step 1: Precompute all element deviation components in parallel
   PrecomputeDeviationsWorker precalc_engine(variable, target, LPM_degree, UPM_degree, D_lower, D_upper);
-  parallelFor(0, variable_cols, precalc_engine);
+  nns_parallel_for(0, variable_cols, precalc_engine, double(rows) * double(variable_cols));
   
   // 3. Allocate final return matrix structures
   NumericMatrix coLpm(variable_cols, variable_cols);
@@ -956,7 +971,7 @@ List PMMatrix_CPv(
   // 5. Step 2: High-speed matrix contraction loops across available cores
   FusedMatrixMultiplicationWorker matrix_engine(D_lower, D_upper, apply_adj, adjust, rows,
                                                 coLpm, coUpm, dLpm, dUpm, covMat);
-  parallelFor(0, variable_cols, matrix_engine);
+  nns_parallel_for(0, variable_cols, matrix_engine, double(rows) * double(variable_cols) * double(variable_cols));
   
   // 6. Apply cellular normalization adjustments if requested.
   // Preserve the same cross-transpose relationship for DUPM and DLPM.

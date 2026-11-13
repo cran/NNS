@@ -4,7 +4,7 @@
 #'
 #' @param IVs.train a matrix or data frame of variables of numeric or factor data types.
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
-#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  Names that only partly overlap the training predictors are ambiguous and return an error.
+#' @param IVs.test a matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  A CSV UTF-8 byte-order mark in the first header (for example, \code{Male} becoming \code{X...Male}) is repaired before matching names. Other partial overlaps, including misspelled predictors, are ambiguous and return an error.
 #' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.
 #' @param depth options: (integer, NULL, "max"); \code{(depth = NULL)}(default) Specifies the \code{order} parameter in the \link{NNS.reg} routine, assigning a number of splits in the regressors, analogous to tree depth.
 #' @param learner.trials integer; 100 (default) Sets the number of trials to obtain an accuracy \code{threshold} level.  If the number of all possible feature combinations is less than selected value, the minimum of the two values will be used.
@@ -15,7 +15,7 @@
 #' @param threshold numeric [0, 1]; \code{NULL} (default) Probability supplied to \link{LPM.VaR} over the learner-trial objective distribution to determine the objective cutoff for keeping feature combinations.  Defaults to 0.80 when \code{objective = "max"} and 0.20 when \code{objective = "min"}.  It is not a literal objective-score cutoff.
 #' @param obj.fn expression;
 #' \code{expression( sum((predicted - actual)^2) )} (default) Sum of squared errors is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.  Automatically selects an accuracy measure when \code{(type = "CLASS")}.
-#' @param objective options: ("min", "max") \code{"max"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
+#' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param extreme logical; \code{FALSE} (default) Sets the \link{LPM.VaR} probability to 1 (0) for maximization (minimization) \code{objective}, i.e. the most extreme learner-trial objective value becomes the cutoff.  Overrides \code{threshold}.
 #' @param features.only logical; \code{FALSE} (default) Returns only the final feature loadings along with the final feature frequencies.
 #' @param feature.importance logical; \code{TRUE} (default) Draws a two-panel diagnostic: the learner-trial objective distribution with its \link{LPM.VaR} cutoff, and the frequency of features used in the final estimate.
@@ -36,15 +36,17 @@
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Classification Using NNS Clustering Analysis"  \doi{10.2139/ssrn.2864711}
 #' @examples
-#'  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
+#'  ## Using 'iris' dataset with a stratified test set of ten rows per species
+#'  ## (rows 141:150 alone are all virginica).
 #'  \dontrun{
-#'  a <- NNS.boost(iris[1:140, 1:4], iris[1:140, 5],
-#'  IVs.test = iris[141:150, 1:4],
+#'  test.set <- c(41:50, 91:100, 141:150)
+#'  a <- NNS.boost(iris[-test.set, 1:4], iris[-test.set, 5],
+#'  IVs.test = iris[test.set, 1:4],
 #'  epochs = 100, learner.trials = 100,
 #'  type = "CLASS", depth = NULL, balance = TRUE)
 #'
 #'  ## Test accuracy
-#'  mean(a$results == as.numeric(iris[141:150, 5]))
+#'  mean(a$results == as.numeric(iris[test.set, 5]))
 #'
 #'  ## Recover the labels
 #'  a$class.levels[a$results]
@@ -552,7 +554,7 @@ NNS.boost <- function(IVs.train,
     if (!balance)
       return(list(x = train_x, y = train_y))
     
-    groups <- split(seq_along(train_y), train_y)
+    groups <- .nns_class_groups(train_y)
     if (length(groups) < 2L || any(lengths(groups) == 0L)) {
       stop("Balancing requires at least two non-empty classes in the fitting split.",
            call. = FALSE)
@@ -561,10 +563,11 @@ NNS.boost <- function(IVs.train,
     smallest <- min(lengths(groups))
     largest <- max(lengths(groups))
     
+    # sample(g, k) on a length-one group samples from 1:g, so index into g.
     down_idx <- unlist(lapply(groups, function(g)
-      sample(g, smallest, replace = FALSE)), use.names = FALSE)
+      g[sample.int(length(g), smallest, replace = FALSE)]), use.names = FALSE)
     up_idx <- unlist(lapply(groups, function(g)
-      sample(g, largest, replace = TRUE)), use.names = FALSE)
+      g[sample.int(length(g), largest, replace = TRUE)]), use.names = FALSE)
     
     idx <- sort(c(down_idx, up_idx))
     list(x = train_x[idx, , drop = FALSE], y = train_y[idx])
@@ -897,6 +900,10 @@ NNS.boost <- function(IVs.train,
   names(replicated.train) <- make.unique(names(replicated.train), sep = ".")
   names(replicated.test) <- names(replicated.train)
   
+  # Stack now scores and returns numeric class responses on their original
+  # scale. Internal nominal codes in this function remain 1..K and are decoded
+  # once below; a two-valued regression response needs no extra translation.
+
   final.stack <- suppressWarnings(
     NNS.stack(
       IVs.train = replicated.train,

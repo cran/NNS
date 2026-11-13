@@ -1,78 +1,104 @@
-# Efficient antisymmetric causal matrix using pairwise signed net causation.
-# Optionally returns permutation-based lower and upper CI matrices if p.value = TRUE.
-NNS.caus.matrix <- function(x, tau = 0, factor.2.dummy = FALSE, plot = FALSE, p.value = FALSE, nperm = 100, conf.int = 0.95, seed = NULL){
+# Pairwise causation matrix: entry [i, j] is the directional causation index
+# C(column i ---> column j) in [0, 1], so [i, j] + [j, i] = 1 off the diagonal
+# and 0.5 is neutral. The diagonal is 0 (no self-causation).
+# With p.value = TRUE, the null of each index is built by permutation with
+# each pair's lag fixed at its observed value: for cross-sections the columns
+# are shuffled independently; for time series (tau = "ts" or a positive lag)
+# each pair keeps its first column and circularly shifts the second, so both
+# series keep their own dynamics and the pair is always at least
+# max(tau + 1, n / 10) steps from alignment. An explicit permute ("x", "y",
+# "both", "shift") is applied to every pair as in the vector path, with
+# column i as x and column j as y. lower_CI /
+# upper_CI hold the null's partial-moment interval and p.value_matrix the
+# two-sided permutation p-value of C(i ---> j) - C(j ---> i).
+NNS.caus.matrix <- function(x, tau = 0, factor.2.dummy = FALSE, plot = FALSE, p.value = FALSE, nperm = 100, conf.int = 0.95, seed = NULL, permute = "auto"){
   if(is.null(ncol(x))){
     stop("supply both 'x' and 'y' or a matrix-like 'x'")
   }
   n <- ncol(x)
-  causes <- matrix(0, n, n, dimnames = list(colnames(x), colnames(x)))
+  nm <- colnames(x)
+  causes <- matrix(0, n, n, dimnames = list(nm, nm))
   pairs <- utils::combn(n, 2)
-  
+
+  pair_index <- function(xm, i, j, plot = FALSE, tau_ij = tau) {
+    NNS.caus(xm[, i], xm[, j], plot = plot, tau = tau_ij, factor.2.dummy = factor.2.dummy)
+  }
+
   for(k in seq_len(ncol(pairs))){
-    i <- pairs[1, k]
-    j <- pairs[2, k]
-    cp <- NNS.caus(x[, i], x[, j], plot = plot, tau = tau, factor.2.dummy = factor.2.dummy)
-    val_ij <- if(names(cp)[3] == "C(x--->y)"){
-      as.numeric(cp[3])
-    } else if(names(cp)[3] == "C(y--->x)"){
-      -as.numeric(cp[3])
-    } else {
-      as.numeric(cp[3])
-    }
-    causes[i, j] <- -val_ij  
-    causes[j, i] <- val_ij
+    i <- pairs[1, k]; j <- pairs[2, k]
+    cp <- pair_index(x, i, j, plot = plot)
+    causes[i, j] <- cp[["C(x--->y)"]]
+    causes[j, i] <- cp[["C(y--->x)"]]
   }
   diag(causes) <- 0
   causes[is.na(causes)] <- 0
-  
+
   if(!p.value) return(causes)
-  
+
   if(!is.null(seed)) set.seed(seed)
-  lower_CI <- matrix(0, n, n, dimnames = list(colnames(x), colnames(x)))
-  upper_CI <- matrix(0, n, n, dimnames = list(colnames(x), colnames(x)))
-  
-  null_mat <- array(NA, dim = c(nperm, ncol(pairs)))
-  
-  for(b in seq_len(nperm)){
-    x_perm <- apply(x, 2, sample)
-    for(k in seq_len(ncol(pairs))){
+  lower_CI <- matrix(0, n, n, dimnames = list(nm, nm))
+  upper_CI <- matrix(0, n, n, dimnames = list(nm, nm))
+  p.value_matrix <- matrix(0, n, n, dimnames = list(nm, nm))
+
+  # Each pair's lag is resolved once on the observed columns (#96), so the
+  # permuted columns are compared at the same lag.
+  pair_tau <- vapply(seq_len(ncol(pairs)), function(k) {
+    if (identical(tau, "ts"))
+      .nns_caus_ts_lag(as.numeric(x[, pairs[1, k]]), as.numeric(x[, pairs[2, k]]))
+    else if (identical(tau, "cs")) 0L else as.integer(tau)
+  }, integer(1L))
+  time_series <- any(pair_tau > 0L)
+  # "both" shuffles every column at once, which for one pair is the vector path's "both".
+  if (permute == "auto") permute <- if (time_series) "shift" else "both"
+  # Permute column by column so a data frame keeps its column types: apply()
+  # would turn a factor column into character (#96).
+  x_cols <- if (is.data.frame(x)) x else as.data.frame(x)
+  # One row per draw: C(x--->y) for the interval, C(x--->y) - C(y--->x) for the p-value.
+  null_row <- function(cp) c(cp[["C(x--->y)"]], cp[["C(x--->y)"]] - cp[["C(y--->x)"]])
+  if (permute != "both") {
+    # Permute within each pair: shifting every column independently would
+    # leave pairs whose two shifts nearly coincide still aligned.
+    null_list <- lapply(seq_len(ncol(pairs)), function(k) {
       i <- pairs[1, k]; j <- pairs[2, k]
-      cp_perm <- NNS.caus(x_perm[, i], x_perm[, j], plot = plot, tau = tau, factor.2.dummy = factor.2.dummy)
-      third_name <- names(cp_perm)[3]
-      net_val <- as.numeric(cp_perm[3])  # already normalized signed log-ratio
-      val_ij <- if(third_name == "C(x--->y)") net_val else if(third_name == "C(y--->x)") -net_val else net_val
-      null_mat[b, k] <- val_ij
+      x_pair <- x_cols[, c(i, j)]
+      draws <- if (permute == "shift") .nns_caus_shift_draw(nrow(x_cols), pair_tau[k], nperm) else seq_len(nperm)
+      t(vapply(draws, function(s) {
+        if (permute == "shift") x_pair[[2]] <- .nns_caus_shift(x_cols[[j]], s)
+        if (permute == "x") x_pair[[1]] <- sample(x_cols[[i]])
+        if (permute == "y") x_pair[[2]] <- sample(x_cols[[j]])
+        null_row(pair_index(x_pair, 1L, 2L, tau_ij = pair_tau[k]))
+      }, numeric(2L)))
+    })
+  } else {
+    null_list <- lapply(seq_len(ncol(pairs)), function(k) matrix(NA_real_, nperm, 2L))
+    for(b in seq_len(nperm)){
+      x_perm <- x_cols
+      for(j in seq_len(n)) x_perm[[j]] <- sample(x_cols[[j]])
+      for(k in seq_len(ncol(pairs))){
+        null_list[[k]][b, ] <- null_row(pair_index(x_perm, pairs[1, k], pairs[2, k], tau_ij = pair_tau[k]))
+      }
     }
   }
-  
+
+  p <- (1 - conf.int)/2
   for(k in seq_len(ncol(pairs))){
     i <- pairs[1, k]; j <- pairs[2, k]
-    null_vals <- null_mat[, k]  # normalized
-    p <- (1 - conf.int)/2
-    lower <- LPM.VaR(p, 0, null_vals)
-    upper <- UPM.VaR(p, 0, null_vals)
-    lower_CI[j, i] <- lower
-    upper_CI[j, i] <- upper
-    lower_CI[i, j] <- lower
-    upper_CI[i, j] <- upper
-  }
-  
-  diag(lower_CI) <- diag(upper_CI) <- 0
-  lower_CI[is.na(lower_CI)] <- 0
-  upper_CI[is.na(upper_CI)] <- 0
-  
-  p.value_matrix <- matrix(0, n, n, dimnames = list(colnames(x), colnames(x)))
-  for(k in seq_len(ncol(pairs))){
-    i <- pairs[1, k]; j <- pairs[2, k]
-    null_vals_trans <- null_mat[, k]  # normalized
-    obs_ij <- causes[i, j]
-    pval <- (1 + sum(abs(null_vals_trans) >= abs(obs_ij))) / (1 + nperm)
+    null_ij <- null_list[[k]][, 1L]
+    lower_CI[i, j] <- LPM.VaR(p, 0, null_ij)
+    upper_CI[i, j] <- UPM.VaR(p, 0, null_ij)
+    lower_CI[j, i] <- LPM.VaR(p, 0, 1 - null_ij)
+    upper_CI[j, i] <- UPM.VaR(p, 0, 1 - null_ij)
+    obs_signed <- causes[i, j] - causes[j, i]
+    null_signed <- null_list[[k]][, 2L]
+    pval <- (1 + sum(abs(null_signed) >= abs(obs_signed))) / (1 + length(null_signed))
     p.value_matrix[i, j] <- pval
     p.value_matrix[j, i] <- pval
   }
-  diag(p.value_matrix) <- 0
+  diag(lower_CI) <- diag(upper_CI) <- diag(p.value_matrix) <- 0
+  lower_CI[is.na(lower_CI)] <- 0
+  upper_CI[is.na(upper_CI)] <- 0
   p.value_matrix[is.na(p.value_matrix)] <- 0
-  
+
   return(.NNS.out(list(
     causality = causes,
     lower_CI = lower_CI,

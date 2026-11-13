@@ -31,19 +31,19 @@ NNS.ARMA(
 
  \code{(variable[1 : training.set])} to monitor performance of forecast over in-sample range.}
 
-\item{seasonal.factor}{logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}}
+\item{seasonal.factor}{logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test, \link{NNS.seas}'s \code{best.period} without its permutation test.  For a significance-filtered lag, run \code{NNS.seas(variable, p.value = TRUE)} first and pass its \code{best.period} (or \code{periods}) here; \code{best.period} is 1 when no period is significant.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}}
 
-\item{weights}{numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.}
+\item{weights}{numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.  Numeric weights must have one value per seasonal lag and are treated as relative weights (rescaled to sum to 1).  With \code{(dynamic = TRUE)} the lags are re-selected at every step, so only \code{NULL} or \code{"equal"} weights are accepted.}
 
-\item{best.periods}{integer; [2] (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
+\item{best.periods}{integer; 1 (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
 \code{(seasonal.factor = FALSE, best.periods = NULL)}.}
 
-\item{modulo}{integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.}
+\item{modulo}{integer(s); NULL (default) Adds the multiples of \code{modulo} on either side of each detected period (period 7 with \code{modulo = 5} gives 5 and 10).}
 
 \item{mod.only}{logical; \code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.}
 
 \item{negative.values}{logical; \code{FALSE} (default) If the variable can be negative, set to
-\code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.}
+\code{(negative.values = TRUE)}.  If there are negative values within the training data \code{variable[1 : training.set]}, \code{negative.values} will automatically be detected.}
 
 \item{method}{options: ("lin", "nonlin", "both", "means"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
 \code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.  Means for each subset are returned with \code{(method = "means")}.}
@@ -56,10 +56,10 @@ NNS.ARMA(
 
 \item{seasonal.plot}{logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.}
 
-\item{pred.int}{numeric [0, 1]; \code{NULL} (default) Plots and returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{NNS.meboot} on the final estimates.}
+\item{pred.int}{numeric [0, 1]; \code{NULL} (default) Plots and returns lower and upper bands around the forecasts.  The forecast path itself is resampled with the maximum entropy bootstrap (\link{NNS.MC} over \code{rho} from -1 to 1), the bounds at each step are \link{LPM.VaR} and \link{UPM.VaR} of the replicates at probability \code{(1 - pred.int) / 2}, widened by the spread of the per-lag linear estimates; a one-point (\code{h = 1}) or constant path has no dispersion to resample, so its band is the path widened by that spread alone (zero width with a single seasonal lag); \link{NNS.ARMA.optim} gives intervals from validation errors.  The band therefore describes the dispersion of the forecast path, not the uncertainty of the outcome at each horizon: it does not widen with the horizon, and it is not calibrated to contain future values with probability \code{pred.int}.  \link{NNS.ARMA.optim} derives its interval from validation errors instead.}
 }
 \value{
-Returns a vector of forecasts of length \code{(h)} if no \code{pred.int} specified.  Else, returns a \code{data.table} with the forecasts as well as lower and upper prediction intervals per forecast point.
+Returns a vector of forecasts of length \code{(h)} if no \code{pred.int} specified.  Else, returns a \code{data.table} with the forecasts as well as the lower and upper forecast-path bands per forecast point (see \code{pred.int}).
 }
 \description{
 Autoregressive model incorporating nonlinear regressions of component series.

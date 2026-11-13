@@ -7,6 +7,11 @@
 #' @param eval.point numeric or ("overall"); \code{x} point to be evaluated, must be provided.  Defaults to \code{(eval.point = NULL)}.  Set to \code{(eval.point = "overall")} to find an overall partial derivative estimate (1st derivative only).
 #' @return Returns a \code{data.frame} of eval.point along with both 1st and 2nd derivative.
 #'
+#' @details
+#' \code{eval.point = "overall"} returns the mean of the \code{gradient} column of \code{NNS.reg(x, y)$Fitted.xy}. Each observation receives the slope of the unsmoothed regression segment that contains it, so the result is an observation-weighted average of segment slopes, not an average of smoothed derivatives. Very short segments between nearly coincident regression points can have extreme slopes; \code{mean(dy.dx(x, y, eval.point = x)$first.derivative)} averages the smoothed pointwise estimates instead.
+#'
+#' Numeric evaluation points use central differences of smoothed \link{NNS.reg} estimates over five steps from 2 to \code{floor(sqrt(n))} typical spacings of \code{x}, clipped to the observed range. \code{second.derivative} is a second difference of those estimates, and second differences amplify noise: for \code{y = x^2} plus noise with an R-squared near 0.99 and n = 400, estimates of the true value 2 at three interior points had a root mean squared error of about 5, and about one in five had the wrong sign. Treat it as a descriptive diagnostic on noisy data.
+#'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2013) "Nonlinear Nonparametric Statistics: Using Partial Moments" (ISBN: 1490523995, 2nd edition: \url{https://ovvo-financial.github.io/NNS/book/})
 #'
@@ -29,6 +34,9 @@
 #' @export
 
 dy.dx <- function(x, y, eval.point = NULL){
+  
+  if(is.null(eval.point) || length(eval.point) == 0)
+    stop("eval.point must be provided: numeric point(s) or 'overall'")
 
   if(any(class(x)%in%c("tbl","data.table"))) x <- as.vector(unlist(x))
   if(any(class(y)%in%c("tbl","data.table"))) y <- as.vector(unlist(y))
@@ -43,7 +51,7 @@ dy.dx <- function(x, y, eval.point = NULL){
   }
   
   if(is.character(eval.point)){
-    return("First" = mean(NNS.reg(x, y, order = order, plot = FALSE, ncores = 1)$Fitted.xy$gradient))
+    return("First" = mean(NNS.reg(x, y, type = "REG", order = order, plot = FALSE, ncores = 1)$Fitted.xy$gradient))
   } else {
 
     original.eval.point.min <- eval.point
@@ -54,6 +62,8 @@ dy.dx <- function(x, y, eval.point = NULL){
     n <- length(x)
     root_n <- floor(sqrt(n))
     h_s <- round(exp(seq(log(2), log(root_n), length.out = 5)))
+    # Typical spacing between neighbouring x values, independent of row order.
+    x.spacing <- gravity(diff(sort(unique(x))))
 
     results <- vector(mode = "list", length(h_s))
     first.deriv <- vector(mode = "list", length(h_s))
@@ -61,10 +71,8 @@ dy.dx <- function(x, y, eval.point = NULL){
     deriv.points <- vector(mode = "list", length(h_s))
     grads <- vector(mode = "numeric", length(h_s))
   
-    for(h in h_s){
-      index <- which(h == h_s)
-
-      h_step <- gravity(abs(diff(x))) * h_s[index]
+    for(index in seq_along(h_s)){
+      h_step <- x.spacing * h_s[index]
 
       eval.point.min <- pmax(min(x), original.eval.point.min - h_step)
       eval.point.max <- pmin(max(x), h_step + original.eval.point.max)
@@ -77,19 +85,10 @@ dy.dx <- function(x, y, eval.point = NULL){
     deriv.points <- deriv.points[order(deriv.points[, "eval.point"], method = "radix"), , drop = FALSE]
     rownames(deriv.points) <- NULL
 
-      n <- nrow(deriv.points)
+      # At the boundary one run is 0 (the window is clipped to [min(x), max(x)]);
+      # the first derivative then uses the one-sided slope below.
 
-      run_1 <- deriv.points[,3] - deriv.points[,2]
-      run_2 <- deriv.points[,2] - deriv.points[,1]
-
-      if(any(run_1 == 0)||any(run_2 == 0)) {
-        z_1 <- which(run_1 == 0); z_2 <- which(run_2 == 0)
-        eval.point.max[z_1] <- ((abs((max(x) - min(x)) ))/length(x)) * index + eval.point[z_1]; eval.point.max[z_2] <- ((abs((max(x) - min(x)) ))/length(x)) * index + eval.point[z_2]
-        eval.point.max[z_1] <- eval.point[z_1] - ((abs((max(x) - min(x)) ))/length(x)) * index; eval.point.max[z_2] <- eval.point[z_2] - ((abs((max(x) - min(x)) ))/length(x)) * index
-        run_1[z_1] <- eval.point.max[z_1] - eval.point[z_1]; run_2[z_2] <- eval.point[z_2] - eval.point.min[z_2]
-      }
-
-      reg.output <- NNS.reg(x, y, plot = FALSE, point.est = unlist(deriv.points), point.only = TRUE, ncores = 1, smooth = TRUE)
+      reg.output <- NNS.reg(x, y, type = "REG", plot = FALSE, point.est = unlist(deriv.points), point.only = TRUE, ncores = 1, smooth = TRUE)
 
       combined.matrices <- cbind(deriv.points, matrix(unlist(reg.output$Point.est), ncol = 3, byrow = F))
       colnames(combined.matrices) <- c(colnames(deriv.points), "estimates.min", "estimates", "estimates.max")

@@ -27,12 +27,55 @@ static inline bool isInteger(double value) {
   return value == static_cast<int>(value);
 }
 
+// Integer targets (2L, 1:3) are used as given, not replaced by mean(variable).
+static inline bool is_supplied_target(const RObject &target) {
+  return !target.isNULL() &&
+    (is<NumericVector>(target) || is<IntegerVector>(target));
+}
+
+// Same contract as LPM()/UPM(): non-finite values are rejected, not counted in n.
+static inline void stop_if_not_finite(const NumericVector &v, const char *what) {
+  for (R_xlen_t i = 0; i < v.size(); ++i) {
+    if (!R_FINITE(v[i])) Rcpp::stop("`%s` must be finite.", what);
+  }
+}
+
+// Runs before parallelFor: the workers index targets modulo their length and cannot raise R errors.
+static inline void check_co_lengths(const NumericVector &x, const NumericVector &y,
+                                    const NumericVector &target_x, const NumericVector &target_y) {
+  if (x.size() != y.size()) Rcpp::stop("`x` and `y` must have the same length.");
+  if (x.size() == 0) Rcpp::stop("`x` and `y` must not be empty.");
+  const R_xlen_t ntx = target_x.size(), nty = target_y.size();
+  if (ntx == 0 || nty == 0) Rcpp::stop("`target_x` and `target_y` must not be empty.");
+  if (ntx != nty && ntx != 1 && nty != 1)
+    Rcpp::stop("`target_x` and `target_y` must have the same length, or one of them length 1.");
+}
+
+// For degree > 0 the ratio is 0/0 when every observation equals the target;
+// use the degree -> 0 limit (LPM 1, UPM 0, the ECDF convention x <= target).
+static inline NumericVector fill_degenerate_ratio(NumericVector out,
+                                                  const double &degree,
+                                                  const NumericVector &target,
+                                                  const NumericVector &variable,
+                                                  const bool lower) {
+  if (!(degree > 0) || variable.size() == 0) return out;
+  const double c = variable[0];
+  for (R_xlen_t j = 1; j < variable.size(); ++j) {
+    if (variable[j] != c) return out;
+  }
+  for (R_xlen_t i = 0; i < out.size(); ++i) {
+    if (ISNAN(out[i]) && target[i] == c) out[i] = lower ? 1.0 : 0.0;
+  }
+  return out;
+}
+
 
 // [[Rcpp::export(rng = false)]]
 double CoLPM_nD_RCPP(const NumericMatrix &data,
                      const NumericVector &target,
                      const double &degree,
                      const bool &norm ) {
+  nns_check_degree(degree, "degree");
   return clpm_nD_cpp(data, target, degree, norm);
 }
 
@@ -41,6 +84,7 @@ double CoUPM_nD_RCPP(const NumericMatrix &data,
                      const NumericVector &target,
                      const double &degree,
                      const bool &norm ) {
+  nns_check_degree(degree, "degree");
   return cupm_nD_cpp(data, target, degree, norm);
 }
 
@@ -49,6 +93,7 @@ double DPM_nD_RCPP(const NumericMatrix &data,
                      const NumericVector &target,
                      const double &degree,
                      const bool &norm ) {
+  nns_check_degree(degree, "degree");
   return dpm_nD_cpp(data, target, degree, norm);
 } 
 
@@ -59,9 +104,10 @@ NumericVector LPM_RCPP(const double &degree,
                        const RObject &target,
                        const RObject &variable,
                        const bool &excess_ret) {
+  nns_check_degree(degree, "degree");
   NumericVector variable_vec = as<NumericVector>(clone(variable));
   NumericVector target_vec;
-  if (is<NumericVector>(target) && !target.isNULL()) {
+  if (is_supplied_target(target)) {
     target_vec = as<NumericVector>(target);
   } else {
     target_vec = NumericVector::create(mean(variable_vec));
@@ -76,7 +122,8 @@ NumericVector LPM_RCPP(const double &degree,
     for (int i = 0; i < n; ++i) {
       double t    = (tlen == 1 ? target_vec[0] : target_vec[i]);
       double diff = t - variable_vec[i];
-      if (diff > 0) {
+      // Degree 0 counts ties (x <= target), as the non-excess path does.
+      if (diff > 0 || (degree == 0 && diff == 0)) {
         if      (degree == 0)       out[i] = 1;
         else if (degree == 1)       out[i] = diff;
         else if (isInteger(degree)) out[i] = repeatMultiplication(diff, (int)degree);
@@ -94,9 +141,10 @@ NumericVector UPM_RCPP(const double &degree,
                        const RObject &target,
                        const RObject &variable,
                        const bool &excess_ret) {
+  nns_check_degree(degree, "degree");
   NumericVector variable_vec = as<NumericVector>(clone(variable));
   NumericVector target_vec;
-  if (is<NumericVector>(target) && !target.isNULL()) {
+  if (is_supplied_target(target)) {
     target_vec = as<NumericVector>(target);
   } else {
     target_vec = NumericVector::create(mean(variable_vec));
@@ -130,9 +178,11 @@ NumericVector UPM_RCPP(const double &degree,
 //'   This function generates a standardized univariate lower partial moment
 //'   of any non‑negative degree for a given target.
 //' @param degree numeric; degree = 0 gives frequency (CDF), degree = 1 gives area.
-//' @param target numeric vector; threshold(s). Defaults to mean(variable).
+//' @param target numeric vector; threshold(s). There is no default: pass \code{NULL} to use \code{mean(variable)}.
 //' @param variable numeric vector or data‑frame column to evaluate.
-//' @return Numeric vector of standardized lower partial moments.
+//' @return Numeric vector of standardized lower partial moments. For
+//'   \code{degree > 0}, a target at which every observation equals the target
+//'   (0/0) returns the \code{degree = 0} ratio.
 //' @author Fred Viole, OVVO Financial Systems
 //' @references
 //'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
@@ -149,6 +199,7 @@ NumericVector UPM_RCPP(const double &degree,
 //' @export
 // [[Rcpp::export("LPM.ratio", rng = false)]]
  NumericVector LPM_ratio_RCPP(const double &degree, const RObject &target, const RObject &variable) {
+   nns_check_degree(degree, "degree");
    NumericVector target_vec, variable_vec;
    if (is<NumericVector>(variable))
      variable_vec=as<NumericVector>(variable);
@@ -158,13 +209,17 @@ NumericVector UPM_RCPP(const double &degree,
      variable_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(variable, "unlist"), "as.vector");
    else
      Rcpp::stop("variable should be numeric vector, or data table");
-   if (is<NumericVector>(target) && !target.isNULL()){
+   if (is_supplied_target(target)){
      target_vec = as<NumericVector>(target);
    }else{
      target_vec = NumericVector(1);
      target_vec[0] = mean(variable_vec);
    }
-   return LPM_ratio_CPv(degree, target_vec, variable_vec);
+   stop_if_not_finite(variable_vec, "variable");
+   stop_if_not_finite(target_vec, "target");
+   if (!(degree >= 0)) Rcpp::stop("'degree' must be a non-negative number");
+   return fill_degenerate_ratio(LPM_ratio_CPv(degree, target_vec, variable_vec),
+                                degree, target_vec, variable_vec, true);
  }
 
 
@@ -174,9 +229,11 @@ NumericVector UPM_RCPP(const double &degree,
 //'   This function generates a standardized univariate upper partial moment
 //'   of any non‑negative degree for a given target.
 //' @param degree numeric; degree = 0 gives frequency, degree = 1 gives area.
-//' @param target numeric vector; threshold(s). Defaults to mean(variable).
+//' @param target numeric vector; threshold(s). There is no default: pass \code{NULL} to use \code{mean(variable)}.
 //' @param variable numeric vector or data‑frame column to evaluate.
-//' @return Numeric vector of standardized upper partial moments.
+//' @return Numeric vector of standardized upper partial moments. For
+//'   \code{degree > 0}, a target at which every observation equals the target
+//'   (0/0) returns the \code{degree = 0} ratio.
 //' @author Fred Viole, OVVO Financial Systems
 //' @references
 //'   Viole, F. & Nawrocki, D. (2013) *Nonlinear Nonparametric Statistics: Using Partial Moments* (ISBN:1490523995)
@@ -185,11 +242,12 @@ NumericVector UPM_RCPP(const double &degree,
 //'   x <- rnorm(100)
 //'   UPM.ratio(0, mean(x), x)
 //' \dontrun{
-//'   plot3d(x, y, Co.UPM(0, sort(x), sort(y), x, y), …)
+//'   plot(sort(x), UPM.ratio(0, sort(x), x))
 //' }
 //' @export
 // [[Rcpp::export("UPM.ratio", rng = false)]]
  NumericVector UPM_ratio_RCPP(const double &degree, const RObject &target, const RObject &variable) {
+   nns_check_degree(degree, "degree");
    NumericVector target_vec, variable_vec;
    if (is<NumericVector>(variable))
      variable_vec=as<NumericVector>(variable);
@@ -199,13 +257,17 @@ NumericVector UPM_RCPP(const double &degree,
      variable_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(variable, "unlist"), "as.vector");
    else
      Rcpp::stop("variable should be numeric vector, or data table");
-   if (is<NumericVector>(target) && !target.isNULL()){
+   if (is_supplied_target(target)){
      target_vec = as<NumericVector>(target);
    }else{
      target_vec = NumericVector(1);
      target_vec[0] = mean(variable_vec);
    }
-   return UPM_ratio_CPv(degree, target_vec, variable_vec);
+   stop_if_not_finite(variable_vec, "variable");
+   stop_if_not_finite(target_vec, "target");
+   if (!(degree >= 0)) Rcpp::stop("'degree' must be a non-negative number");
+   return fill_degenerate_ratio(UPM_ratio_CPv(degree, target_vec, variable_vec),
+                                degree, target_vec, variable_vec, false);
  }
 
 
@@ -217,6 +279,8 @@ NumericVector CoLPM_RCPP(
      const RObject &target_x, const RObject &target_y,
      const double &degree_y
  ) {
+   nns_check_degree(degree_lpm, "degree_lpm");
+   nns_check_degree(degree_y, "degree_y");
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
    else if (is<IntegerVector>(x))	x_vec=as<NumericVector>(x);
@@ -228,18 +292,23 @@ NumericVector CoLPM_RCPP(
    else if (is<DataFrame>(y))   y_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(y, "unlist"), "as.vector");
    else                         Rcpp::stop("y should be numeric vector, or data table");
    
-   if (is<NumericVector>(target_x) && !target_x.isNULL()){
+   if (is_supplied_target(target_x)){
      target_x_vec = as<NumericVector>(target_x);
    }else{
      target_x_vec = NumericVector(1);
      target_x_vec[0] = mean(x_vec);
    }
-   if (is<NumericVector>(target_y) && !target_y.isNULL()){
+   if (is_supplied_target(target_y)){
      target_y_vec = as<NumericVector>(target_y);
    }else{
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
+   check_co_lengths(x_vec, y_vec, target_x_vec, target_y_vec);
+   stop_if_not_finite(x_vec, "x");
+   stop_if_not_finite(y_vec, "y");
+   stop_if_not_finite(target_x_vec, "target_x");
+   stop_if_not_finite(target_y_vec, "target_y");
    return CoLPM_CPv(degree_lpm, degree_y, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
@@ -252,6 +321,8 @@ NumericVector CoUPM_RCPP(
      const RObject &target_x, const RObject &target_y,
      const double &degree_y
  ) {
+   nns_check_degree(degree_upm, "degree_upm");
+   nns_check_degree(degree_y, "degree_y");
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
    else if (is<IntegerVector>(x))	x_vec=as<NumericVector>(x);
@@ -263,18 +334,23 @@ NumericVector CoUPM_RCPP(
    else if (is<DataFrame>(y))   y_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(y, "unlist"), "as.vector");
    else                         Rcpp::stop("y should be numeric vector, or data table");
    
-   if (is<NumericVector>(target_x) && !target_x.isNULL()){
+   if (is_supplied_target(target_x)){
      target_x_vec = as<NumericVector>(target_x);
    }else{
      target_x_vec = NumericVector(1);
      target_x_vec[0] = mean(x_vec);
    }
-   if (is<NumericVector>(target_y) && !target_y.isNULL()){
+   if (is_supplied_target(target_y)){
      target_y_vec = as<NumericVector>(target_y);
    }else{
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
+   check_co_lengths(x_vec, y_vec, target_x_vec, target_y_vec);
+   stop_if_not_finite(x_vec, "x");
+   stop_if_not_finite(y_vec, "y");
+   stop_if_not_finite(target_x_vec, "target_x");
+   stop_if_not_finite(target_y_vec, "target_y");
    return CoUPM_CPv(degree_upm, degree_y, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
@@ -288,8 +364,8 @@ NumericVector CoUPM_RCPP(
 //' @param degree_upm numeric; UPM degree = 0 gives frequency, = 1 gives area.
 //' @param x numeric vector of observations.
 //' @param y numeric vector of the same length as x.
-//' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-//' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+//' @param target_x numeric vector; thresholds for x. There is no default: pass \code{NULL} to use \code{mean(x)}.
+//' @param target_y numeric vector; thresholds for y. There is no default: pass \code{NULL} to use \code{mean(y)}. \code{target_x} and \code{target_y} must be non-empty and the same length, or one of them length 1.
 //' @return Numeric vector of divergent LPM values.
 //' @author Fred Viole, OVVO Financial Systems
 //' @references
@@ -305,6 +381,8 @@ NumericVector CoUPM_RCPP(
      const RObject &x, const RObject &y, 
      const RObject &target_x, const RObject &target_y
  ) {
+   nns_check_degree(degree_lpm, "degree_lpm");
+   nns_check_degree(degree_upm, "degree_upm");
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
    else if (is<IntegerVector>(x))	x_vec=as<NumericVector>(x);
@@ -316,18 +394,23 @@ NumericVector CoUPM_RCPP(
    else if (is<DataFrame>(y))   y_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(y, "unlist"), "as.vector");
    else                         Rcpp::stop("y should be numeric vector, or data table");
    
-   if (is<NumericVector>(target_x) && !target_x.isNULL()){
+   if (is_supplied_target(target_x)){
      target_x_vec = as<NumericVector>(target_x);
    }else{
      target_x_vec = NumericVector(1);
      target_x_vec[0] = mean(x_vec);
    }
-   if (is<NumericVector>(target_y) && !target_y.isNULL()){
+   if (is_supplied_target(target_y)){
      target_y_vec = as<NumericVector>(target_y);
    }else{
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
+   check_co_lengths(x_vec, y_vec, target_x_vec, target_y_vec);
+   stop_if_not_finite(x_vec, "x");
+   stop_if_not_finite(y_vec, "y");
+   stop_if_not_finite(target_x_vec, "target_x");
+   stop_if_not_finite(target_y_vec, "target_y");
    return DLPM_CPv(degree_lpm, degree_upm, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
@@ -341,8 +424,8 @@ NumericVector CoUPM_RCPP(
 //' @param degree_upm numeric; UPM degree = 0 gives frequency, = 1 gives area.
 //' @param x numeric vector of observations.
 //' @param y numeric vector of the same length as x.
-//' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-//' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+//' @param target_x numeric vector; thresholds for x. There is no default: pass \code{NULL} to use \code{mean(x)}.
+//' @param target_y numeric vector; thresholds for y. There is no default: pass \code{NULL} to use \code{mean(y)}. \code{target_x} and \code{target_y} must be non-empty and the same length, or one of them length 1.
 //' @return Numeric vector of divergent UPM values.
 //' @author Fred Viole, OVVO Financial Systems
 //' @references
@@ -358,6 +441,8 @@ NumericVector CoUPM_RCPP(
      const RObject &x, const RObject &y, 
      const RObject &target_x, const RObject &target_y
  ) {
+   nns_check_degree(degree_lpm, "degree_lpm");
+   nns_check_degree(degree_upm, "degree_upm");
    NumericVector target_x_vec, target_y_vec, x_vec, y_vec;
    if (is<NumericVector>(x))    x_vec=as<NumericVector>(x);
    else if (is<IntegerVector>(x))	x_vec=as<NumericVector>(x);
@@ -369,18 +454,23 @@ NumericVector CoUPM_RCPP(
    else if (is<DataFrame>(y))   y_vec=Rcpp::internal::convert_using_rfunction(Rcpp::internal::convert_using_rfunction(y, "unlist"), "as.vector");
    else                         Rcpp::stop("y should be numeric vector, or data table");
    
-   if (is<NumericVector>(target_x) && !target_x.isNULL()){
+   if (is_supplied_target(target_x)){
      target_x_vec = as<NumericVector>(target_x);
    }else{
      target_x_vec = NumericVector(1);
      target_x_vec[0] = mean(x_vec);
    }
-   if (is<NumericVector>(target_y) && !target_y.isNULL()){
+   if (is_supplied_target(target_y)){
      target_y_vec = as<NumericVector>(target_y);
    }else{
      target_y_vec = NumericVector(1);
      target_y_vec[0] = mean(y_vec);
    }
+   check_co_lengths(x_vec, y_vec, target_x_vec, target_y_vec);
+   stop_if_not_finite(x_vec, "x");
+   stop_if_not_finite(y_vec, "y");
+   stop_if_not_finite(target_x_vec, "target_x");
+   stop_if_not_finite(target_y_vec, "target_y");
    return DUPM_CPv(degree_lpm, degree_upm, x_vec, y_vec, target_x_vec, target_y_vec);
  }
 
@@ -396,6 +486,8 @@ NumericVector CoUPM_RCPP(
      const bool pop_adj,
      const bool norm
  ) {
+   nns_check_degree(LPM_degree, "LPM_degree");
+   nns_check_degree(UPM_degree, "UPM_degree");
    if(variable.isNULL()){
      Rcpp::stop("variable can't be null");
      return List::create();
@@ -410,7 +502,7 @@ NumericVector CoUPM_RCPP(
    
    size_t variable_cols=variable_matrix.cols();
    NumericVector tgt;
-   if((is<NumericVector>(target) || is<DataFrame>(target)) && !target.isNULL()){
+   if((is_supplied_target(target) || (is<DataFrame>(target) && !target.isNULL()))){
      tgt=as<NumericVector>(target);
    }else{
      tgt=colMeans(variable_matrix);
@@ -422,6 +514,8 @@ NumericVector CoUPM_RCPP(
      return List::create();
    }
    
+   stop_if_not_finite(variable_matrix, "variable");
+   stop_if_not_finite(tgt, "target");
    return PMMatrix_CPv(LPM_degree, UPM_degree, tgt, variable_matrix, pop_adj, norm);
  }
 

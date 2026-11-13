@@ -1,13 +1,13 @@
 #' NNS Monte Carlo Sampling
 #'
-#' Monte Carlo sampling from the maximum entropy bootstrap routine \link{NNS.meboot}, ensuring the replicates are sampled from the full [-1,1] correlation space.
+#' Monte Carlo sampling from the maximum entropy bootstrap routine \link{NNS.meboot}, ensuring the replicates are sampled across the full [-1,1] range of \code{rho} (the target dependence of the detrended residuals, see \link{NNS.meboot}).
 #'
 #' @param x vector of data.
-#' @param reps numeric; number of replicates to generate, \code{30} default.
-#' @param lower_rho numeric \code{[-1,1]}; \code{.01} default will set the \code{from} argument in \code{seq(from, to, by)}.
-#' @param upper_rho numeric \code{[-1,1]}; \code{.01} default will set the \code{to} argument in \code{seq(from, to, by)}.
+#' @param reps numeric; number of replicates to generate for each \code{rho} value, \code{30} default.  The defaults give 201 \code{rho} values and 6030 replicates.
+#' @param lower_rho numeric \code{[-1,1]}; \code{-1} default will set the \code{from} argument in \code{seq(from, to, by)}.
+#' @param upper_rho numeric \code{[-1,1]}; \code{1} default will set the \code{to} argument in \code{seq(from, to, by)}.
 #' @param by numeric; \code{.01} default will set the \code{by} argument in \code{seq(-1, 1, step)}.
-#' @param exp numeric; \code{1} default will exponentially weight maximum rho value if \code{exp > 1}.  Shrinks values towards \code{upper_rho}.
+#' @param exp positive finite numeric; \code{1} default will exponentially weight maximum rho value if \code{exp > 1}.  Shrinks values towards \code{upper_rho}, keeping them within \code{[lower_rho, upper_rho]}.
 #' @param type options("spearman", "pearson", "NNScor", "NNSdep"); \code{type = "spearman"}(default) dependence metric desired.
 #' @param drift logical; \code{drift = TRUE} (default) preserves the drift of the original series.
 #' @param target_drift numerical; \code{target_drift = NULL} (default) Specifies the desired drift when \code{drift = TRUE}, i.e. a risk-free rate of return.
@@ -46,13 +46,31 @@ NNS.MC <- function(x,
                    xmax = NULL, ...){
 
 
+  scalar_finite <- function(z) is.numeric(z) && length(z) == 1L && is.finite(z)
+  if (!scalar_finite(exp) || exp <= 0) stop("exp must be a single finite number > 0.")
+  if (!scalar_finite(lower_rho) || !scalar_finite(upper_rho) ||
+      lower_rho < -1 || upper_rho > 1 || lower_rho > upper_rho)
+    stop("lower_rho and upper_rho must satisfy -1 <= lower_rho <= upper_rho <= 1.")
+  if (!scalar_finite(by) || by <= 0) stop("by must be a single finite number > 0.")
+
   rhos <- seq(lower_rho, upper_rho, by)
   l <- length(rhos)
   
-  neg_rhos <- abs(rhos[rhos<=0])
-  pos_rhos <- rhos[rhos>0]
+  # Warp each side of 0 (or of the bound nearest 0) within its own span, so the grid stays inside the bounds.
+  if(exp != 1){
+    pivot <- min(max(0, lower_rho), upper_rho)
+    low <- rhos <= pivot
+    if(pivot > lower_rho){
+      w <- ((pivot - rhos[low]) / (pivot - lower_rho))^exp
+      rhos[low] <- (1 - w) * pivot + w * lower_rho
+    }
+    if(upper_rho > pivot){
+      w <- ((rhos[!low] - pivot) / (upper_rho - pivot))^(1/exp)
+      rhos[!low] <- (1 - w) * pivot + w * upper_rho
+    }
+  }
   
-  exp_rhos <- rev(c((neg_rhos^exp)*-1, pos_rhos^(1/exp)))
+  exp_rhos <- rev(rhos)
 
   if(is.null(target_drift)){
     if(!is.null(target_drift_scale)){

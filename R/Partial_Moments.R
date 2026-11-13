@@ -81,7 +81,7 @@ UPM <- function(degree, target, variable, excess_ret = FALSE) {
 #' @param data   A numeric matrix with observations in rows and variables in columns.
 #' @param target A numeric vector, length equal to ncol(data).
 #' @param degree numeric; degree for lower deviations (0 = frequency, 1 = area).
-#' @param norm   logical; if \code{TRUE} (default) normalize to the maximum observed value (→ [0,1]), otherwise return the raw moment.
+#' @param norm   logical; if \code{TRUE} (default) divide by the sum of the co-lower, co-upper and divergent nD partial moments at the same degree and target (→ [0,1]), otherwise return the raw moment. \code{norm} is ignored at \code{degree = 0}.
 #' @return Numeric; the n‑dimensional co‑lower partial moment.
 #' @examples
 #' \dontrun{
@@ -133,7 +133,7 @@ Co.LPM_nD.batch <- function(data, targets, degree = 0.0, norm = TRUE) {
 #' @param data   A numeric matrix with observations in rows and variables in columns.
 #' @param target A numeric vector, length equal to ncol(data).
 #' @param degree numeric; degree for upper deviations (0 = frequency, 1 = area).
-#' @param norm   logical; if \code{TRUE} (default) normalize to the maximum observed value (→ [0,1]), otherwise return the raw moment.
+#' @param norm   logical; if \code{TRUE} (default) divide by the sum of the co-lower, co-upper and divergent nD partial moments at the same degree and target (→ [0,1]), otherwise return the raw moment. \code{norm} is ignored at \code{degree = 0}.
 #' @return Numeric; the n‑dimensional co‑upper partial moment.
 #' @examples
 #' \dontrun{
@@ -161,7 +161,7 @@ Co.UPM_nD <- function(data, target, degree = 0.0, norm = TRUE) {
 #' @param data   A numeric matrix with observations in rows and variables in columns.
 #' @param target A numeric vector, length equal to ncol(data).
 #' @param degree numeric; degree for upper deviations (0 = frequency, 1 = area).
-#' @param norm   logical; if \code{TRUE} (default) normalize to the maximum observed value (→ [0,1]), otherwise return the raw moment.
+#' @param norm   logical; if \code{TRUE} (default) divide by the sum of the co-lower, co-upper and divergent nD partial moments at the same degree and target (→ [0,1]), otherwise return the raw moment. \code{norm} is ignored at \code{degree = 0}.
 #' @return Numeric; the n-dimensional divergent partial moment.
 #' @examples
 #' \dontrun{
@@ -188,13 +188,13 @@ DPM_nD <- function(data, target, degree = 0.0, norm = TRUE) {
 #' This function generates an empirical CDF using partial moment ratios \link{LPM.ratio}, and resulting survival, hazard and cumulative hazard functions.
 #'
 #' @param variable a numeric vector or data.frame of >= 2 variables for joint CDF.
-#' @param degree numeric; \code{(degree = 0)} (default) is frequency, \code{(degree = 1)} is area.
-#' @param target numeric; \code{NULL} (default) Must lie within support of each variable.
-#' @param type options("CDF", "survival", "hazard", "cumulative hazard"); \code{"CDF"} (default) Selects type of function to return for bi-variate analysis.  Multivariate analysis is restricted to \code{"CDF"}.
+#' @param degree numeric; \code{(degree = 0)} (default) is frequency, the empirical distribution of \code{variable}; \code{(degree = 1)} is area, the share of deviation area below each point, which is not \eqn{P(X \le t)}.
+#' @param target numeric; \code{NULL} (default) Must lie within support of each variable (one value per column for multivariate \code{variable}).
+#' @param type options("CDF", "survival", "hazard", "cumulative hazard"); \code{"CDF"} (default) Selects type of function to return.  For multivariate \code{variable} the joint survival is \eqn{P(X_1 > t_1, \ldots, X_d > t_d)} at \code{degree = 0}, by inclusion-exclusion over the column subsets for \eqn{d \le 3} and as the share of observations above \eqn{t} in every column for larger \eqn{d}, and the joint upper partial moment \link{Co.UPM_nD} at \code{degree > 0}, normalised like the CDF.  The multivariate cumulative hazard is the transform \eqn{-\log S(t)} and requires \code{degree = 0}; it is not automatically an integral of a scalar multivariate hazard. Multivariate \code{type = "hazard"} is unsupported and raises an error: a joint density-over-survival or a coordinate-hazard definition requires a separate estimator, and dividing the joint CDF by survival does not estimate either.  At \code{degree > 0} with two or more columns, each target's co-partial moment is normalised by its own total, so the "CDF" and "survival" values are generalised co-partial-moment ratios, not a joint distribution function: they can assign a negative probability to a rectangle.  At \code{degree = 0}, and in one dimension at any degree, they are proper distribution functions; at positive degree the univariate induced law describes deviation-area balance rather than the frequency law of the original variable.
 #' @param plot logical; plots CDF.
 #' @return Returns:
 #' \itemize{
-#'  \item{\code{"Function"}} a data.table containing the observations and resulting CDF of the variable.
+#'  \item{\code{"Function"}} a data.frame (class \code{NNS.data.frame}) containing the observations and the resulting function of the variable.
 #'  \item{\code{"target.value"}} value from the \code{target} argument.
 #' }
 #' @author Fred Viole, OVVO Financial Systems
@@ -211,7 +211,7 @@ DPM_nD <- function(data, target, degree = 0.0, norm = TRUE) {
 #' ## Empirical CDF (degree = 0)
 #' NNS.CDF(x)
 #'
-#' ## Continuous CDF (degree = 1)
+#' ## Area-weighted CDF (degree = 1): the share of deviation area below each point
 #' NNS.CDF(x, 1)
 #'
 #' ## Joint CDF
@@ -239,14 +239,22 @@ NNS.CDF <- function(variable,
   if (any(class(variable) %in% c("tbl","data.table"))) {
     variable <- as.data.frame(variable)
   }
-  
+
+  # — Drop missing observations (counted in n, they capped the CDF below 1)
+  if (is.null(dim(variable))) {
+    variable <- variable[!is.na(variable)]
+  } else {
+    variable <- variable[stats::complete.cases(variable), , drop = FALSE]
+  }
+
   # — Bounds check
   if (!is.null(target)) {
     if (is.null(dim(variable))||ncol(variable)==1) {
       if (target<min(variable)||target>max(variable)) stop("target out of bounds")
     } else {
-      if (target[1]<min(variable[,1])||target[1]>max(variable[,1])||
-          target[2]<min(variable[,2])||target[2]>max(variable[,2])) stop("target out of bounds")
+      if (length(target) != ncol(variable)) stop("target must have one value per column of variable")
+      lo <- apply(variable, 2, min); hi <- apply(variable, 2, max)
+      if (any(target < lo | target > hi)) stop("target out of bounds")
     }
   }
   
@@ -281,8 +289,17 @@ NNS.CDF <- function(variable,
     if (type=="hazard") {
       n <- length(x); w <- min(10,n-1)
       F <- pval
-      proxy <- vapply(seq_along(x),function(i){lo<-max(1,i-w%/%2);hi<-min(n,i+w%/%2);(F[hi]-F[lo])/(x[hi]-x[lo])},numeric(1))
-      fit <- NNS.reg(x, pmax(proxy,1e-10), order=NULL, n.best=1, point.est=target, plot=FALSE)
+      if (x[1] == x[n]) stop("type = 'hazard' requires at least two distinct values of variable")
+      proxy <- vapply(seq_along(x),function(i){
+        lo<-max(1,i-w%/%2);hi<-min(n,i+w%/%2)
+        # A window lying inside a run of tied values has zero width (0/0):
+        # widen it to the neighbouring distinct values (x is sorted).
+        if (x[hi] == x[lo]) {
+          lo <- max(1L, findInterval(x[i], x, left.open = TRUE))
+          hi <- min(n, findInterval(x[i], x) + 1L)
+        }
+        (F[hi]-F[lo])/(x[hi]-x[lo])},numeric(1))
+      fit <- NNS.reg(x, pmax(proxy,1e-10), type="REG", order=NULL, n.best=1, point.est=target, plot=FALSE)
       DT[[2]] <- pmin(pmax(fit$Fitted$y.hat / pmax(1-F,1e-10),0),1e6)
     }
     if (type=="cumulative hazard") DT[[2]] <- pmax(-log(pmax(1-pval,1e-10)),0)
@@ -293,8 +310,9 @@ NNS.CDF <- function(variable,
     } else {
       Pv <- LPM.ratio(degree,target,variable)
       if (type=="survival") Pv <- 1-Pv
-      if (type=="hazard") Pv <- fit$Point.est / pmax(1-pval[which.min(abs(x-target))],1e-10)
-      if (type=="cumulative hazard") Pv <- NNS.reg(x,DT[[2]],order=NULL,n.best=1,point.est=target,plot=FALSE)$Point.est
+      # The same transformation of the survival at target as the curve uses at each x.
+      if (type=="hazard") Pv <- pmin(pmax(fit$Point.est / pmax(1-Pv,1e-10),0),1e6)
+      if (type=="cumulative hazard") Pv <- pmax(-log(pmax(1-Pv,1e-10)),0)
     }
     
     # plotting
@@ -313,45 +331,75 @@ NNS.CDF <- function(variable,
   
   # — Multivariate case (d >= 2)
   if (!is.null(dim(variable)) && ncol(variable) >= 2) {
+    if (type == "hazard")
+      stop("Multivariate type = 'hazard' is not implemented: a joint density or coordinate-hazard definition is required. Use 'survival' or 'cumulative hazard' for the documented joint survival transforms.")
+    # At degree > 0 each target's co-partial moment is normalised by its own
+    # total, which is not a joint distribution function (#100): the
+    # cumulative-hazard interpretation therefore requires degree 0.
+    if (degree > 0 && type == "cumulative hazard")
+      stop("type = '", type, "' needs degree = 0 for multivariate variable: at degree > 0 the joint ratio is not a distribution function.")
     xlab <- colnames(variable)[1]
     ylab <- if(ncol(variable) >= 2) colnames(variable)[2] else ""
     
     # Compute joint conditional CDF using one batched C++ call.
     # This replaces n R-level Co.LPM_nD dispatches and n parallel launches.
     variable <- as.matrix(variable)
+    d <- ncol(variable)
     CDF <- Co.LPM_nD.batch(variable, variable, degree = degree, norm = TRUE)
+    
+    # Joint survival S(t) = P(X_1 > t_1, ..., X_d > t_d). At degree 0 use
+    # inclusion-exclusion, S = sum_A (-1)^|A| F_A(t_A) over subsets A of the
+    # coordinates, up to d = 3; beyond that its 2^d terms are slow and cancel,
+    # so count the rows above t directly.
+    # For degree > 0 use Co.UPM_nD(X, t) = Co.LPM_nD(-X, -t).
+    joint.survival <- function(points, joint_cdf) {
+      points <- matrix(points, ncol = d)
+      if (degree > 0) return(Co.LPM_nD.batch(-variable, -points, degree = degree, norm = TRUE))
+      if (d > 3) {
+        cols <- lapply(seq_len(d), function(j) variable[, j])
+        o1 <- order(cols[[1]]); v1 <- cols[[1]][o1]; nv <- length(v1)
+        above <- function(p) {
+          k <- findInterval(p[1], v1)
+          if (k >= nv) return(0L)
+          rows <- o1[(k + 1L):nv]
+          for (j in 2:d) if (length(rows)) rows <- rows[cols[[j]][rows] > p[j]]
+          length(rows)
+        }
+        return(apply(points, 1, above) / nrow(variable))
+      }
+      marginals <- vapply(seq_len(d), function(j) LPM.ratio(degree, points[, j], variable[, j]),
+                          numeric(nrow(points)))
+      S <- 1 - rowSums(matrix(marginals, ncol = d))
+      if (d == 3) {
+        for (A in utils::combn(d, 2, simplify = FALSE)) {
+          S <- S + Co.LPM_nD.batch(variable[, A, drop = FALSE], points[, A, drop = FALSE],
+                                   degree = degree, norm = TRUE)
+        }
+      }
+      S + (-1)^d * joint_cdf
+    }
+    
+    if (type != "cdf") S <- joint.survival(variable, CDF)
     
     # Apply transformation based on type
     if (type == "survival") {
-      marginal_probs <- apply(variable, 2, function(col) LPM.ratio(degree, col, col))
-      CDF <- pmax(0, pmin(1, 1 - rowSums(marginal_probs) + CDF))
-    }
-    
-    if (type == "hazard") {
-      f <- NNS.reg(variable, pmax(CDF, 1e-10), order = "max", plot = FALSE)$Fitted$y.hat
-      marginals <- apply(variable, 2, function(col) LPM.ratio(degree, col, col))
-      CDF <- pmax(f / pmax(1 - rowSums(marginals) + CDF, 1e-10), 0)
+      CDF <- pmax(0, pmin(1, S))
     }
     
     if (type == "cumulative hazard") {
-      marginals <- apply(variable, 2, function(col) LPM.ratio(degree, col, col))
-      CDF <- pmax(-log(pmax(1 - rowSums(marginals) + CDF, 1e-10)), 0)
+      CDF <- pmax(-log(pmax(S, 1e-10)), 0)
     }
     
-    # Target evaluation
+    # Target evaluation (the same function as the rows, evaluated at target)
     Pv <- numeric(0)
     if (!is.null(target)) {
       Pv <- Co.LPM_nD(variable, target, degree = degree)
+      if (type != "cdf") S_t <- joint.survival(target, Pv)
       if (type == "survival") {
-        marg_target <- mapply(LPM.ratio, degree, target, as.data.frame(variable))
-        Pv <- max(0, min(1, 1 - sum(marg_target) + Pv))
-      }
-      if (type == "hazard") {
-        Pv <- NNS.reg(variable, CDF, order = "max", plot = FALSE, point.est = target)$Point.est /
-          pmax(1 - Pv, 1e-10)
+        Pv <- max(0, min(1, S_t))
       }
       if (type == "cumulative hazard") {
-        Pv <- pmax(-log(pmax(1 - Pv, 1e-10)), 0)
+        Pv <- pmax(-log(pmax(S_t, 1e-10)), 0)
       }
     }
     
@@ -420,7 +468,7 @@ NNS.CDF <- function(variable,
 #' This function returns the first 4 moments of the distribution.
 #'
 #' @param x a numeric vector.
-#' @param population logical; \code{TRUE} (default) Performs the population adjustment. Otherwise returns the sample statistic.
+#' @param population logical; \code{TRUE} (default) returns the population (unadjusted) statistics. \code{FALSE} returns the sample-adjusted statistics (variance with \code{n - 1}, sample skewness and sample excess kurtosis).
 #' @return Returns:
 #' \itemize{
 #'  \item{\code{"$mean"}} mean of the distribution.
@@ -456,8 +504,10 @@ NNS.moments <- function(x, population = TRUE) {
     skewness <- skew_base / variance^(3 / 2)
     kurtosis <- (kurt_base / variance^2) - 3
   } else {
+    # Adjusted Fisher-Pearson G1: n/((n-1)(n-2)) * sum(z^3) / s^3, with s the
+    # sample (n-1) standard deviation, as in the kurtosis branch below.
     skewness <- (n / ((n - 1) * (n - 2))) *
-      ((n * skew_base) / variance^(3 / 2))
+      ((n * skew_base) / (variance * (n / (n - 1)))^(3 / 2))
     
     kurtosis <- ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) *
       ((n * kurt_base) / (variance * (n / (n - 1)))^2) -
@@ -483,9 +533,9 @@ NNS.moments <- function(x, population = TRUE) {
 #' @description Builds a list containing CUPM, DUPM, DLPM, CLPM and the overall covariance matrix.
 #' @param LPM_degree numeric; lower partial moment degree (0 = freq, 1 = area).
 #' @param UPM_degree numeric; upper partial moment degree (0 = freq, 1 = area).
-#' @param target numeric vector; thresholds for each column (defaults to colMeans).
+#' @param target numeric vector; thresholds for each column. There is no default: pass \code{NULL} to use \code{colMeans(variable)}.
 #' @param variable numeric matrix or data.frame.
-#' @param pop_adj logical; TRUE adjusts population vs. sample moments.
+#' @param pop_adj logical; \code{TRUE} applies the sample adjustment \code{n / (n - 1)} to the co-/divergent moments (with both degrees 1, \code{target = NULL} and \code{norm = FALSE}, the covariance matrix then equals \code{cov()}). It is ignored when either degree is 0.
 #' @param norm logical; default FALSE. If TRUE, each quadrant matrix is cell-wise normalized so their sum is 1 at each (i,j).  
 #' @return A list: $cupm, $dupm, $dlpm, $clpm, $cov.matrix.
 #' @note When \code{norm = TRUE}, each cell (i,j) of the four quadrant matrices
@@ -524,8 +574,8 @@ PM.matrix <- function(LPM_degree, UPM_degree, target, variable, pop_adj, norm = 
 #' @param degree_lpm numeric; degree for x ("degree_x"). degree = 0 gives frequency, degree = 1 gives area.
 #' @param x numeric vector of observations.
 #' @param y numeric vector of the same length as x.
-#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+#' @param target_x numeric vector; thresholds for x. There is no default: pass \code{NULL} to use \code{mean(x)}.
+#' @param target_y numeric vector; thresholds for y. There is no default: pass \code{NULL} to use \code{mean(y)}. \code{target_x} and \code{target_y} must be non-empty and the same length, or one of them length 1.
 #' @param degree_y numeric; optional degree for y. If omitted, `degree_lpm` is
 #'   used for both x and y.
 #' @return Numeric vector of co‑LPM values.
@@ -553,8 +603,8 @@ Co.LPM <- function(degree_lpm, x, y, target_x, target_y, degree_y = NULL) {
 #' @param degree_upm numeric; degree for x ("degree_x"). degree = 0 gives frequency, degree = 1 gives area.
 #' @param x numeric vector of observations.
 #' @param y numeric vector of the same length as x.
-#' @param target_x numeric vector; thresholds for x (defaults to mean(x)).
-#' @param target_y numeric vector; thresholds for y (defaults to mean(y)).
+#' @param target_x numeric vector; thresholds for x. There is no default: pass \code{NULL} to use \code{mean(x)}.
+#' @param target_y numeric vector; thresholds for y. There is no default: pass \code{NULL} to use \code{mean(y)}. \code{target_x} and \code{target_y} must be non-empty and the same length, or one of them length 1.
 #' @param degree_y numeric; optional degree for y. If omitted, `degree_upm` is
 #'   used for both x and y.
 #' @return Numeric vector of co‑UPM values.

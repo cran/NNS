@@ -8,7 +8,7 @@
 #' @param plot logical; \code{FALSE} (default) Generates a 3d scatter plot with regression points.
 #' @param independence.overlay logical; \code{FALSE} (default) Creates and overlays independent \link{Co.LPM} and \link{Co.UPM} regions to visually reference the difference in dependence from the data.frame of variables being analyzed.  Under independence, the light green and red shaded areas would be occupied by green and red data points respectively.
 #'
-#' @return Returns a multivariate dependence value [0,1].
+#' @return Returns a multivariate dependence value [0,1]. Each co-partial moment is compared with its value under independence, the product of the marginal partial moments at \code{target}, so independent variables give a value near 0 for any target and marginal distributions.  At a target with every variable's observations on one side, the normalized directional-region shares carry no contrast and the neutral value is 0. This target degeneracy is not evidence that the variables are independent. In general, 0 and 1 describe this target-specific summary, not global independence or deterministic dependence.
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Beyond Correlation: Using the Elements of Variance for Conditional Means and Probabilities"  \doi{10.2139/ssrn.2745308}.
@@ -39,10 +39,9 @@ NNS.copula <- function (
   
   if(any(class(X)%in%c("tbl","data.table"))) X <- as.data.frame(X)
   
-  if(is.null(colnames(X))) colnames(X) <- paste0("Var ", seq_len(n))
-  
   if((plot||independence.overlay) && n == 3){
     .nns_require_rgl()
+    if(is.null(colnames(X))) colnames(X) <- paste0("Var ", seq_len(n))
     rgl::plot3d(x = X[ , 1], y = X[ , 2], z = X[ , 3], box = FALSE, size = 3,
                 col=ifelse((X[ , 1] <= mean(X[ , 1])) & (X[ , 2] <= mean(X[ , 2])) & (X[ , 3] <= mean(X[ , 3])), 'red' ,
                            ifelse((X[ , 1] > mean(X[ , 1])) & (X[ , 2] > mean(X[ , 2])) & (X[ , 3] > mean(X[ , 3])), 'green',
@@ -73,49 +72,11 @@ NNS.copula <- function (
   
   if(is.null(target)) target <- colMeans(X)
   
-  # Pairwise  
-  discrete_pm_cov <- PM.matrix(LPM_degree = 0, UPM_degree = 0, target = target, variable = X, pop_adj = FALSE)
-  utr <- upper.tri(discrete_pm_cov$cupm, diag = FALSE)
-  discrete_Co_pm <- sum(discrete_pm_cov$cupm[utr]) + sum(discrete_pm_cov$clpm[utr]) 
-  if(discrete_Co_pm==1 || discrete_Co_pm==0) return(1)
-  
-  
-  if(continuous){
-    continuous_pm_cov <- PM.matrix(LPM_degree = 1, UPM_degree = 1, target = target, variable = X, pop_adj = TRUE, norm = TRUE)
-  } else {
-    continuous_pm_cov <- discrete_pm_cov
-  }
-  
-
-  # Isolate the upper triangles from each of the partial moment matrices
-  discrete_D_pm <- sum(discrete_pm_cov$dupm[utr]) + sum(discrete_pm_cov$dlpm[utr])
-  
-  continuous_Co_pm <- sum(continuous_pm_cov$cupm[utr]) + sum(continuous_pm_cov$clpm[utr]) 
-  continuous_D_pm <- sum(continuous_pm_cov$dupm[utr]) + sum(continuous_pm_cov$dlpm[utr]) 
-  
-  indep_Co_pm <- .25 * (n^2 - n)
-  
-  discrete_dep <- abs(discrete_Co_pm-indep_Co_pm)/indep_Co_pm
-  continuous_dep <- abs(continuous_Co_pm-indep_Co_pm)/indep_Co_pm 
-  
-   
-  discrete_dep <- min(max(discrete_dep, 0), 1)
-  continuous_dep <- min(max(continuous_dep, 0), 1)
-
-  # n-dimensional
-  discrete_D_pm <- DPM_nD(data = X, target = target, degree = 0, norm = TRUE)
-  if(continuous) continuous_D_pm <- DPM_nD(data = X, target = target, degree = 1, norm = TRUE) else continuous_D_pm <- discrete_D_pm
-  
-  # DPM_nD counts a point as concordant when it is all-below OR all-above the
-  # target (both fully-aligned orthants), so under independence
-  # P(discordant) = 1 - 2*0.5^n (0.5 when n = 2), not 1 - 0.5^n. The old
-  # 1 - 0.5^n anchor left a fixed residual in the discordant terms and a
-  # non-vanishing dependence floor for independent data.
-  indep_D_pm <- 1 - 2*(0.5^n)
-  
-  n_dim_discrete_dep <- abs(discrete_D_pm - indep_D_pm)/indep_D_pm 
-  n_dim_continuous_dep <- abs(continuous_D_pm - indep_D_pm)/indep_D_pm
-
-
-  return(mean(c(discrete_dep, continuous_dep, n_dim_discrete_dep, n_dim_continuous_dep))^(1/2))
+  # The dependence itself is computed in one compiled call (src/NNS_copula.cpp):
+  # the pairwise degree-0 and degree-1 co-partial moments about the target and
+  # the n-dimensional divergent moment, each measured against its independence
+  # anchor from the margins' own lower-tail shares.
+  if(is.data.frame(X)) X <- as.matrix(X)
+  if(!is.double(X)) storage.mode(X) <- "double"
+  NNS_copula_cpp(X, as.numeric(target), if(continuous) TRUE else FALSE)
 }

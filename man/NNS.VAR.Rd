@@ -20,7 +20,8 @@ NNS.VAR(
   objective = "min",
   status = TRUE,
   ncores = NULL,
-  nowcast = FALSE
+  nowcast = FALSE,
+  validation = c("pipeline", "observed")
 )
 }
 \arguments{
@@ -30,7 +31,7 @@ NNS.VAR(
 
 \item{tau}{positive integer [ > 0]; 1 (default) Number of lagged observations to consider for the time-series data.  Vector for single lag for each respective variable or list for multiple lags per each variable.}
 
-\item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all") method for selecting the relevant regressors via \link{NNS.reg} dimension reduction.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.}
+\item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all") method for screening lagged regressors with \link{NNS.reg} before the multivariate \link{NNS.stack} fit. \code{dim.red.method = "cor"} (default) uses signed Spearman rank-correlation coefficients, screened by magnitude. \code{"NNS.dep"} uses nonlinear dependence weights, and \code{"NNS.caus"} uses directional association weights. \code{"all"} averages the Spearman, dependence, directional-association, and unit-weight coefficients. The coefficient cutoff is selected by scoring \code{NNS.reg} validation forecasts.}
 
 \item{naive.weights}{logical; \code{TRUE} (default) Equal weights applied to univariate and multivariate outputs in ensemble.  \code{FALSE} will apply weights based on the number of relevant variables detected.}
 
@@ -44,16 +45,20 @@ NNS.VAR(
 \item{ncores}{integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
 
 \item{nowcast}{logical; \code{FALSE} (default) internal call for frequency alignment in downstream nowcasting applications.}
+
+\item{validation}{\code{"pipeline"} (default) tunes with a chronological holdout whose predictors are built by completing and forecasting each series using only its prefix. Only observed holdout targets are scored. \code{"observed"} retains the former conditional-regression validation on realized covariates; it is not a deployment forecast score.}
 }
 \value{
 Returns the following matrices of forecasted variables:
 \itemize{
- \item{\code{"interpolated_and_extrapolated"}} Returns a \code{data.frame} of the linear interpolated and \link{NNS.ARMA} extrapolated values to replace \code{NA} values in the original \code{variables} argument.  This is required for working with variables containing different frequencies, e.g. where \code{NA} would be reported for intra-quarterly data when indexed with monthly periods.
+ \item{\code{"interpolated_and_extrapolated"}} Returns a \code{data.frame} of the original \code{variables} with their \code{NA} values replaced.  When a variable's latest values are missing, every \code{NA} of that variable is estimated from its own observations by the \link{NNS.stack} fit on the time index used in NNS 13.0: \link{NNS.reg} with one nearest regression point, on the index duplicated into two predictors.  The latest observation keeps its own regression point, and values after it (or before the first observation) extend the gradient at that boundary.  When only earlier values are missing, they are interpolated linearly with \code{NNS.reg(order = "max")} on the index.  This is required for working with variables containing different frequencies, e.g. where \code{NA} would be reported for intra-quarterly data when indexed with monthly periods.
  \item{\code{"relevant_variables"}} Returns the relevant variables from the dimension reduction step: the lagged regressors whose dimension reduction coefficient meets the cross-validated threshold.  These are the only regressors used in the \code{"multivariate"} estimate.
 
  \item{\code{"univariate"}} Returns the univariate \link{NNS.ARMA} forecasts.
 
- \item{\code{"multivariate"}} Returns the multi-variate forecasts: a full \link{NNS.stack} \code{(method = c(1, 2), stack = FALSE)} on the relevant variables.
+ \item{\code{"multivariate"}} Returns the multi-variate forecasts: \link{NNS.stack} \code{(method = 1, stack = FALSE)} on the relevant variables, evaluated on the lag-matrix rows of the forecast period (built from the univariate forecasts).
+
+ \item{\code{"validation"}} validation mode, origin and horizon used for tuning; pipeline mode excludes future covariates from prefix completion and prediction.
 
  \item{\code{"ensemble"}} Returns the ensemble of both \code{"univariate"} and \code{"multivariate"} forecasts.
  }
@@ -95,7 +100,9 @@ Nonparametric vector autoregressive model incorporating \link{NNS.ARMA} estimate
  replicates <- NNS.meboot(nns_estimate$ensemble[,1], rho = seq(-1,1,.25))["replicates",]
  replicates <- do.call(cbind, replicates)
 
- # Apply UPM.VaR and LPM.VaR for desired prediction interval...95 percent illustrated
+ # Apply UPM.VaR and LPM.VaR for a band around the forecast path (2.5 percent per tail).
+ # The replicates resample the forecast path itself, so the band shows the path's
+ # dispersion, not a calibrated 95 percent prediction interval (see NNS.ARMA's pred.int).
  # Tail percentage used in first argument per {LPM.VaR} and {UPM.VaR} functions
  lower_CIs <- apply(replicates, 1, function(z) LPM.VaR(0.025, 0, z))
  upper_CIs <- apply(replicates, 1, function(z) UPM.VaR(0.025, 0, z))

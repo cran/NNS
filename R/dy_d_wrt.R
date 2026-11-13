@@ -1,3 +1,78 @@
+#' Finite-difference weights for a local polynomial stencil
+#'
+#' Construct polynomial finite-difference weights on distinct local nodes.
+#' Invalid or degenerate stencils return NA coefficients.
+#'
+#' @param nodes Numeric vector of distinct stencil coordinates.
+#' @param at Numeric evaluation coordinate.
+#' @param degree Integer derivative order; defaults to 1.
+#' @return Numeric vector of finite-difference weights, or NA coefficients
+#'   when the stencil is invalid.
+#' @keywords internal
+#' @export
+
+.nns_fd_weights <- function(nodes, at, degree = 1L) {
+  if (length(nodes) <= degree || length(unique(nodes)) != length(nodes))
+    return(rep(NA_real_, length(nodes)))
+  scale <- max(abs(nodes - at))
+  if (!is.finite(scale) || scale == 0) return(rep(NA_real_, length(nodes)))
+  z <- (nodes - at) / scale
+  powers <- outer(seq.int(0, length(nodes) - 1L), z, function(k, value) value^k)
+  rhs <- numeric(length(nodes)); rhs[degree + 1L] <- factorial(degree)
+  as.numeric(solve(powers, rhs)) / scale^degree
+}
+
+# The stencil at each point in [at] for each probability width, as
+# stencils[[width]][[point]]. The sorted support and each point's lower share
+# do not depend on the width, and LPM.VaR evaluates its percentiles one by
+# one, so a single call returns every window quantile. LPM.ratio is still
+# called per point: with many targets it sums in a different order.
+.nns_dy_stencils <- function(col, at, probability.widths) {
+  support <- sort(unique(col))
+  lower <- support[1L]; upper <- tail(support, 1L)
+  if (any(!is.finite(at) | at < lower | at > upper))
+    stop("Derivative evaluation points must lie inside the observed coordinate support.")
+  points <- seq_along(at)
+  finish <- function(nodes, a) list(nodes = nodes, first = .nns_fd_weights(nodes, a, 1L),
+                                    second = .nns_fd_weights(nodes, a, 2L))
+  if (length(support) < 2L) {
+    one <- lapply(points, function(i) list(nodes = at[i], first = NA_real_, second = NA_real_))
+    return(rep(list(one), length(probability.widths)))
+  }
+  if (length(support) == 2L) {
+    one <- lapply(points, function(i) finish(support, at[i]))
+    return(rep(list(one), length(probability.widths)))
+  }
+  share <- vapply(points, function(i) LPM.ratio(1, at[i], col), numeric(1L))
+  m <- length(at)
+  windows <- length(probability.widths)
+  quantiles <- LPM.VaR(
+    c(unlist(lapply(probability.widths, function(w) pmax(0, share - w))),
+      unlist(lapply(probability.widths, function(w) pmin(1, share + w)))),
+    1, col)
+  lapply(seq_len(windows), function(b) lapply(points, function(i) {
+    lo <- quantiles[(b - 1L) * m + i]
+    hi <- quantiles[(windows + b - 1L) * m + i]
+    a <- at[i]
+    # A local half-window, never an entire-support extrapolation step.
+    h <- min((hi - lo) / 2, (upper - lower) / 4)
+    if (!is.finite(h) || h <= 0) h <- min(diff(support))
+    nodes <- if (a == lower) {
+      a + c(0, h, 2 * h)
+    } else if (a == upper) {
+      a - c(2 * h, h, 0)
+    } else {
+      c(max(lower, a - h), a, min(upper, a + h))
+    }
+    finish(nodes, a)
+  }))
+}
+
+# One point, one width.
+.nns_dy_stencil <- function(col, at, probability.width) {
+  .nns_dy_stencils(col, at, probability.width)[[1L]][[1L]]
+}
+
 #' Partial Derivative dy/d_[wrt]
 #'
 #' Returns the numerical partial derivative of \code{y} with respect to [wrt] any regressor for a point of interest.  Finite difference method is used with \link{NNS.reg} estimates as \code{f(x + h)} and \code{f(x - h)} values.
@@ -7,9 +82,9 @@
 #' @param wrt integer; Selects the regressor to differentiate with respect to (vectorized).
 #' @param eval.points numeric or options: ("obs", "apd", "mean", "median", "last"); Regressor points to be evaluated.
 #' \itemize{
-#' \item Numeric values must be in matrix or data.frame form to be evaluated for each regressor, otherwise, a vector of points will evaluate only at the \code{wrt} regressor.  See examples for use cases.
+#' \item Numeric values must be in matrix or data.frame form to be evaluated for each regressor, otherwise, a vector of points will evaluate only at the \code{wrt} regressor, averaging over the observed rows of the other regressors (at most \code{max(21, 10000 / k)} of them for \code{k} points, taken evenly through the data).  See examples for use cases.
 #' \item Set to \code{(eval.points = "obs")} (default) to find the average partial derivative at every observation of the variable with respect to \emph{for specific tuples of given observations.}
-#' \item Set to \code{(eval.points = "apd")} to find the average partial derivative at every observation of the variable with respect to \emph{over the entire distribution of other regressors.}
+#' \item Set to \code{(eval.points = "apd")} to find the average partial derivative at every observation of the variable with respect to \emph{over the entire distribution of other regressors}, represented by their observed rows.
 #' \item Set to \code{(eval.points = "mean")} to find the partial derivative at the mean of value of every variable.
 #' \item Set to \code{(eval.points = "median")} to find the partial derivative at the median value of every variable.
 #' \item Set to \code{(eval.points = "last")} to find the partial derivative at the last observation of every value (relevant for time-series data).
@@ -24,7 +99,12 @@
 #' }
 #'
 #'
-#' @note For binary regressors, it is suggested to use \code{eval.points = seq(0, 1, .05)} for a better resolution around the midpoint.
+#' @details
+#' Derivatives are finite-difference summaries of the fitted \link{NNS.reg} surface, averaged over four local probability windows derived from degree-1 partial-moment quantiles. Window sizes depend on the number of observations; they are capped before constructing a local coordinate half-width. All evaluation points and perturbed coordinates must stay inside the observed coordinate ranges. Interior unequal spacings use polynomial finite-difference weights; support endpoints use one-sided three-point formulas. This avoids averaging artificial full-support extrapolation bands into a local derivative.
+#'
+#' The coordinate-range check does not establish that every perturbed tuple lies in a densely observed part of the joint support. Sparse cells, neighbour changes, fitted-surface bias, and correlated predictors can affect the result, including at the boundary. These are numerical derivatives of an estimated surface, with no universal recovery or coverage guarantee. A two-valued coordinate returns its finite contrast divided by the coordinate difference and an undefined (NA) second derivative. Constant coordinates return NA. Mixed derivatives require two predictors and explicit matrix evaluation points.
+#'
+#' @note Binary regressors provide a finite contrast, not an identified continuous derivative between the two levels.
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #'
@@ -38,21 +118,21 @@
 #' B <- cbind(x_1, x_2)
 #'
 #' ## To find derivatives of y wrt 1st regressor for specific points of both regressors
-#' dy.d_(B, y, wrt = 1, eval.points = t(c(.5, 1)))
+#' dy.d_(B, y, wrt = 1, eval.points = t(c(.5, median(x_2))))
 #'
 #' ## To find average partial derivative of y wrt 1st regressor,
-#' only supply 1 value in [eval.points], or a vector of [eval.points]:
+#' ## only supply 1 value in [eval.points], or a vector of [eval.points]:
 #' dy.d_(B, y, wrt = 1, eval.points = .5)
 #'
 #' dy.d_(B, y, wrt = 1, eval.points = fivenum(B[,1]))
 #'
 #'
 #' ## To find average partial derivative of y wrt 1st regressor,
-#' for every observation of 1st regressor:
+#' ## for every observation of 1st regressor:
 #' apd <- dy.d_(B, y, wrt = 1, eval.points = "apd")
 #' plot(B[,1], apd[,1]$First)
 #'
-#' ## 95% Confidence Interval to test if 0 is within
+#' ## Central 95% range across estimated partial derivatives (descriptive)
 #' ### Lower CI
 #' LPM.VaR(.025, 0, apd[,1]$First)
 #'
@@ -61,244 +141,115 @@
 #' }
 #' @export
 
-
-
-dy.d_ <- function(x, y, wrt,
-                  eval.points = "obs",
-                  mixed = FALSE,
-                  messages = TRUE){
-
-  n <- nrow(x)
-  l <- ncol(x)
-
-  if (is.null(l)) stop("Please ensure (x) is a matrix or data.frame type object.")
-  if (l < 2) stop("Please use NNS::dy.dx(...) for univariate partial derivatives.")
+dy.d_ <- function(x, y, wrt, eval.points = "obs", mixed = FALSE, messages = TRUE) {
+  if (is.null(ncol(x)) || ncol(x) < 2L)
+    stop("Please supply at least two predictor columns; use dy.dx for one predictor.")
   if (anyNA(cbind(x, y))) stop("You have some missing values, please address.")
-
-  dummies <- list()
-  for (i in seq_len(l)) {
-    dummies[[i]] <- factor_2_dummy_FR(x[, i])
-    if (!is.null(ncol(dummies[[i]]))) {
-      base_name <- if (is.null(colnames(x))) paste0("X", i) else colnames(x)[i]
-      colnames(dummies[[i]]) <- paste0(base_name, "_", colnames(dummies[[i]]))
-    }
-  }
-  x <- do.call(cbind, dummies)
-
-  if (messages) {
-    message("Currently generating NNS.reg finite difference estimates...Regressor ",
-            wrt, "\r", appendLF = TRUE)
-  }
-
-  if (is.null(colnames(x))) {
-    colnames(x) <- paste0("X", seq_len(ncol(x)))
-  }
-
-  if (any(class(x) %in% c("tbl", "data.table"))) x <- as.data.frame(x)
-  if (!is.null(y) && any(class(y) %in% c("tbl", "data.table"))) {
-    y <- as.vector(unlist(y))
-  }
-
-  x <- as.matrix(x)
-  l <- ncol(x)
-  n <- nrow(x)
-
-  if (l != 2) mixed <- FALSE
-
+  blocks <- lapply(seq_len(ncol(x)), function(j) factor_2_dummy_FR(x[, j]))
+  x <- as.matrix(do.call(cbind, blocks))
+  if (is.null(colnames(x))) colnames(x) <- paste0("X", seq_len(ncol(x)))
+  y <- as.numeric(y)
+  if (length(y) != nrow(x) || any(!is.finite(c(x, y))))
+    stop("x and y must have compatible finite observations.")
+  if (length(wrt) != 1L || !is.finite(wrt) || wrt != floor(wrt) || wrt < 1L || wrt > ncol(x))
+    stop("wrt must identify one expanded predictor column.")
   if (is.character(eval.points)) {
-    eval.points <- tolower(eval.points)
-    eval.points <- switch(eval.points,
-                          "median" = t(apply(x, 2, median)),
-                          "last"   = tail(x, 1),
-                          "mean"   = t(apply(x, 2, mean)),
-                          "apd"    = as.vector(x[ , wrt, drop = FALSE]),
-                          x)
+    eval.points <- switch(tolower(eval.points),
+      median = matrix(apply(x, 2, median), nrow = 1),
+      mean = matrix(colMeans(x), nrow = 1), last = tail(x, 1),
+      apd = x[, wrt], obs = x,
+      stop("Unknown eval.points option."))
   }
-
-  # ---- Estimates: NNS.stack on the equal-weight synthetic regressor X* -------
-  stack.est <- function(train, resp, pts) {
-    xs <- as.numeric(rowMeans(as.matrix(train)))
-    ps <- as.numeric(rowMeans(as.matrix(pts)))
-    as.numeric(NNS.stack(
-      IVs.train = cbind(Xstar = xs, Xstar2 = xs),
-      DV.train = resp,
-      IVs.test = cbind(Xstar = ps, Xstar2 = ps),
-      method = c(1, 2),
-      dim.red.method = "equal",
-      order = "max",
-      folds = 5,
-      status = FALSE,
-      ncores = 1
-    )$stack)
-  }
-
-  # ---- dy.dx() locally-adaptive step -----------------------------------------
-  dydx.step <- function(col, ev, H) {
-    p <- LPM.ratio(1, ev, col)
-    LPM.VaR(min(1, p + H), 1, col) - LPM.VaR(max(0, p - H), 1, col)
-  }
-
-  col <- x[, wrt]
-
-  # v0.5.7 bandwidths.
-  h_s <- 1/log(length(x), c(2, 10))
-  h_s <- c(h_s, 10 * h_s)
-  if (NNS.dep(col, y)$Dependence < .5) h_s <- 2 * h_s
-
-  is_vector <- is.vector(eval.points) || (!is.null(ncol(eval.points)) && ncol(eval.points) == 1)
-
-
-  chunks <- list(); csize <- integer(0)
-  push <- function(block) {
-    i <- length(chunks) + 1L
-    chunks[[i]] <<- block
-    csize[i] <<- nrow(block)
-    i
-  }
-
-  steps_per_band <- vector("list", length(h_s))
-  main_idx <- integer(length(h_s))
-  position <- NULL; id <- NULL
-
-  if (is_vector) {
-    eval_vec <- as.numeric(unlist(eval.points))
-    k <- length(eval_vec)
-    grid <- apply(x, 2, function(z) LPM.VaR(seq(0, 1, .05), 0, z))
-    if (is.null(dim(grid)) || ncol(grid) != l) grid <- matrix(grid, ncol = l, byrow = FALSE)
-    sampsize <- nrow(grid)
-    position <- rep(rep(c("l", "m", "u"), each = sampsize), times = k)
-    id <- rep(seq_len(k), each = 3L * sampsize)
-
-    for (bi in seq_along(h_s)) {
-      H <- h_s[bi]
-      steps <- vapply(eval_vec, function(ev) dydx.step(col, ev, H), numeric(1))
-      blocks <- vector("list", 3L * k)
-      for (g in seq_len(k)) {
-        lower_g <- grid; middle_g <- grid; upper_g <- grid
-        lower_g[, wrt]  <- eval_vec[g] - steps[g]
-        middle_g[, wrt] <- eval_vec[g]
-        upper_g[, wrt]  <- eval_vec[g] + steps[g]
-        blocks[[3L * g - 2L]] <- lower_g
-        blocks[[3L * g - 1L]] <- middle_g
-        blocks[[3L * g]]      <- upper_g
-      }
-      steps_per_band[[bi]] <- steps
-      main_idx[bi] <- push(do.call(rbind, blocks))
-    }
-    mixed_eval <- if (k == 2L) matrix(eval_vec, nrow = 1L) else NULL
-
+  marginal <- is.null(dim(eval.points)) || ncol(eval.points) == 1L
+  if (marginal) {
+    # A one-column matrix or data frame holds values of the wrt regressor.
+    points <- as.numeric(unlist(eval.points, use.names = FALSE))
+    count <- min(nrow(x), max(21L, floor(10000 / max(1L, length(points)))))
+    other <- x[.nns_spread_rows(nrow(x), count), , drop = FALSE]
+    contexts <- lapply(points, function(value) {
+      z <- other; z[, wrt] <- value; z
+    })
   } else {
-    eval_mat <- as.matrix(eval.points)
-    if (ncol(eval_mat) != l) stop("Matrix/data-frame `eval.points` must have one column per expanded predictor.")
-    n_eval <- nrow(eval_mat)
-
-    for (bi in seq_along(h_s)) {
-      H <- h_s[bi]
-      steps <- vapply(seq_len(n_eval), function(i) dydx.step(col, eval_mat[i, wrt], H), numeric(1))
-      lower <- eval_mat; upper <- eval_mat
-      lower[, wrt] <- eval_mat[, wrt] - steps
-      upper[, wrt] <- eval_mat[, wrt] + steps
-      steps_per_band[[bi]] <- steps
-      main_idx[bi] <- push(rbind(lower, eval_mat, upper))
-    }
-    mixed_eval <- eval_mat
+    ev <- as.matrix(eval.points)
+    if (ncol(ev) != ncol(x)) stop("eval.points must have one column per expanded predictor.")
+    if (any(!is.finite(ev)) || any(sweep(ev, 2, apply(x, 2, min), "<")) ||
+        any(sweep(ev, 2, apply(x, 2, max), ">")))
+      stop("Derivative evaluation points must lie inside the observed coordinate support.")
+    contexts <- lapply(seq_len(nrow(ev)), function(i) ev[i, , drop = FALSE])
+    points <- ev[, wrt]
   }
-
-  # Mixed-derivative corners (also predicted from the same single fit).
-  mixed_meta <- vector("list", length(h_s))
+  if (!length(points)) stop("eval.points must contain at least one point.")
+  # Four genuinely local probability windows, based on observations rather
+  # than the matrix's element count. The former tenfold windows saturated.
+  base <- 1 / log(max(nrow(x), 3), c(2, 10))
+  widths <- pmin(.25, c(base / 2, base))
+  if (.nns_dep_local(x[, wrt], y, asym = FALSE) < .5) widths <- pmin(.25, 2 * widths)
+  queries <- list(); specifications <- list()
+  stencils <- .nns_dy_stencils(x[, wrt], points, widths)
+  for (b in seq_along(widths)) for (i in seq_along(contexts)) {
+    context <- contexts[[i]]
+    stencil <- stencils[[b]][[i]]
+    nodes <- lapply(stencil$nodes, function(value) {
+      z <- context; z[, wrt] <- value; z
+    })
+    index <- length(queries) + 1L
+    queries[[index]] <- do.call(rbind, nodes)
+    specifications[[index]] <- list(band = b, point = i, n = nrow(context), stencil = stencil)
+  }
+  mixed.spec <- list()
+  if (mixed && ncol(x) == 2L && !marginal) {
+    first.stencils <- .nns_dy_stencils(x[, 1], ev[, 1], widths)
+    second.stencils <- .nns_dy_stencils(x[, 2], ev[, 2], widths)
+    for (b in seq_along(widths)) for (i in seq_along(contexts)) {
+      s1 <- first.stencils[[b]][[i]]
+      s2 <- second.stencils[[b]][[i]]
+      grid <- as.matrix(expand.grid(s1$nodes, s2$nodes))
+      colnames(grid) <- colnames(x)
+      index <- length(queries) + 1L
+      queries[[index]] <- grid
+      mixed.spec[[length(mixed.spec) + 1L]] <- list(index = index, band = b, point = i,
+        weight = as.numeric(outer(s1$first, s2$first)))
+    }
+  } else if (mixed) {
+    stop("Mixed derivatives require two predictors and explicit matrix evaluation points.")
+  }
+  if (messages) message("Generating local NNS.reg finite-difference estimates...Regressor ", wrt)
+  lengths <- vapply(queries, nrow, integer(1))
+  query <- do.call(rbind, queries); colnames(query) <- colnames(x)
+  predicted <- as.numeric(NNS.reg(x, y, type = "REG", point.est = query, plot = FALSE, ncores = 1, point.only = TRUE)$Point.est)
+  offsets <- c(0L, cumsum(lengths))
+  part <- function(index) predicted[seq.int(offsets[index] + 1L, offsets[index + 1L])]
+  first <- second <- matrix(NA_real_, length(points), length(widths))
+  for (index in seq_along(specifications)) {
+    spec <- specifications[[index]]
+    values <- colMeans(matrix(part(index), nrow = spec$n))
+    values <- values - values[1L]
+    first[spec$point, spec$band] <- sum(spec$stencil$first * values)
+    second[spec$point, spec$band] <- sum(spec$stencil$second * values)
+  }
+  average <- function(z) {
+    out <- rowMeans(z, na.rm = TRUE); out[is.nan(out)] <- NA_real_; out
+  }
+  result <- list(First = average(first), Second = average(second))
   if (mixed) {
-    if (is.null(mixed_eval) || ncol(mixed_eval) != 2) stop("Mixed Derivatives are only for 2 IV")
-    for (bi in seq_along(h_s)) {
-      H <- h_s[bi]
-      corner_blocks <- list(); scales <- numeric(nrow(mixed_eval))
-      for (m in seq_len(nrow(mixed_eval))) {
-        p <- mixed_eval[m, ]
-        s1 <- dydx.step(x[, 1], p[1], H); s2 <- dydx.step(x[, 2], p[2], H)
-        if (is.finite(s1) && is.finite(s2) && s1 != 0 && s2 != 0) {
-          corner_blocks[[length(corner_blocks) + 1L]] <- rbind(
-            c(p[1] + s1, p[2] + s2), c(p[1] - s1, p[2] + s2),
-            c(p[1] + s1, p[2] - s2), c(p[1] - s1, p[2] - s2))
-          scales[m] <- 4 * s1 * s2
-        } else scales[m] <- NA_real_
-      }
-      if (length(corner_blocks)) {
-        mixed_meta[[bi]] <- list(idx = push(do.call(rbind, corner_blocks)), scales = scales)
-      } else {
-        mixed_meta[[bi]] <- list(idx = NA_integer_, scales = scales)
-      }
+    values <- matrix(NA_real_, length(points), length(widths))
+    for (spec in mixed.spec) {
+      f <- part(spec$index)
+      values[spec$point, spec$band] <- sum(spec$weight * (f - f[1L]))
     }
+    result$Mixed <- average(values)
   }
-
-  # ---- the single NNS.stack fit + prediction --------------------------------
-  big <- do.call(rbind, chunks)
-  colnames(big) <- colnames(x)
-  preds <- stack.est(x, y, big)
-  offs <- c(0L, cumsum(csize))
-  parts <- lapply(seq_along(csize), function(i) preds[(offs[i] + 1L):offs[i + 1L]])
-
-  band_first <- vector("list", length(h_s))
-  band_second <- vector("list", length(h_s))
-  for (bi in seq_along(h_s)) {
-    steps <- steps_per_band[[bi]]; block <- parts[[main_idx[bi]]]
-    if (is_vector) {
-      kk <- length(steps); f1 <- numeric(kk); f2 <- numeric(kk)
-      for (g in seq_len(kk)) {
-        lo <- mean(block[position == "l" & id == g])
-        mm <- mean(block[position == "m" & id == g])
-        up <- mean(block[position == "u" & id == g])
-        h <- steps[g]
-        if (is.finite(h) && h != 0) {
-          f1[g] <- (up - lo) / (2 * h)
-          f2[g] <- (up - 2 * mm + lo) / (h ^ 2)
-        } else {
-          f1[g] <- NA_real_; f2[g] <- NA_real_
-        }
-      }
-    } else {
-      n_eval <- length(steps)
-      lo <- block[seq_len(n_eval)]
-      mm <- block[n_eval + seq_len(n_eval)]
-      up <- block[2L * n_eval + seq_len(n_eval)]
-      finite <- is.finite(steps) & steps != 0
-      f1 <- (up - lo) / (2 * steps)
-      f2 <- (up - 2 * mm + lo) / (steps ^ 2)
-      f1[!finite] <- NA_real_; f2[!finite] <- NA_real_
-    }
-    band_first[[bi]] <- f1
-    band_second[[bi]] <- f2
-  }
-
-  row_nanmean <- function(bands) {
-    m <- do.call(cbind, bands)
-    if (is.null(dim(m))) m <- matrix(m, nrow = 1L)
-    rowMeans(m, na.rm = TRUE)
-  }
-
-  final_results <- list("First"  = row_nanmean(band_first),
-                        "Second" = row_nanmean(band_second))
-
-  if (mixed) {
-    band_mixed <- vector("list", length(h_s))
-    for (bi in seq_along(h_s)) {
-      meta <- mixed_meta[[bi]]
-      vals <- rep(NA_real_, length(meta$scales))
-      if (!is.na(meta$idx)) {
-        z <- parts[[meta$idx]]; pos <- 0L
-        for (m in seq_along(meta$scales)) {
-          if (is.finite(meta$scales[m])) {
-            c4 <- z[(pos + 1L):(pos + 4L)]
-            vals[m] <- (c4[1] + c4[4] - c4[2] - c4[3]) / meta$scales[m]
-            pos <- pos + 4L
-          }
-        }
-      }
-      band_mixed[[bi]] <- vals
-    }
-    final_results$Mixed <- row_nanmean(band_mixed)
-  }
-
-  if (messages) message("", "\r", appendLF = TRUE)
-  return(final_results)
+  result
 }
 
 dy.d_ <- Vectorize(dy.d_, vectorize.args = c("wrt"))
+
+
+# k of n row indices spread through the data without a fixed stride: the rows
+# whose golden-ratio (Weyl) sequence values are smallest. A fixed stride can
+# line up with periodic or sorted row order and keep only some phases; an
+# irrational rotation visits every residue class evenly.
+.nns_spread_rows <- function(n, k) {
+  if (k >= n) return(seq_len(n))
+  sort(order((seq_len(n) * 0.6180339887498949) %% 1)[seq_len(k)])
+}

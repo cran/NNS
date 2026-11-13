@@ -1,12 +1,13 @@
 #' NNS FSD Test
 #'
-#' Bi-directional test of first degree stochastic dominance using lower partial moments.
+#' Compares empirical first-order stochastic dominance or degree-one area-ratio (Omega/expectile) dominance using partial moments.
 #'
 #' @param x a numeric vector.
 #' @param y a numeric vector.
-#' @param type options: ("discrete", "continuous"); \code{"discrete"} (default) selects the type of CDF.
+#' @param type \code{"discrete"} (default) compares empirical CDFs for ordinary first-order stochastic dominance. The legacy option \code{"continuous"} compares degree-one ratios \eqn{L_1/(L_1+U_1)}, equivalently Omega/expectile order; it does not carry the ordinary FSD guarantee for every increasing utility.
 #' @param plot logical; \code{TRUE} (default) plots the FSD test.
-#' @return Returns one of the following FSD results: \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}.
+#' @return With \code{type = "discrete"}, returns \code{"X FSD Y"}, \code{"Y FSD X"}, or \code{"NO FSD EXISTS"}. With \code{type = "continuous"}, returns \code{"X OMEGA Y"}, \code{"Y OMEGA X"}, or \code{"NO OMEGA DOMINANCE EXISTS"}; the numerical area-order criterion is unchanged.
+#' @note The curves are compared on the merged sample points and, for TSD and continuous area order, also at their closed-form extrema between those points. Differences smaller than \code{64 * .Machine$double.eps * S^d} (\code{S} = largest absolute value in \code{x} and \code{y}, \code{d} = 1 for SSD and the mean condition, 2 for TSD; a ratio analogue for continuous area order) are treated as ties, so that rounding noise does not decide dominance. Discrete FSD compares exact empirical CDF values.
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. and Nawrocki, D. (2016) "LPM Density Functions for the Computation of the SD Efficient Set." Journal of Mathematical Finance, 6, 105-126.  \doi{10.4236/jmf.2016.61012}.
 #'
@@ -41,7 +42,7 @@ NNS.FSD <- function(x, y, type = "discrete", plot = TRUE){
   y <- to_numeric_vector(y, "y")
 
 
-  if(anyNA(cbind(x,y))) stop("You have some missing values, please address.")
+  if(anyNA(x) || anyNA(y)) stop("You have some missing values, please address.")
 
   Combined_sort <- sort(c(x, y), decreasing = FALSE)
 
@@ -56,22 +57,25 @@ NNS.FSD <- function(x, y, type = "discrete", plot = TRUE){
   LPM_y_sort <- LPM.ratio(degree, Combined_sort, y)
 
 
-  x.fsd.y <- any(LPM_x_sort > LPM_y_sort)
 
-  y.fsd.x <- any(LPM_y_sort > LPM_x_sort)
-
-
+  order.name <- if (degree == 0) "FSD" else "OMEGA"
   if(plot){
-    plot(Combined_sort, LPM_x_sort, type = "l", lwd = 3,col = "red", main = "FSD", ylab = "Probability of Cumulative Distribution", ylim = c(0, 1))
+    plot(Combined_sort, LPM_x_sort, type = "l", lwd = 3,col = "red",
+         main = if (degree == 0) "FSD" else "Omega / expectile dominance",
+         ylab = if (degree == 0) "Empirical cumulative probability" else "Lower deviation-area ratio",
+         ylim = c(0, 1))
     lines(Combined_sort, LPM_y_sort, type = "l", lwd = 3,col = "steelblue")
     legend("topleft", c("X", "Y"), lwd = 10, col = c("red", "steelblue"))
   }
   
   ## Verification of ***0 instances*** of CDFx > CDFy, and conversely of CDFy > CDFx
-  ifelse (!x.fsd.y && min(x) >= min(y) && !identical(LPM_x_sort, LPM_y_sort),
-          "X FSD Y",
-          ifelse (!y.fsd.x && min(y) >= min(x) && !identical(LPM_x_sort, LPM_y_sort),
-                  "Y FSD X",
-                  "NO FSD EXISTS"))
+  # Verdict from the pairwise test (NNS.FSD.uni both ways), which also checks
+  # the continuous curves between sample points; the grid curves are for the plot.
+  type.c <- if (degree == 0) "discrete" else "continuous"
+  x.dom <- .Call(`_NNS_NNS_FSD_uni_cpp`, x, y, type.c) == 1L
+  y.dom <- .Call(`_NNS_NNS_FSD_uni_cpp`, y, x, type.c) == 1L
+  if (x.dom) return(paste("X", order.name, "Y"))
+  if (y.dom) return(paste("Y", order.name, "X"))
+  if (degree == 0) "NO FSD EXISTS" else "NO OMEGA DOMINANCE EXISTS"
 
 }

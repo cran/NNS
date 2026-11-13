@@ -4,33 +4,34 @@
 #'
 #' @param IVs.train a vector, matrix or data frame of variables of numeric or factor data types.
 #' @param DV.train a numeric or factor vector with compatible dimensions to \code{(IVs.train)}.
-#' @param IVs.test a vector, matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  Names that only partly overlap the training predictors are ambiguous and return an error.
-#' @param type \code{NULL} (default).  To perform a classification of discrete integer classes from factor target variable \code{(DV.train)} with a base category of 1, set to \code{(type = "CLASS")}, else for continuous \code{(DV.train)} set to \code{(type = NULL)}.   Like a logistic regression, this setting is not necessary for target variable of two classes e.g. [0, 1].
+#' @param IVs.test a vector, matrix or data frame of variables of numeric or factor data types with compatible dimensions to \code{(IVs.train)}.  If NULL, will use \code{(IVs.train)} as default.  Columns are matched to \code{(IVs.train)} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  A CSV UTF-8 byte-order mark in the first header (for example, \code{Male} becoming \code{X...Male}) is repaired before matching names. Other partial overlaps, including misspelled predictors, are ambiguous and return an error.
+#' @param type \code{NULL} (default) automatically classifies factor, character, logical and two-valued numeric responses. Set \code{type = "CLASS"} for nominal classification of any numeric labels, or \code{type = "REG"} to fit a numeric response as regression regardless of its number of distinct values. Forecasting calls use \code{type = "REG"}.
 #' @param obj.fn expression; \code{expression(sum((predicted - actual)^2))} (default) Sum of squared errors is the default objective function.  Any \code{expression()} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
-#' @param optimize.threshold logical; \code{TRUE} (default) Will optimize the probability threshold value for rounding in classification problems.  If \code{FALSE}, returns 0.5.
+#' @param optimize.threshold logical; \code{TRUE} (default) Optimizes the threshold for the second first-observed class in binary classification; multiclass decisions use the largest class probability.  If \code{FALSE}, returns 0.5.
 #' @param dist options:(NULL, "NNS", "L1", "L2", "FACTOR") the method of distance calculation. \code{dist = NULL} is the default and selects the native blended NNS distance; \code{dist = "NNS"} is an explicit alias for the default. \code{dist = "L2"} selects Euclidean distance; \code{dist = "L1"} selects Manhattan distance; \code{dist = "FACTOR"} uses a frequency.
-#' @param CV.size numeric [0, 1]; \code{NULL} (default) Sets the cross-validation size if \code{(IVs.test = NULL)}.  Defaults to a random value between 0.2 and 0.33 for a random sampling of the training set.
+#' @param CV.size numeric [0, 1]; \code{NULL} (default) Sets the holdout size for repeated holdout cross-validation (one random holdout per fold).  With \code{CV.size = NULL} and \code{folds > 1}, (stratified, for classification) k-fold cross-validation is used; with \code{CV.size = NULL} and \code{folds = 1}, a single holdout of random size between 0.2 and 0.33 is used.
 #' @param balance logical; \code{FALSE} (default) Uses both up and down sampling to balance the classes.  \code{type="CLASS"} required.
 #' @param ts.test integer; NULL (default) Sets the length of the test set for time-series data; typically \code{2*h} parameter value from \link{NNS.ARMA} or double known periods to forecast.
 #' @param folds integer; \code{folds = 5} (default) Select the number of cross-validation folds.
 #' @param order options: (integer, "max", NULL); \code{NULL} (default) Sets the order for \link{NNS.reg}, where \code{(order = "max")} is the k-nearest neighbors equivalent, which is suggested for mixed continuous and discrete (unordered, ordered) data.
 #' @param method numeric options: (1, 2); Select the NNS method to include in stack.  \code{(method = 1)} selects \link{NNS.reg}; \code{(method = 2)} selects \link{NNS.reg} dimension reduction regression.  Defaults to \code{method = c(1, 2)}, which will reduce the dimension first, then find the optimal \code{n.best}.
-#' @param stack logical; \code{TRUE} (default) Uses dimension reduction output in \code{n.best} optimization, otherwise performs both analyses independently.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "equal", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "NNS.dep")} (default) uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
+#' @param stack logical; \code{TRUE} (default) Uses dimension reduction to select actual predictor coordinates for the multivariate neighbour search; the dimension-reduction component separately uses its synthetic index. If FALSE, both components use their own full predictor designs.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "equal", "all") method for determining synthetic X* coefficients.  \code{(dim.red.method = "cor")} (default) uses Spearman rank correlation for weights.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for directional association weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
 #' @param pred.int numeric [0,1]; \code{NULL} (default) Returns the associated prediction intervals with each \code{method}.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.reg}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
+#' @param .validation Internal forecast-validation contract, normally NULL. A list with \code{IVs.train}, \code{DV.train}, \code{IVs.test}, and \code{DV.test} supplies the single chronological validation fold when \code{ts.test} is set, \code{folds = 1}, and \code{CV.size = NULL}. It requires exactly \code{N-ts.test} training rows and one through \code{ts.test} held-out rows; this allows scoring only observed future targets. Training prefixes and generated validation predictors must be constructed without later data. Used only for regression tuning; numeric two-level responses remain regression when this contract is supplied with type = NULL. The final model still fits all original training observations.
 #' @param seed Optional integer random seed used for reproducible resampling, fold construction, and stochastic fitting steps. If `NULL`, the current random-number-generator state is used.
 #'
 #' @return Returns a vector of fitted values for the dependent variable test set for all models.
 #' \itemize{
-#' \item{\code{"NNS.reg.n.best"}} returns the optimum \code{"n.best"} parameter for the \link{NNS.reg} multivariate regression.  \code{"SSE.reg"} returns the SSE for the \link{NNS.reg} multivariate regression.
-#' \item{\code{"OBJfn.reg"}} returns the \code{obj.fn} for the \link{NNS.reg} regression.
-#' \item{\code{"NNS.dim.red.threshold"}} returns the optimum \code{"threshold"} from the \link{NNS.reg} dimension reduction regression.
+#' \item{\code{"NNS.reg.n.best"}} returns the optimum \code{"n.best"} parameter for the \link{NNS.reg} multivariate regression; when all regression points (for classification, all cells) are selected, their number in the final fit. \code{NA} for a single predictor in regression, whose univariate \link{NNS.reg} fit has no \code{n.best} to tune (use \code{cbind(x, x)} to search one), and when \code{method} does not include 1.  \code{"SSE.reg"} returns the SSE for the \link{NNS.reg} multivariate regression.
+#' \item{\code{"OBJfn.reg"}} returns the best \code{obj.fn} value of the \link{NNS.reg} regression's tuning on the out-of-fold predictions; it is selection-optimized, not an estimate of out-of-sample performance.
+#' \item{\code{"NNS.dim.red.threshold"}} returns the coefficient cutoff at which \link{NNS.reg} on \code{(IVs.train, DV.train)} with the same \code{dim.red.method} keeps the tuned number of predictors: the smallest kept coefficient magnitude, or 0 when every predictor is kept. Ties at the cutoff keep every tied predictor. For classification it is one number when every class index shares the cutoff, as two-class indices always do, and otherwise one cutoff per class, which \link{NNS.reg} accepts as \code{threshold}. \code{NA} when \code{method} does not include 2.
 #' \item{\code{"NNS.dim.red.variables"}} returns the names of the predictors carried by the final dimension reduction regression, ranked by absolute coefficient.  With \code{(stack = TRUE)} these are also the only predictors used by the \link{NNS.reg} multivariate regression, so they are exactly the variables behind \code{"stack"}.  \code{NULL} when \code{method} does not include 2.
 #' \item{\code{"NNS.dim.red.coefficients"}} returns the named final dimension reduction coefficients for every encoded predictor column (zero for predictors not selected).  \code{NULL} when \code{method} does not include 2.
-#' \item{\code{"OBJfn.dim.red"}} returns the \code{obj.fn} for the \link{NNS.reg} dimension reduction regression.
+#' \item{\code{"OBJfn.dim.red"}} returns the best \code{obj.fn} value of the \link{NNS.reg} dimension reduction regression's tuning on the out-of-fold predictions; it is selection-optimized, not an estimate of out-of-sample performance.
 #' \item{\code{"probability.threshold"}} returns the optimum probability threshold for classification, else 0.5 when set to \code{FALSE}.
 #' \item{\code{"reg"}} returns \link{NNS.reg} output.
 #' \item{\code{"reg.pred.int"}} returns the prediction intervals for the regression output.
@@ -38,32 +39,35 @@
 #' \item{\code{"dim.red.pred.int"}} returns the prediction intervals for the dimension reduction regression output.
 #' \item{\code{"stack"}} returns the output of the stacked model.
 #' \item{\code{"pred.int"}} returns the prediction intervals for the stacked model.
+#' \item{\code{"weights"}} returns the weights of \code{"reg"} and \code{"dim.red"} in \code{"stack"}. For classification they are proportional to the squared \code{"OBJfn.reg"} and \code{"OBJfn.dim.red"} (inverse squares when \code{objective = "min"}); for regression the weight is selected by \code{obj.fn} on the out-of-fold predictions of the blend.
 #' }
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #' @references Viole, F. (2016) "Classification Using NNS Clustering Analysis"  \doi{10.2139/ssrn.2864711}
 #'
+#' @details
+#' Classification tunes and combines class-probability vectors from the NNS predictor cells, preserving nominal label identity. \code{probabilities}, \code{reg.probabilities}, and \code{dim.red.probabilities} return the final probability matrices. Class balancing resamples the training rows of each fold. The neighbour count and the dimension count are chosen by optimizing \code{obj.fn} on the pooled out-of-fold predictions; the default classification objective is accuracy. As in NNS 13.0, the two models' probability vectors are then blended with weights proportional to their squared objective scores (inverse squares when \code{objective = "min"}), so models with nearly equal scores are blended nearly equally, and the binary probability threshold is tuned on the out-of-fold predictions of that blend. \code{OBJfn.reg} and \code{OBJfn.dim.red} are the best scores of that search on the same predictions, so they are selection-optimized and overstate held-out performance; assess the final model on an independent test set. Custom objectives receive original numeric or logical response values, and factor/character codes as identified by \code{class.levels}. Relabelling is invariant for label-invariant objectives such as accuracy; a custom loss assigning different costs to classes can deliberately change the result.
+#' 
+#' Named numeric dimension-reduction coefficients are matched to encoded predictor names in both regression and classification. Factor columns use \code{predictor__level} names; unnamed vectors follow encoded column order. Classification dimension reduction uses one signed index per class indicator. Its reported coefficients are a list of class-specific equations. The tuned dimension count is returned as \code{NNS.dim.red.count}, and \code{NNS.dim.red.threshold} gives the coefficient cutoff that keeps that count in every class index: one number when the class indices share it, as two-class indices always do, and otherwise one cutoff per class. The field \code{NNS.dim.red.variables} is the union of their active encoded columns. These equations describe the synthetic indices, not a complete saved prediction model: reconstruction also requires training-fitted scaling, the predictor cells, their class frequencies, and the selected smoothing controls. With \code{stack = TRUE}, the multivariate classification component retains the selected number of actual encoded coordinates ranked by maximum class-indicator dependence. \code{Prediction.set} contains classes attaining the requested estimated probability mass. Binary interval fields contain the range of this set for compatibility; multiclass interval fields are NULL. The sets do not assert calibrated coverage.
+#' 
+#' For regression, all dimension-reduction coefficients, normalizations, and candidate predictions used in validation are fitted to the corresponding training fold. The final coefficients and regressions are refitted to the full supplied training data. Method 1 retains the selected predictor coordinates, while method 2 evaluates their signed synthetic index; the components can therefore represent different regression geometry.
+#'
 #' @note
 #' \itemize{
 #' \item Incorporate any objective function from external packages (such as \code{Metrics::mape}) via \code{NNS.stack(..., obj.fn = expression(Metrics::mape(actual, predicted)), objective = "min")}
 #' 
-#' \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for multiple class problems.
+#' \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  Numeric class values are returned on their original scale; factor and character responses use codes with the returned \code{class.levels} mapping.
 #'
 #' \item Missing data should be handled prior as well using \link{na.omit} or \link{complete.cases} on the full dataset.
 #' }
 #'
-#' If error received:
-#'
-#' \code{"Error in is.data.frame(x) : object 'RP' not found"}
-#'
-#' reduce the \code{CV.size}.
-#'
-#'
 #' @examples
-#'  ## Using 'iris' dataset where test set [IVs.test] is 'iris' rows 141:150.
+#'  ## Using 'iris' dataset with a stratified test set of ten rows per species
+#'  ## (rows 141:150 alone are all virginica).
 #'  \dontrun{
-#'  NNS.stack(iris[1:140, 1:4], iris[1:140, 5], IVs.test = iris[141:150, 1:4], type = "CLASS", 
-#'  balance = TRUE)
+#'  test.set <- c(41:50, 91:100, 141:150)
+#'  NNS.stack(iris[-test.set, 1:4], iris[-test.set, 5], IVs.test = iris[test.set, 1:4],
+#'  type = "CLASS", balance = TRUE)
 #'
 #'  ## Using 'iris' dataset to determine [n.best] and [threshold] with no test set.
 #'  NNS.stack(iris[ , 1:4], iris[ , 5], type = "CLASS")
@@ -90,7 +94,8 @@ NNS.stack <- function(IVs.train,
                       pred.int = NULL,
                       status = TRUE,
                       ncores = NULL,
-                      seed = 123L) {
+                      seed = 123L,
+                      .validation = NULL) {
   
   # -------------------------------------------------------------------------
   # Validation, coercion, and state helpers
@@ -209,7 +214,11 @@ NNS.stack <- function(IVs.train,
       } else if (is.factor(tr) || is.character(tr)) {
         tr_chr <- as.character(tr)
         te_chr <- as.character(te)
-        lev <- if (is.factor(tr)) levels(tr) else unique(tr_chr)
+        # Sorted levels, as factor() and NNS.boost use, so row order does not
+        # matter. A factor's declared levels remain valid test values even when
+        # the training rows do not contain every level.
+        lev <- if (is.ordered(tr)) levels(tr) else
+          if (is.factor(tr)) sort(levels(tr)) else sort(unique(tr_chr))
         unseen <- setdiff(unique(te_chr), lev)
         if (length(unseen)) {
           stop(sprintf(
@@ -291,9 +300,9 @@ NNS.stack <- function(IVs.train,
   
   if (!is.null(type)) {
     if (!is.character(type) || length(type) != 1L || is.na(type)) {
-      stop("[type] must be NULL or 'CLASS'.", call. = FALSE)
+      stop("[type] must be NULL, 'REG', or 'CLASS'.", call. = FALSE)
     }
-    type <- match.arg(tolower(type), "class")
+    type <- match.arg(tolower(type), c("class", "reg"))
   }
   
   if (!is.null(order)) {
@@ -336,9 +345,7 @@ NNS.stack <- function(IVs.train,
   }
   
   if (is.null(ncores)) {
-    detected <- suppressWarnings(parallel::detectCores())
-    if (!is.finite(detected)) detected <- 2L
-    ncores <- max(1L, as.integer(detected) - 1L)
+    ncores <- .nns_default_cores()
   } else {
     ncores <- .scalar_integer(ncores, "ncores", minimum = 1L)
   }
@@ -387,7 +394,10 @@ NNS.stack <- function(IVs.train,
     response_was_logical ||
     (response_was_numeric && length(unique(DV.train)) == 2L)
   
-  if (auto_class && is.null(type)) type <- "class"
+  # A supplied forecast fold defines a regression task even if the observed
+  # numeric response happens to contain only two distinct values. Later values
+  # must not switch the task selected at the forecast origin.
+  if (auto_class && is.null(type) && is.null(.validation)) type <- "class"
   if (balance && is.null(type)) {
     warning("type = 'CLASS' selected because balance = TRUE.", call. = FALSE)
     type <- "class"
@@ -403,7 +413,8 @@ NNS.stack <- function(IVs.train,
       class_values <- levels(response_factor)
       y <- as.integer(response_factor)
     } else if (response_was_character) {
-      class_values <- unique(DV.train)
+      # Sorted (factor) level order, as for a factor response and in NNS.boost.
+      class_values <- levels(factor(DV.train))
       y <- match(DV.train, class_values)
     } else if (response_was_logical) {
       class_values <- sort(unique(DV.train))
@@ -486,12 +497,9 @@ NNS.stack <- function(IVs.train,
     }
   }
   
-  # Add a constant non-integer translation to every fitting response. This keeps
-  # NNS.reg from silently auto-switching integer-valued regression or class-code
-  # targets into its internal classification path. Predictions and intervals are
-  # translated back before scoring or returning.
-  response_offset <- 0.123456789
-  y_fit_all <- y + response_offset
+  # Regression fits use type = "REG" throughout, including binary responses.
+  # The fitting response therefore stays on its observed numeric scale.
+  y_fit_all <- y
   
   # -------------------------------------------------------------------------
   # Shared helpers
@@ -561,7 +569,8 @@ NNS.stack <- function(IVs.train,
   }
   
   .decode_codes <- function(code) {
-    as.numeric(as.integer(pmin(pmax(code, 1L), length(class_values))))
+    code <- as.integer(pmin(pmax(code, 1L), length(class_values)))
+    if (response_was_numeric || response_was_logical) class_values[code] else as.numeric(code)
   }
   
   .decode_interval <- function(interval, threshold) {
@@ -573,10 +582,10 @@ NNS.stack <- function(IVs.train,
     interval
   }
   
-  .translate_interval <- function(interval) {
+  .numeric_interval <- function(interval) {
     if (is.null(interval)) return(NULL)
     interval <- as.data.frame(interval, check.names = FALSE)
-    interval[] <- lapply(interval, function(v) as.numeric(v) - response_offset)
+    interval[] <- lapply(interval, as.numeric)
     interval
   }
   
@@ -586,23 +595,24 @@ NNS.stack <- function(IVs.train,
   
   .balance_indices <- function(train_y) {
     if (!balance) return(seq_along(train_y))
-    groups <- split(seq_along(train_y), train_y)
+    groups <- .nns_class_groups(train_y)
     if (length(groups) < 2L || any(lengths(groups) == 0L)) {
       stop("Balancing requires at least two non-empty classes in the fitting split.",
            call. = FALSE)
     }
     smallest <- min(lengths(groups))
     largest <- max(lengths(groups))
+    # sample(g, k) on a length-one group samples from 1:g, so index into g.
     down_idx <- unlist(lapply(groups, function(g) {
-      sample(g, smallest, replace = FALSE)
+      g[sample.int(length(g), smallest, replace = FALSE)]
     }), use.names = FALSE)
     up_idx <- unlist(lapply(groups, function(g) {
-      sample(g, largest, replace = TRUE)
+      g[sample.int(length(g), largest, replace = TRUE)]
     }), use.names = FALSE)
     sample(c(down_idx, up_idx), replace = FALSE)
   }
   
-  .numeric_design <- function(train, test) {
+  .numeric_design <- function(train, test, scale = TRUE) {
     train_blocks <- vector("list", ncol(train))
     test_blocks <- vector("list", ncol(train))
     # Original predictor behind each encoded column (factors expand to one
@@ -615,7 +625,7 @@ NNS.stack <- function(IVs.train,
       te <- test[[j]]
       
       if (is.factor(tr)) {
-        lev <- levels(tr)
+        lev <- if (is.ordered(tr)) levels(tr) else sort(levels(tr))
         tr_chr <- as.character(tr)
         te_chr <- as.character(te)
         tr_block <- vapply(lev, function(level) {
@@ -624,8 +634,10 @@ NNS.stack <- function(IVs.train,
         te_block <- vapply(lev, function(level) {
           as.numeric(te_chr == level)
         }, numeric(length(te_chr)))
-        if (is.null(dim(tr_block))) tr_block <- matrix(tr_block, ncol = 1L)
-        if (is.null(dim(te_block))) te_block <- matrix(te_block, ncol = 1L)
+        # vapply() drops to a vector for one row or one level; keep rows as
+        # observations either way (a single test row has one row per level).
+        if (is.null(dim(tr_block))) tr_block <- matrix(tr_block, nrow = length(tr_chr))
+        if (is.null(dim(te_block))) te_block <- matrix(te_block, nrow = length(te_chr))
         block_names <- paste0(nm, "__", make.names(lev, unique = TRUE))
         colnames(tr_block) <- block_names
         colnames(te_block) <- block_names
@@ -647,6 +659,11 @@ NNS.stack <- function(IVs.train,
     storage.mode(test_matrix) <- "double"
     colnames(train_matrix) <- make.unique(colnames(train_matrix), sep = "_")
     colnames(test_matrix) <- colnames(train_matrix)
+
+    if (!scale) {
+      return(list(train = as.data.frame(train_matrix, check.names = FALSE),
+                  test = as.data.frame(test_matrix, check.names = FALSE)))
+    }
     
     train_min <- apply(train_matrix, 2L, min)
     train_max <- apply(train_matrix, 2L, max)
@@ -666,7 +683,40 @@ NNS.stack <- function(IVs.train,
          source = unlist(source_blocks, use.names = FALSE))
   }
   
+  # A forecast caller may supply a training prefix completed using only its
+  # own history and deployment-generated validation predictors. Actual future
+  # responses are used solely for scoring. The final model still fits x/y.
+  x.cv <- x; y.cv <- y
+  validation.rows <- NULL
+  if (!is.null(.validation)) {
+    if (is_class || is.null(ts.test) || folds != 1L || !is.null(CV.size))
+      stop("[.validation] requires regression with ts.test, folds = 1 and CV.size = NULL.")
+    required <- c("IVs.train", "DV.train", "IVs.test", "DV.test")
+    if (!is.list(.validation) || !all(required %in% names(.validation)))
+      stop("[.validation] must provide IVs.train, DV.train, IVs.test and DV.test.")
+    vt <- .as_test_frame(.validation$IVs.train, names(x))
+    vv <- .as_test_frame(.validation$IVs.test, names(x))
+    va <- .align_predictors(vt, vv)
+    vt <- va$train; vv <- va$test
+    .check_predictors(vt, ".validation$IVs.train")
+    .check_predictors(vv, ".validation$IVs.test")
+    yt <- as.numeric(.validation$DV.train); yv <- as.numeric(.validation$DV.test)
+    prefix <- n_obs - ts.test
+    if (nrow(vt) != prefix || nrow(vv) < 1L || nrow(vv) > ts.test ||
+        length(yt) != prefix || length(yv) != nrow(vv) ||
+        any(!is.finite(c(yt, yv))))
+      stop("[.validation] needs N-ts.test finite training rows and 1..ts.test finite held-out rows.")
+    validation.rows <- prefix + seq_len(nrow(vv))
+    x.cv[seq_len(prefix), ] <- vt
+    x.cv[validation.rows, ] <- vv
+    y.cv[seq_len(prefix)] <- yt
+    y.cv[validation.rows] <- yv
+  }
+  y.fit.cv <- y.cv
+
   .make_splits <- function() {
+    if (!is.null(validation.rows))
+      return(list(list(train = seq_len(n_obs - ts.test), validation = validation.rows)))
     all_index <- seq_len(n_obs)
     
     if (!is.null(ts.test)) {
@@ -714,7 +764,7 @@ NNS.stack <- function(IVs.train,
       out <- vector("list", folds)
       for (b in seq_len(folds)) {
         if (is_class) {
-          groups <- split(all_index, y)
+          groups <- .nns_class_groups(y)
           validation <- unlist(lapply(groups, function(g) {
             size <- min(length(g) - 1L,
                         max(1L, as.integer(round(holdout_size * length(g)))))
@@ -758,7 +808,7 @@ NNS.stack <- function(IVs.train,
     
     fold_id <- integer(n_obs)
     if (is_class) {
-      groups <- split(all_index, y)
+      groups <- .nns_class_groups(y)
       for (g in groups) {
         shuffled <- sample(g, length(g), replace = FALSE)
         fold_id[shuffled] <- rep(seq_len(use_folds), length.out = length(g))
@@ -786,6 +836,14 @@ NNS.stack <- function(IVs.train,
   }
   
   splits <- .make_splits()
+
+  if (is_class) {
+    return(.nns_stack_classify(x, y, z, class_values, splits, method, stack,
+      dim.red.method, order, dist, ncores, optimize.threshold, pred.int,
+      .score, objective, .balance_indices,
+      response_was_numeric || response_was_logical, status, .numeric_design,
+      tau = if (is.null(ts.test)) NULL else "ts"))
+  }
   
   .coefficient_vector <- function(X, response) {
     X <- as.matrix(X)
@@ -871,6 +929,19 @@ NNS.stack <- function(IVs.train,
     out
   }
   
+  # Method 1 keeps the actual coordinates ranked first by the dimension
+  # reduction coefficients. The rank, not a nonzero fold coefficient, selects
+  # them: a predictor that is constant in one fold has a zero coefficient
+  # there, and dropping it would give that fold a different (univariate)
+  # model from the other folds and from the final fit. A constant column
+  # adds nothing to the NNS distance, whose coordinates are range-scaled.
+  .active_columns <- function(coef, count) {
+    coef <- as.numeric(coef)
+    count <- max(1L, min(as.integer(count), length(coef)))
+    ord <- order(abs(coef), decreasing = TRUE, na.last = NA, method = "radix")
+    sort(ord[seq_len(min(count, length(ord)))])
+  }
+  
   .project_xstar <- function(train_design, test_design, coef) {
     denom <- sum(abs(coef) > 0)
     if (denom < 1L) stop("No active dimension-reduction coefficients.",
@@ -909,7 +980,7 @@ NNS.stack <- function(IVs.train,
             plot = FALSE,
             residual.plot = FALSE,
             order = order,
-            type = NULL,
+            type = "REG",
             factor.2.dummy = FALSE,
             dist = dist,
             ncores = ncores,
@@ -926,8 +997,7 @@ NNS.stack <- function(IVs.train,
     if (is.null(fit)) {
       return(list(raw = rep(NA_real_, length(test_x)), fit = NULL))
     }
-    raw <- .sanitize_raw(as.numeric(fit$Point.est) - response_offset,
-                         train_y_fit - response_offset)
+    raw <- .sanitize_raw(as.numeric(fit$Point.est), train_y_fit)
     list(raw = raw, fit = fit)
   }
   
@@ -982,7 +1052,7 @@ NNS.stack <- function(IVs.train,
     if (!any(valid)) {
       return(list(score = NA_real_, threshold = 0.5, raw = raw))
     }
-    evaluation <- .evaluate_raw(raw[valid], y[valid])
+    evaluation <- .evaluate_raw(raw[valid], y.cv[valid])
     list(score = evaluation$score,
          threshold = evaluation$threshold,
          raw = raw)
@@ -1039,11 +1109,11 @@ NNS.stack <- function(IVs.train,
       train_idx <- split$train
       valid_idx <- split$validation
       fold_design <- .numeric_design(
-        x[train_idx, , drop = FALSE],
-        x[valid_idx, , drop = FALSE]
+        x.cv[train_idx, , drop = FALSE],
+        x.cv[valid_idx, , drop = FALSE]
       )
-      coef_fold <- .coefficient_vector(fold_design$train, y[train_idx])
-      balanced_idx <- .balance_indices(y[train_idx])
+      coef_fold <- .coefficient_vector(fold_design$train, y.cv[train_idx])
+      balanced_idx <- .balance_indices(y.cv[train_idx])
       
       if (status) message(sprintf("Method 2 fold %d/%d: generating %d cumulative projections", b, length(splits), encoded_p))
       native_path <- .xstar_path(fold_design$train, fold_design$test, coef_fold)
@@ -1059,7 +1129,7 @@ NNS.stack <- function(IVs.train,
           projected <- .project_xstar(fold_design$train, fold_design$test, active_coef)
         }
         fit <- .fit_univariate_raw(projected$train[balanced_idx],
-                                   y_fit_all[train_idx][balanced_idx],
+                                   y.fit.cv[train_idx][balanced_idx],
                                    projected$test,
                                    point.only = TRUE,
                                    allow_failure = TRUE)
@@ -1154,30 +1224,15 @@ NNS.stack <- function(IVs.train,
   
   .method1_design_for_split <- function(train_idx, valid_idx) {
     fold_design <- .numeric_design(
-      x[train_idx, , drop = FALSE],
-      x[valid_idx, , drop = FALSE]
+      x.cv[train_idx, , drop = FALSE],
+      x.cv[valid_idx, , drop = FALSE]
     )
     
     if (stack && 2L %in% method) {
-      coef_fold <- .coefficient_vector(fold_design$train, y[train_idx])
-      active_coef <- .active_coefficients(coef_fold, dim_best_count)
-      projected <- .project_xstar(
-        fold_design$train,
-        fold_design$test,
-        active_coef
-      )
-      list(
-        train = data.frame(
-          Xstar = projected$train,
-          Xstar2 = projected$train,
-          check.names = FALSE
-        ),
-        test = data.frame(
-          Xstar = projected$test,
-          Xstar2 = projected$test,
-          check.names = FALSE
-        )
-      )
+      coef_fold <- .coefficient_vector(fold_design$train, y.cv[train_idx])
+      selected <- .active_columns(coef_fold, dim_best_count)
+      list(train = fold_design$train[, selected, drop = FALSE],
+           test = fold_design$test[, selected, drop = FALSE])
     } else {
       list(train = fold_design$train, test = fold_design$test)
     }
@@ -1193,7 +1248,10 @@ NNS.stack <- function(IVs.train,
     # diminishing-returns stop is then applied to the complete pooled OOF
     # objectives. This prevents fold-specific early stopping from giving larger
     # candidates partial or zero OOF coverage.
-    l <- max(1L, floor(sqrt(n_obs)))
+    # A single predictor's NNS.reg fit has no neighbour count to tune (it
+    # ignores n.best), so ALL, the deployed fit, is its only candidate.
+    univariate <- encoded_p == 1L || (stack && 2L %in% method && dim_best_count == 1L)
+    l <- if (univariate) 0L else max(1L, floor(sqrt(n_obs)))
     candidate_ids <- c(as.character(seq_len(l)), "all")
     
     sum_list <- setNames(vector("list", length(candidate_ids)), candidate_ids)
@@ -1218,63 +1276,23 @@ NNS.stack <- function(IVs.train,
       }
       
       design <- .method1_design_for_split(train_idx, valid_idx)
-      balanced_idx <- .balance_indices(y[train_idx])
+      balanced_idx <- .balance_indices(y.cv[train_idx])
       train_design <- design$train[balanced_idx, , drop = FALSE]
-      train_y_fit <- y_fit_all[train_idx][balanced_idx]
+      train_y_fit <- y.fit.cv[train_idx][balanced_idx]
       valid_design <- design$test
       
       if (ncol(train_design) == 1L) {
         train_x <- as.numeric(train_design[[1L]])
         test_x <- as.numeric(valid_design[[1L]])
-        small_kmax <- min(l, length(train_x))
-        fold_small_kmax[b] <- small_kmax
         
         if (status) {
           message(sprintf(
-            paste0(
-              "Method 1 fold %d/%d: local candidates = 1...%d; ",
-              "limit candidate = ALL (%d observations)"
-            ),
-            b, length(splits), small_kmax, length(train_x)
+            "Method 1 fold %d/%d: univariate NNS.reg (%d observations)",
+            b, length(splits), length(train_x)
           ))
         }
         
-        pred_mat <- matrix(
-          NA_real_,
-          nrow = length(test_x),
-          ncol = small_kmax
-        )
-        
-        for (i in seq_along(test_x)) {
-          dists <- abs(train_x - test_x[i])
-          ord <- order(dists, method = "radix")
-          cumsum_y <- cumsum(train_y_fit[ord])
-          pred_mat[i, ] <-
-            cumsum_y[seq_len(small_kmax)] / seq_len(small_kmax)
-        }
-        
-        # Aggregate every available local candidate for this fold. No
-        # fold-specific early stopping is allowed because it creates
-        # incomparable OOF coverage across candidates.
-        for (k in seq_len(small_kmax)) {
-          id <- as.character(k)
-          raw <- pred_mat[, k] - response_offset
-          good <- is.finite(raw)
-          if (any(good)) {
-            rows <- valid_idx[good]
-            sum_list[[id]][rows] <-
-              sum_list[[id]][rows] + raw[good]
-            count_list[[id]][rows] <-
-              count_list[[id]][rows] + 1L
-          }
-        }
-        
-        # ALL is the separate full-support limit condition and is always
-        # evaluated, irrespective of the later local stopping point.
-        all_raw <- rep(
-          mean(train_y_fit) - response_offset,
-          length(test_x)
-        )
+        all_raw <- .fit_univariate_raw(train_x, train_y_fit, test_x)$raw
         good <- is.finite(all_raw)
         if (any(good)) {
           rows <- valid_idx[good]
@@ -1331,13 +1349,12 @@ NNS.stack <- function(IVs.train,
           train_design = train_design,
           kmax = small_kmax
         )
-        small_path <- small_path - response_offset
         
         for (k in seq_len(small_kmax)) {
           id <- as.character(k)
           raw <- .sanitize_raw(
             small_path[, k],
-            y[train_idx]
+            y.cv[train_idx]
           )
           good <- is.finite(raw)
           if (any(good)) {
@@ -1349,12 +1366,14 @@ NNS.stack <- function(IVs.train,
           }
         }
         
-        # Preserve the current full-support limit behavior from this version:
-        # all RPM points reduce to the balanced fitting-response mean. The ALL
-        # candidate is always populated for every fold.
-        all_raw <- rep(
-          mean(train_y_fit) - response_offset,
-          length(valid_idx)
+        # The ALL candidate is always populated for every fold. Score the
+        # estimator deployed when ALL wins, NNS.reg(n.best = "all"), from the fold RPM.
+        all_raw <- .sanitize_raw(
+          .nns_mreg_predict(
+            valid_design, rpm, nRPM, dist,
+            setup$minimums, setup$maximums, FALSE, ncores
+          ),
+          y.cv[train_idx]
         )
         good <- is.finite(all_raw)
         if (any(good)) {
@@ -1375,7 +1394,7 @@ NNS.stack <- function(IVs.train,
     }
     
     common_small_kmax <- min(fold_small_kmax)
-    if (!is.finite(common_small_kmax) || common_small_kmax < 1L) {
+    if (!univariate && (!is.finite(common_small_kmax) || common_small_kmax < 1L)) {
       stop(
         "No Method 1 local candidate was available in every fold.",
         call. = FALSE
@@ -1395,10 +1414,10 @@ NNS.stack <- function(IVs.train,
       candidate_ids
     )
     
-    # Candidate 1 is evaluated in every valid Method 1 fold. Its count vector
-    # defines the required complete OOF coverage pattern. A candidate may
-    # compete only when it has exactly the same coverage.
-    reference_count <- count_list[["1"]]
+    # The first candidate is evaluated in every valid Method 1 fold. Its count
+    # vector defines the required complete OOF coverage pattern. A candidate
+    # may compete only when it has exactly the same coverage.
+    reference_count <- count_list[[candidate_ids[1L]]]
     
     .score_method1_candidate <- function(id) {
       sum_vec <- sum_list[[id]]
@@ -1421,7 +1440,7 @@ NNS.stack <- function(IVs.train,
         return(FALSE)
       }
       
-      evaluation <- .evaluate_raw(raw[valid], y[valid])
+      evaluation <- .evaluate_raw(raw[valid], y.cv[valid])
       candidate_scores[id] <<-
         unname(as.numeric(evaluation$score))
       candidate_thresholds[id] <<-
@@ -1576,7 +1595,7 @@ NNS.stack <- function(IVs.train,
   # -------------------------------------------------------------------------
   
   component_weights <- c(reg = 0, dim.red = 0)
-  probability.threshold <- if (is_class) 0.5 else 0.5
+  probability.threshold <- 0.5
   
   if (identical(method, 1L)) {
     component_weights["reg"] <- 1
@@ -1598,7 +1617,7 @@ NNS.stack <- function(IVs.train,
     for (i in seq_along(weight_grid)) {
       w <- weight_grid[i]
       raw <- w * reg_oof_raw[valid] + (1 - w) * dim_oof_raw[valid]
-      evaluation <- .evaluate_raw(raw, y[valid])
+      evaluation <- .evaluate_raw(raw, y.cv[valid])
       blend_scores[i] <- evaluation$score
       blend_thresholds[i] <- evaluation$threshold
     }
@@ -1643,19 +1662,14 @@ NNS.stack <- function(IVs.train,
       point.only = FALSE
     )
     dim_raw_final <- dim_final_fit$raw
-    dim_pred_int_raw <- .translate_interval(dim_final_fit$fit$pred.int)
+    dim_pred_int_raw <- .numeric_interval(dim_final_fit$fit$pred.int)
   }
   
   .method1_full_design <- function() {
     if (stack && 2L %in% method) {
-      list(
-        train = data.frame(Xstar = dim_full_xstar_train,
-                           Xstar2 = dim_full_xstar_train,
-                           check.names = FALSE),
-        test = data.frame(Xstar = dim_full_xstar_test,
-                          Xstar2 = dim_full_xstar_test,
-                          check.names = FALSE)
-      )
+      selected <- .active_columns(dim_full_coef_original, dim_best_count)
+      list(train = full_design$train[, selected, drop = FALSE],
+           test = full_design$test[, selected, drop = FALSE])
     } else {
       list(train = full_design$train, test = full_design$test)
     }
@@ -1677,69 +1691,30 @@ NNS.stack <- function(IVs.train,
       n.best <- reg_best_k
     }
     
+    # Only the point estimates, their interval and the RPM are read from the
+    # final fit, all of which a point-only fit returns.
     if (ncol(train_design) == 1L) {
-      # Univariate final fit
-      # Use NNS.reg with n.best = n.best
-      if (is.character(n.best) && n.best == "all") {
-        # For univariate, "all" means use all training points; we can pass n.best = "all"
-        # but NNS.reg univariate might not accept "all"? We'll use NNS.reg with n.best = "all"
-        reg_final_fit <- .fit_univariate_raw(
-          train_design[[1L]],
-          train_y_fit,
-          test_design[[1L]],
-          confidence.interval = pred.int,
-          point.only = FALSE
+      reg_final_fit <- suppressWarnings(
+        NNS.reg(
+          as.numeric(train_design[[1L]]),
+          as.numeric(train_y_fit),
+          point.est = as.numeric(test_design[[1L]]),
+          plot = FALSE,
+          residual.plot = FALSE,
+          order = order,
+          type = "REG",
+          factor.2.dummy = FALSE,
+          dist = dist,
+          ncores = ncores,
+          point.only = TRUE,
+          confidence.interval = pred.int
         )
-        # But that uses default n.best? Actually .fit_univariate_raw does not pass n.best.
-        # We need to handle separately.
-        # For univariate, we can just use NNS.reg with n.best = "all" explicitly.
-        reg_final_fit <- suppressWarnings(
-          NNS.reg(
-            as.numeric(train_design[[1L]]),
-            as.numeric(train_y_fit),
-            point.est = as.numeric(test_design[[1L]]),
-            plot = FALSE,
-            residual.plot = FALSE,
-            order = order,
-            n.best = "all",
-            type = NULL,
-            factor.2.dummy = FALSE,
-            dist = dist,
-            ncores = ncores,
-            point.only = FALSE,
-            confidence.interval = pred.int
-          )
-        )
-        reg_raw_final <- .sanitize_raw(
-          as.numeric(reg_final_fit$Point.est) - response_offset,
-          y
-        )
-        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
-      } else {
-        # numeric n.best
-        reg_final_fit <- suppressWarnings(
-          NNS.reg(
-            as.numeric(train_design[[1L]]),
-            as.numeric(train_y_fit),
-            point.est = as.numeric(test_design[[1L]]),
-            plot = FALSE,
-            residual.plot = FALSE,
-            order = order,
-            n.best = n.best,
-            type = NULL,
-            factor.2.dummy = FALSE,
-            dist = dist,
-            ncores = ncores,
-            point.only = FALSE,
-            confidence.interval = pred.int
-          )
-        )
-        reg_raw_final <- .sanitize_raw(
-          as.numeric(reg_final_fit$Point.est) - response_offset,
-          y
-        )
-        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
-      }
+      )
+      reg_raw_final <- .sanitize_raw(
+        as.numeric(reg_final_fit$Point.est),
+        y
+      )
+      reg_pred_int_raw <- .numeric_interval(reg_final_fit$pred.int)
     } else {
       # Multivariate final fit
       if (is.character(n.best) && n.best == "all") {
@@ -1753,35 +1728,21 @@ NNS.stack <- function(IVs.train,
             residual.plot = FALSE,
             n.best = "all",
             order = order,
-            type = NULL,
+            type = "REG",
             factor.2.dummy = FALSE,
             dist = dist,
             ncores = ncores,
-            point.only = FALSE,
+            point.only = TRUE,
             confidence.interval = pred.int
           )
         )
         reg_raw_final <- .sanitize_raw(
-          as.numeric(reg_final_fit$Point.est) - response_offset,
+          as.numeric(reg_final_fit$Point.est),
           y
         )
-        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
-        # Also set reg_best_k to the full RPM row count for return field
-        # We need to get the RPM row count from the final fit? We can compute from the fit object.
-        # But we can also compute by calling .nns_mreg_prepare_model on full data.
-        # We'll compute later if needed.
-        # For now, we'll set a placeholder.
-        # Actually we'll compute after the fit.
-        # We'll store the nRPM in a variable.
-        # Let's compute RPM row count for full data:
-        setup_full <- .nns_mreg_prepare_model(train_design, train_y_fit, order = order,
-                                              noise.reduction = "off", is.class = FALSE,
-                                              use.native = isTRUE(getOption("NNS.native.mreg", TRUE)))
-        if (!is.null(setup_full$RPM)) {
-          reg_best_k <- nrow(setup_full$RPM)
-        } else {
-          reg_best_k <- nrow(train_design)  # fallback
-        }
+        reg_pred_int_raw <- .numeric_interval(reg_final_fit$pred.int)
+        # Report the full RPM row count; the final fit already holds the RPM.
+        reg_best_k <- if (!is.null(reg_final_fit$RPM)) nrow(reg_final_fit$RPM) else nrow(train_design)
       } else {
         # numeric n.best
         reg_final_fit <- suppressWarnings(
@@ -1793,19 +1754,19 @@ NNS.stack <- function(IVs.train,
             residual.plot = FALSE,
             n.best = n.best,
             order = order,
-            type = NULL,
+            type = "REG",
             factor.2.dummy = FALSE,
             dist = dist,
             ncores = ncores,
-            point.only = FALSE,
+            point.only = TRUE,
             confidence.interval = pred.int
           )
         )
         reg_raw_final <- .sanitize_raw(
-          as.numeric(reg_final_fit$Point.est) - response_offset,
+          as.numeric(reg_final_fit$Point.est),
           y
         )
-        reg_pred_int_raw <- .translate_interval(reg_final_fit$pred.int)
+        reg_pred_int_raw <- .numeric_interval(reg_final_fit$pred.int)
       }
     }
   }

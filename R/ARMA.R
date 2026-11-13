@@ -7,22 +7,22 @@
 #' @param training.set numeric; \code{NULL} (default) Sets the number of variable observations
 #'
 #'  \code{(variable[1 : training.set])} to monitor performance of forecast over in-sample range.
-#' @param seasonal.factor logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}
-#' @param modulo integer(s); NULL (default) Used to find the nearest multiple(s) in the reported seasonal period.
+#' @param seasonal.factor logical or integer(s); \code{TRUE} (default) Automatically selects the best seasonal lag from the seasonality test, \link{NNS.seas}'s \code{best.period} without its permutation test.  For a significance-filtered lag, run \code{NNS.seas(variable, p.value = TRUE)} first and pass its \code{best.period} (or \code{periods}) here; \code{best.period} is 1 when no period is significant.  To use weighted average of all seasonal lags set to \code{(seasonal.factor = FALSE)}.  Otherwise, directly input known frequency integer lag to use, i.e. \code{(seasonal.factor = 12)} for monthly data.  Multiple frequency integers can also be used, i.e. \code{(seasonal.factor = c(12, 24, 36))}
+#' @param modulo integer(s); NULL (default) Adds the multiples of \code{modulo} on either side of each detected period (period 7 with \code{modulo = 5} gives 5 and 10).
 #' @param mod.only logical; \code{TRUE} (default) Limits the number of seasonal periods returned to the specified \code{modulo}.
-#' @param weights numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.
-#' @param best.periods integer; [2] (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
+#' @param weights numeric or \code{"equal"}; \code{NULL} (default) sets the weights of the \code{seasonal.factor} vector when specified as integers.  If \code{(weights = NULL)} each \code{seasonal.factor} is weighted on its \link{NNS.seas} result and number of observations it contains, else an \code{"equal"} weight is used.  Numeric weights must have one value per seasonal lag and are treated as relative weights (rescaled to sum to 1).  With \code{(dynamic = TRUE)} the lags are re-selected at every step, so only \code{NULL} or \code{"equal"} weights are accepted.
+#' @param best.periods integer; 1 (default) used in conjunction with \code{(seasonal.factor = FALSE)}, uses the \code{best.periods} number of detected seasonal lags instead of \code{ALL} lags when
 #' \code{(seasonal.factor = FALSE, best.periods = NULL)}.
 #' @param negative.values logical; \code{FALSE} (default) If the variable can be negative, set to
-#' \code{(negative.values = TRUE)}.  If there are negative values within the variable, \code{negative.values} will automatically be detected.
+#' \code{(negative.values = TRUE)}.  If there are negative values within the training data \code{variable[1 : training.set]}, \code{negative.values} will automatically be detected.
 #' @param method options: ("lin", "nonlin", "both", "means"); \code{"nonlin"} (default)  To select the regression type of the component series, select \code{(method = "both")} where both linear and nonlinear estimates are generated.  To use a nonlinear regression, set to
 #' \code{(method = "nonlin")}; to use a linear regression set to \code{(method = "lin")}.  Means for each subset are returned with \code{(method = "means")}.
 #' @param dynamic logical; \code{FALSE} (default) To update the seasonal factor with each forecast point, set to \code{(dynamic = TRUE)}.  The default is \code{(dynamic = FALSE)} to retain the original seasonal factor from the inputted variable for all ensuing \code{h}.
 #' @param shrink logical; \code{FALSE} (default) Ensembles forecasts with \code{method = "means"}.
 #' @param plot logical; \code{TRUE} (default) Returns the plot of all periods exhibiting seasonality and the \code{variable} level reference in upper panel.  Lower panel returns original data and forecast.
 #' @param seasonal.plot logical; \code{TRUE} (default) Adds the seasonality plot above the forecast.  Will be set to \code{FALSE} if no seasonality is detected or \code{seasonal.factor} is set to an integer value.
-#' @param pred.int numeric [0, 1]; \code{NULL} (default) Plots and returns the associated prediction intervals for the final estimate.  Constructed using the maximum entropy bootstrap \link{NNS.meboot} on the final estimates.
-#' @return Returns a vector of forecasts of length \code{(h)} if no \code{pred.int} specified.  Else, returns a \code{data.table} with the forecasts as well as lower and upper prediction intervals per forecast point.
+#' @param pred.int numeric [0, 1]; \code{NULL} (default) Plots and returns lower and upper bands around the forecasts.  The forecast path itself is resampled with the maximum entropy bootstrap (\link{NNS.MC} over \code{rho} from -1 to 1), the bounds at each step are \link{LPM.VaR} and \link{UPM.VaR} of the replicates at probability \code{(1 - pred.int) / 2}, widened by the spread of the per-lag linear estimates; a one-point (\code{h = 1}) or constant path has no dispersion to resample, so its band is the path widened by that spread alone (zero width with a single seasonal lag); \link{NNS.ARMA.optim} gives intervals from validation errors.  The band therefore describes the dispersion of the forecast path, not the uncertainty of the outcome at each horizon: it does not widen with the horizon, and it is not calibrated to contain future values with probability \code{pred.int}.  \link{NNS.ARMA.optim} derives its interval from validation errors instead.
+#' @return Returns a vector of forecasts of length \code{(h)} if no \code{pred.int} specified.  Else, returns a \code{data.table} with the forecasts as well as the lower and upper forecast-path bands per forecast point (see \code{pred.int}).
 #' @note
 #' For monthly data series, increased accuracy may be realized from forcing seasonal factors to multiples of 12.  For example, if the best periods reported are: \{37, 47, 71, 73\}  use
 #' \code{(seasonal.factor = c(36, 48, 72))}.
@@ -70,14 +70,20 @@ NNS.ARMA <- function(variable,
   
   if(is.numeric(seasonal.factor) && dynamic) stop('Hmmm...Seems you have "seasonal.factor" specified and "dynamic = TRUE".  Nothing dynamic about static seasonal factors!  Please set "dynamic = FALSE" or "seasonal.factor = FALSE"')
   
+  if(is.numeric(weights) && dynamic) stop('Numeric "weights" cannot be used with "dynamic = TRUE", which re-selects the seasonal lags at every step.  Please set "weights" to NULL or "equal", or "dynamic = FALSE"')
+  
   if(any(class(variable)%in%c("tbl","data.table"))) variable <- as.vector(unlist(variable))
   
   if(anyNA(variable)) stop("You have some missing values, please address.")
+  
+  if(!is.numeric(h) || length(h) != 1L || !is.finite(h) || h < 1 || h != round(h))
+    stop("[h] must be a positive integer.")
   
   method <- tolower(method)
   if(method == "means") shrink <- FALSE
   
   oldw <- getOption("warn")
+  on.exit(options(warn = oldw), add = TRUE)
   options(warn = -1)
   
   if(!is.null(best.periods) && !is.numeric(seasonal.factor)) seasonal.factor <- FALSE
@@ -88,8 +94,6 @@ NNS.ARMA <- function(variable,
   variable <- as.numeric(variable)
   OV <- variable
   
-  if(min(variable) < 0) negative.values <- TRUE
-  
   if(!is.null(training.set)){
     variable <- variable[1 : training.set]
     FV <- variable[1 : training.set]
@@ -97,6 +101,8 @@ NNS.ARMA <- function(variable,
     training.set <- length(variable)
     FV <- variable
   }
+  
+  if(min(variable) < 0) negative.values <- TRUE
   
   Estimates <- numeric(length = h)
   
@@ -121,6 +127,8 @@ NNS.ARMA <- function(variable,
       Seasonal.weighting <- 1 / pmax(Relative.seasonal, .Machine$double.eps)
       Observation.weighting <- 1 / sqrt(seasonal.factor)
       Weights <- (Seasonal.weighting * Observation.weighting) / sum(Observation.weighting * Seasonal.weighting)
+      # A constant series has CV 0/0 = NaN for every lag: weight the lags equally.
+      if(any(!is.finite(Weights))) Weights <- rep(1/length(lag), length(lag))
       seasonal.plot <- FALSE
     } else {
       Weights <- weights
@@ -134,17 +142,11 @@ NNS.ARMA <- function(variable,
       if(is.null(best.periods)){
         M <- M$all.periods
       } else {
-        if(!seasonal.factor && is.numeric(best.periods) && (length(M$all.periods$Period) < best.periods)){
-          best.periods <- length(M$all.periods$Period)
-        }
-        if(!seasonal.factor && is.null(best.periods)){
-          best.periods <- length(M$all.periods$Period)
-        }
-        M <- M$all.periods[1 : best.periods, ]
+        M <- M$all.periods[1 : min(best.periods, length(M$all.periods$Period)), ]
       }
     }
     
-    ASW <- ARMA.seas.weighting(seasonal.factor, M)
+    ASW <- .arma_lag_weights(seasonal.factor, M)
     lag <- ASW$lag
     
     if(is.null(weights)) Weights <- ASW$Weights else Weights <- weights
@@ -153,33 +155,55 @@ NNS.ARMA <- function(variable,
     
   }
   
+  # User-supplied weights: "equal", or one relative weight per lag.
+  if(!is.null(weights)){
+    if(is.character(weights)){
+      Weights <- rep(1/length(lag), length(lag))
+    } else {
+      if(length(weights) != length(lag)) stop("weights must have one value per seasonal lag (length(weights) == length(seasonal.factor)).")
+      if(!all(is.finite(weights)) || sum(weights) == 0) stop("weights must be finite and must not sum to 0.")
+      Weights <- weights / sum(weights)
+    }
+  }
+  
   # Vectorized linear
   Lin.Reg.Estimates <- list()
   Regression.Estimates_means <- list()
   
-  if (method == "lin" && is.numeric(seasonal.factor) && length(seasonal.factor) == 1) {
-    for(k in lag) {
-      lag.idx <- which(k == lag)
+  # Shrunk estimates leave the fitted line, so steps past the lag need the recursive refit below.
+  # With several lags, the loop below feeds each step's combined forecast back
+  # into the series, but a lag's component series only reaches it at steps
+  # beyond that lag. When every lag is at least h (and within the series), each
+  # lag's forecasts are its own fitted line, as with one lag, and combining them
+  # step by step gives the loop's result.
+  direct.lags <- length(lag) > 1 && all(lag >= h) && all(lag <= length(variable))
+  if (method == "lin" && !shrink && is.numeric(seasonal.factor) &&
+      (length(seasonal.factor) == 1 || direct.lags)) {
+    unweighted <- vector("list", length(lag))
+    for(lag.idx in seq_along(lag)) {
       GV.lin <- generate.lin.vectors(variable, lag[lag.idx], h)
       
       # Generate linear regression estimates for each lag
       Lin.Regression.Estimates <- lapply(1:min(h, lag[lag.idx]), function(i) {
-        last.xs <- tail(GV.lin$Component.index[[i]], 1)
         lin.reg <- fast_lm(GV.lin$Component.index[[i]], GV.lin$Component.series[[i]])
         coefs <- lin.reg$coef
         
         return(as.numeric(coefs[1] + coefs[2] * unlist(GV.lin$forecast.values[[i]])))
       })
       
-      Lin.Reg.Estimates[[lag.idx]] <- unlist(Lin.Regression.Estimates)[order(unlist(GV.lin$forecast.index))] * Weights[lag.idx]
-      if((method=="means") || shrink){
-        Regression.Estimates_means <- unlist(lapply(GV.lin$Component.series, function(x) mean(x) * Weights[lag.idx]) )
-        if(shrink) Lin.Reg.Estimates[[lag.idx]] <- (Lin.Reg.Estimates[[lag.idx]] + Regression.Estimates_means) / 2 else Lin.Reg.Estimates <- Regression.Estimates_means
-      }
+      unweighted[[lag.idx]] <- unlist(Lin.Regression.Estimates)[order(unlist(GV.lin$forecast.index))]
+      Lin.Reg.Estimates[[lag.idx]] <- unweighted[[lag.idx]] * Weights[lag.idx]
     }
     
-    # Calculate weighted sum of regression estimates for each lag
-    Lin.estimates <- Reduce(`+`, Lin.Reg.Estimates)
+    # Weighted sum over the lags at each step. rowSums() adds the lags in the
+    # loop's order and precision (sum() of the weighted per-lag estimates).
+    if (length(lag) == 1) {
+      Lin.estimates <- Lin.Reg.Estimates[[1]]
+    } else {
+      Lin.estimates <- rowSums(do.call(cbind, Lin.Reg.Estimates))
+      # pred.int reads the per-lag estimates of the loop's last step.
+      Lin.Regression.Estimates <- vapply(unweighted, function(e) e[h], numeric(1))
+    }
     
     if(!negative.values) Lin.estimates <- pmax(0, Lin.estimates)
     
@@ -192,24 +216,21 @@ NNS.ARMA <- function(variable,
     for (j in 1:h) {
       # Regenerate seasonal.factor if dynamic
       if (dynamic) {
-        seas.matrix <- NNS.seas(variable, plot = FALSE)
+        # Same period selection as the static path, on the extended series.
+        seas.matrix <- NNS.seas(variable, plot = FALSE, modulo = modulo, mod.only = mod.only)
         if (!is.list(seas.matrix)) {
           M <- t(1)
         } else {
-          if (is.null(best.periods)) {
-            M <- seas.matrix$all.periods
-            best.periods <- length(M$all.periods$Period)
-          } else {
-            if (length(M$all.periods$Period) < best.periods) {
-              best.periods <- length(M$all.periods$Period)
-            }
-            M <- seas.matrix$all.periods[1:best.periods, ]
+          M <- seas.matrix$all.periods
+          if (!is.null(best.periods)) {
+            M <- M[1:min(best.periods, length(M$Period)), ]
           }
         }
         
-        ASW <- ARMA.seas.weighting(seasonal.factor, M)
+        ASW <- .arma_lag_weights(seasonal.factor, M)
         lag <- ASW$lag
         Weights <- ASW$Weights
+        if(is.character(weights)) Weights <- rep(1/length(lag), length(lag))
       }
       
       # Re-Generate vectors for 1:lag if dynamic
@@ -226,24 +247,29 @@ NNS.ARMA <- function(variable,
           
           last.y <- y[length(y)]
           
-          reg.points <- NNS.reg(x, y, return.values = FALSE, plot = FALSE, multivariate.call = TRUE)
-          
-          reg.points <- reg.points[complete.cases(reg.points), ]
+          reg.points <- NNS.reg(x, y, type = "REG", return.values = FALSE, plot = FALSE, multivariate.call = TRUE)
           
           rpx <- reg.points$x; rpy <- reg.points$y
+          ok <- !(is.na(rpx) | is.na(rpy))
+          rpx <- rpx[ok]; rpy <- rpy[ok]
           xs <- rpx[length(rpx)] - rpx
           ys <- rpy[length(rpy)] - rpy
           
           xs <- xs[-length(xs)]
           ys <- ys[-length(ys)]
           
-          run <- mean(rep(xs, (1:length(xs))^2))
-          rise <- mean(rep(ys, (1:length(ys))^2))
+          # Squared-index weighted means of the run and rise, mean(rep(xs, w)) with
+          # w = (1:k)^2, without building the sum(w) ~ k^3/3 long vector: that cost
+          # grew cubically with the number of regression points on long series.
+          w <- (1:length(xs))^2
+          run <- sum(w * xs) / sum(w)
+          rise <- sum(w * ys) / sum(w)
           
           last.y + (rise / run)
         })
         
-        Regression.Estimates <- pmax(0, Regression.Estimates)
+        if(shrink) Regression.Estimates <- (Regression.Estimates + sapply(Component.series, mean)) / 2
+        if(!negative.values) Regression.Estimates <- pmax(0, Regression.Estimates)
         Nonlin.estimates <- sum(Regression.Estimates * Weights)
       }
       
@@ -257,6 +283,8 @@ NNS.ARMA <- function(variable,
         })
         
         Lin.Regression.Estimates <- unlist(Lin.Regression.Estimates)
+        # A single lag longer than the history has nothing to fit: NaN, as the direct path gives.
+        if (length(lag) == 1 && length(Lin.Regression.Estimates) == 0) Lin.Regression.Estimates <- NaN
         
         if ((method == "means") || shrink) {
           Regression.Estimates_means <- sapply(Component.series, mean)
@@ -267,9 +295,11 @@ NNS.ARMA <- function(variable,
         if(!negative.values)  Lin.estimates <- pmax(0, Lin.estimates)
       }
       
-      if (method == "lin") Estimates[j] <- sum(Lin.estimates * Weights)
+      # Lin.estimates / Nonlin.estimates are already weighted sums over lags.
+      if (method == "lin") Estimates[j] <- Lin.estimates
+      if (method == "means") Estimates[j] <- Lin.estimates
       if (method == 'both') Estimates[j] <- mean(c(Lin.estimates, Nonlin.estimates))
-      if (method == "nonlin")  Estimates[j] <- sum(Nonlin.estimates * Weights)
+      if (method == "nonlin")  Estimates[j] <- Nonlin.estimates
       
       variable <- c(variable, Estimates[j])
       FV <- variable
@@ -280,12 +310,19 @@ NNS.ARMA <- function(variable,
     if (method != "means"){
       Lin.Regression.Estimates <- unlist(Lin.Regression.Estimates)
       lin.resid <- mean(abs(Lin.Regression.Estimates - mean(Lin.Regression.Estimates)))
+    } else lin.resid <- 0
+    # A one-point (h = 1) or constant path has no dispersion to resample, and
+    # the bootstrap can't target rho on it (#98): the band is the path widened
+    # by the per-lag spread alone.
+    if (length(Estimates) < 2L || length(unique(Estimates[!is.na(Estimates)])) < 2L) {
+      PIs <- matrix(Estimates, ncol = 1L)
+    } else {
+      PIs <- do.call(cbind, NNS.MC(Estimates, lower_rho = -1, upper_rho = 1, by = .2)$replicates)
     }
-    PIs <- do.call(cbind, NNS.MC(Estimates, lower_rho = -1, upper_rho = 1, by = .2)$replicates)
     lin.resid <- mean(unlist(lin.resid))
     lin.resid[is.na(lin.resid)] <- 0
     
-    upper_lower <- apply(PIs, 1, function(z) list(UPM.VaR((1-pred.int)/2, 0, z), abs(LPM.VaR((1-pred.int)/2, 0, z)))) 
+    upper_lower <- apply(PIs, 1, function(z) list(UPM.VaR((1-pred.int)/2, 0, z), LPM.VaR((1-pred.int)/2, 0, z))) 
     upper_PIs <- as.numeric(lapply(upper_lower, `[[`, 1)) + lin.resid
     lower_PIs <- as.numeric(lapply(upper_lower, `[[`, 2)) - lin.resid
   } else lin.resid <- 0
@@ -352,9 +389,6 @@ NNS.ARMA <- function(variable,
     par(original.par)
   }
   
-  
-  options(warn = oldw)
-  
   if(!is.null(pred.int)){
     results <- cbind.data.frame(Estimates,  pmin(Estimates, lower_PIs),  pmax(Estimates, upper_PIs))
     colnames(results) = c("Estimates",
@@ -364,4 +398,21 @@ NNS.ARMA <- function(variable,
   } else {
     return(Estimates)
   }
+}
+
+
+# Lags and weights from an NNS.seas period table. seasonal.factor = TRUE takes
+# the first row; ARMA.seas.weighting(TRUE, .) expects the list, not the table.
+.arma_lag_weights <- function(sf, M){
+  if (isTRUE(sf) && is.data.frame(M) && "Period" %in% names(M)) {
+    return(list(lag = M$Period[1], Weights = 1))
+  }
+  ASW <- ARMA.seas.weighting(sf, M)
+  # The weights are (VarCV - CV) / sqrt(lag), normalised: all 0 when every
+  # CV == VarCV, which forced a forecast of 0.
+  w <- ASW$Weights
+  if (length(ASW$lag) > 0 && (length(w) == 0 || all(w == 0) || any(!is.finite(w)))) {
+    ASW$Weights <- rep(1 / length(ASW$lag), length(ASW$lag))
+  }
+  ASW
 }

@@ -9,15 +9,18 @@ NNS.mode(x, discrete = FALSE, multi = TRUE)
 \arguments{
 \item{x}{vector of data.}
 
-\item{discrete}{logical; \code{FALSE} (default) for discrete distributions.}
+\item{discrete}{logical; \code{FALSE} (default) for continuous distributions, \code{TRUE} for discrete distributions.}
 
-\item{multi}{logical; \code{TRUE} (default) returns multiple mode values.}
+\item{multi}{logical; \code{TRUE} (default) returns multiple mode values.  \code{FALSE} returns the highest peak; among equally high peaks, the one nearest \link{NNS.gravity} of the data (then the lower value), so the result is always one of the modes.}
 }
 \value{
-Returns a numeric value representing the mode of the distribution.
+Returns the mode of the distribution: a numeric vector of all modes when \code{multi = TRUE} (default), otherwise a single numeric value.
 }
 \description{
 Mode of a distribution, either continuous or discrete.
+}
+\details{
+The continuous mode finds the peaks of a smoothed histogram with bin width IQR / sqrt(n), peaks in the first and last bins included, and centres each peak on the mean of the observations within three bins of it, so a peak on a single value returns that value.  When every gap between consecutive distinct values is wider than a bin, the data are treated as discrete-valued: the modes are the values more frequent than their neighbouring values, a run of equally frequent values counting together.  \code{discrete = TRUE} instead rounds to integers and returns the most frequent integers.
 }
 \examples{
 \dontrun{

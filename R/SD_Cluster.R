@@ -5,8 +5,8 @@
 #'
 #' @param data A numeric matrix or data frame of variables to be clustered.
 #' @param degree Numeric options: (1, 2, 3). Degree of stochastic dominance test.
-#' @param type Character, either  \code{"discrete"} (default) or \code{"continuous"}; specifies the type of CDF.
-#' @param min_cluster Integer. The minimum number of elements required for a valid cluster.
+#' @param type At degree 1, \code{"discrete"} (default) uses empirical FSD and \code{"continuous"} uses the degree-one area-ratio (Omega/expectile) ordering. The latter does not imply ordinary FSD. SSD and TSD are unaffected by \code{type}.
+#' @param min_cluster Integer. Peeling stops once at most \code{min_cluster} variables remain; those form the final cluster, and a final cluster smaller than \code{min_cluster} is merged into the previous one.  SD-efficient sets peeled before that are kept whatever their size.
 #' @param dendrogram Logical; \code{FALSE} (default). If \code{TRUE}, a dendrogram is produced based on a simple "distance" measure between clusters.
 #'
 #' @return
@@ -18,9 +18,9 @@
 #'
 #' @details
 #' The function applies \code{\link{NNS.SD.efficient.set}} iteratively, peeling off the SD-efficient set at each step
-#' if it meets or exceeds \code{min_cluster} in size, until no more subsets can be extracted or all variables are exhausted.
-#' Variables in each SD-efficient set form a cluster, with any remaining variables aggregated into the final cluster if it meets
-#' the \code{min_cluster} threshold.
+#' (whatever its size) while more than \code{min_cluster} variables remain, or until no more subsets can be extracted.
+#' Variables in each SD-efficient set form a cluster. The remaining variables form the final cluster, which is merged
+#' into the previous cluster if it has fewer than \code{min_cluster} members.
 #'
 #' @author Fred Viole, OVVO Financial Systems
 #'
@@ -53,7 +53,6 @@ NNS.SD.cluster <- function(data, degree = 1, type = "discrete", min_cluster = 1,
   n <- ncol(data)
   
   if(is.null(colnames(data))) colnames(data) <- paste0("X_",1:ncol(data))
-  original_names <- colnames(data)
   
   # Ensure the input data is a matrix
   remaining_data <- as.matrix(data)
@@ -87,7 +86,7 @@ NNS.SD.cluster <- function(data, degree = 1, type = "discrete", min_cluster = 1,
   }
   
   # If there are still variables left (and not already added), add them as the final cluster
-  if (ncol(remaining_data) > min_cluster && !paste0("Cluster_", iteration) %in% names(clusters)) {
+  if (ncol(remaining_data) > 0 && !paste0("Cluster_", iteration) %in% names(clusters)) {
     clusters[[paste0("Cluster_", iteration)]] <- colnames(remaining_data)
   }
   
@@ -127,14 +126,13 @@ NNS.SD.cluster <- function(data, degree = 1, type = "discrete", min_cluster = 1,
     # Perform hierarchical clustering
     hc <- hclust(dist_matrix, method = "complete")
     
-    plot(hc,
+    # plot.hclust rejects a two-leaf tree; plot.dendrogram draws it
+    plot(if (length(all_vars) > 2) hc else stats::as.dendrogram(hc),
          main = paste0("Hierarchical Clustering of Stochastic Dominance Sets \nSD Degree: ", degree),
          xlab = "Variables",
          ylab = "SD Distance",
          sub = ""
     )
-
-    hc$order <- match(hc$labels, original_names)
     
     return(.NNS.out(list("Clusters" = clusters, "Dendrogram" = hc)))
   } else return(.NNS.out(list("Clusters" = clusters)))

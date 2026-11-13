@@ -2,6 +2,8 @@
 #include <Rcpp.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <unordered_map>
 #include "central_tendencies.h"
 
 using namespace Rcpp;
@@ -12,11 +14,11 @@ static inline double frac_part(double x) {
   return x - std::floor(x);
 }
 
-static inline double mean_vec(const std::vector<double>& v) {
-  if (v.empty()) return NA_REAL;
+static inline double mean_vec(const double* v, std::size_t n) {
+  if (n == 0) return NA_REAL;
   long double s = 0.0L;
-  for (double x : v) s += x;
-  return static_cast<double>(s / v.size());
+  for (std::size_t i = 0; i < n; ++i) s += v[i];
+  return static_cast<double>(s / n);
 }
 
 static inline double nearest_int_half_up(double x) {
@@ -73,72 +75,108 @@ static void quartiles_like_R_code(const std::vector<double>& xs, double& q1, dou
   }
 }
 
-// Minimal replacement for NNS_bin used by mode/gravity:
-// Given sorted x, fixed bin width, origin, return counts and the width.
-// We align with the R usage where z_names <- seq(x1, xl, width) and length(counts) matches z_names length.
+// Minimal replacement for NNS_bin used by mode/gravity. Bins are
+// [origin + k*width, origin + (k+1)*width), k = 0 .. nbins-1, with
+// nbins = floor((max - origin) / width + 1e-12) + 1.
 //
-// We assign each x to idx = floor((x - origin) / width), clipped to [0, nbins-1].
-//
-static void simple_bin_counts(const std::vector<double>& xs,
-                              double width, double origin,
-                              std::vector<double>& bin_names,
-                              std::vector<int>& counts) {
-  const int l = (int)xs.size();
-  if (l == 0) { bin_names.clear(); counts.clear(); return; }
-  
+// Gravity and mode only read counts within 6 bins of a non-empty bin, so runs
+// of more than kMaxEmptyRun empty bins keep only their first and last
+// kMaxEmptyRun / 2 bins: results are bit-identical and memory is O(n). A width
+// so small that the bin count exceeds 2^52 is widened to (max - origin) / 2^52.
+static constexpr std::int64_t kMaxEmptyRun = 16;
+static constexpr double kMaxBinIndex = 4503599627370496.0;  // 2^52
 
-  const double xmax = xs.back();
-  // Number of bins so that last bin_name <= xmax and bin_names[k] = origin + k*width
-  int nbins = (int)std::floor( (xmax - origin) / width + 1e-12 ) + 1;
-  if (nbins < 1) nbins = 1;
-  
-  bin_names.resize(nbins);
-  for (int k = 0; k < nbins; ++k) bin_names[k] = origin + k * width;
-  
-  counts.assign(nbins, 0);
-  for (double v : xs) {
-    int idx = (int)std::floor((v - origin) / width);
-    if (idx < 0) idx = 0;
-    if (idx >= nbins) idx = nbins - 1;
-    counts[idx] += 1;
+static void simple_bin_counts(const double* xs, std::size_t n_xs, double width, double origin,
+                              std::vector<double>& bin_names, std::vector<int>& counts) {
+  bin_names.clear();
+  counts.clear();
+  if (n_xs == 0) return;
+
+  const double xmax = xs[n_xs - 1];
+  double last = std::floor((xmax - origin) / width + 1e-12);
+  if (!(last < kMaxBinIndex)) {
+    width = (xmax - origin) / kMaxBinIndex;
+    last = std::floor((xmax - origin) / width + 1e-12);
+    if (!(last < kMaxBinIndex)) last = kMaxBinIndex;
   }
+  const std::int64_t nbins = (last >= 0.0) ? static_cast<std::int64_t>(last) + 1 : 1;
+  const std::int64_t cap = static_cast<std::int64_t>(n_xs) * (kMaxEmptyRun + 1) + kMaxEmptyRun;
+  bin_names.reserve(static_cast<std::size_t>(std::min(nbins, cap)));
+  counts.reserve(static_cast<std::size_t>(std::min(nbins, cap)));
+
+  auto push_bin = [&](std::int64_t k, int c) {
+    bin_names.push_back(origin + static_cast<double>(k) * width);
+    counts.push_back(c);
+  };
+  auto push_empty_run = [&](std::int64_t first, std::int64_t last_bin) {
+    const std::int64_t len = last_bin - first + 1;
+    if (len <= 0) return;
+    if (len <= kMaxEmptyRun) {
+      for (std::int64_t k = first; k <= last_bin; ++k) push_bin(k, 0);
+      return;
+    }
+    const std::int64_t half = kMaxEmptyRun / 2;
+    for (std::int64_t k = first; k < first + half; ++k) push_bin(k, 0);
+    for (std::int64_t k = last_bin - half + 1; k <= last_bin; ++k) push_bin(k, 0);
+  };
+
+  // xs is sorted, so bin indices are non-decreasing.
+  const double top = static_cast<double>(nbins - 1);
+  std::int64_t prev = -1;
+  for (std::size_t t = 0; t < n_xs; ++t) {
+    const double v = xs[t];
+    const double q = std::floor((v - origin) / width);
+    const std::int64_t k = (q < 0.0) ? 0 : (q >= top ? nbins - 1 : static_cast<std::int64_t>(q));
+    if (k == prev) {
+      ++counts.back();
+      continue;
+    }
+    push_empty_run(prev + 1, k - 1);
+    push_bin(k, 1);
+    prev = k;
+  }
+  push_empty_run(prev + 1, nbins - 1);
 }
 
 // ---------- NNS.gravity ----------
 
-// Core gravity computation operating on a vector of finite values.
-// Shared by NNS_gravity_cpp and the NNS.reg regression-point builder.  The
-// result depends only on the set of values (x is sorted internally), so input
-// order is irrelevant.
-double gravity_value(std::vector<double> x, bool discrete) {
-  const int l = (int)x.size();
+// R's default quantile (type 7) of sorted xs: position 1 + (n - 1) p.
+static inline double quantile_type7(const double* xs, int n, double p) {
+  const double h = (n - 1) * p;
+  const int lo = (int)std::floor(h);
+  const int hi = std::min(lo + 1, n - 1);
+  return xs[lo] + (h - lo) * (xs[hi] - xs[lo]);
+}
+
+// Gravity of l finite values sorted ascending. Every caller reaches this one
+// implementation, so a cell of a sorted partition and a plain vector give
+// bit-identical results.
+double gravity_sorted(const double* x, int l, bool discrete) {
   if (l == 0) return NA_REAL;
   if (l <= 3) {
     // median(x)
-    std::vector<double> t = x;
-    std::sort(t.begin(), t.end());
-    double med = (l % 2 ? t[l/2] : 0.5*(t[l/2 - 1] + t[l/2]));
+    double med = (l % 2 ? x[l/2] : 0.5*(x[l/2 - 1] + x[l/2]));
     if (discrete) return nearest_int_half_up(med);
     return med;
   }
 
-  bool all_eq = true;
-  for (int i = 1; i < l; ++i) if (x[i] != x[0]) { all_eq = false; break; }
-  if (all_eq) return x[0];
+  // Sorted, so the ends agree only when every value does.
+  if (x[0] == x[l - 1]) return x[0];
+  double range = std::fabs(x[l - 1] - x[0]);
 
-  std::sort(x.begin(), x.end());
-  double range = std::fabs(x.back() - x.front());
-  if (range == 0.0) return x.front();
-
-  double q1, q2, q3;
-  quartiles_like_R_code(x, q1, q2, q3);
+  // The usual median and quartiles (#117): the floor-position order
+  // statistics used before took the lower middle value for even n, so
+  // gravity sat below the centre of symmetric data.
+  const double q1 = quantile_type7(x, l, 0.25);
+  const double q2 = quantile_type7(x, l, 0.50);
+  const double q3 = quantile_type7(x, l, 0.75);
 
   double width = (q3 - q1) * std::pow((double)l, -0.5);
   if (!(width > 0.0) || !R_finite(width)) width = range / 128.0;
 
   std::vector<double> z_names;
   std::vector<int> counts;
-  simple_bin_counts(x, width, x.front(), z_names, counts);
+  simple_bin_counts(x, (std::size_t)l, width, x[0], z_names, counts);
   const int lz = (int)counts.size();
 
   // If unique max, use neighborhood; else use all bins
@@ -154,16 +192,44 @@ double gravity_value(std::vector<double> x, bool discrete) {
     hi = std::min(lz - 1, zc + 1);
   }
 
-  long double num = 0.0L, den = 0.0L;
-  for (int i = lo; i <= hi; ++i) { num += (long double)z_names[i] * (long double)counts[i]; den += (long double)counts[i]; }
-  double m = (den > 0.0L) ? (double)(num / den) : z_names[ (lo+hi)/2 ];
+  // The mode term is the mean of the observations in those bins (#117): the
+  // bins' left edges, used before, sat half a bin below the data. x is
+  // sorted, so the observations of bins lo..hi are a contiguous slice.
+  int a = 0;
+  for (int i = 0; i < lo; ++i) a += counts[i];
+  int e = a;
+  for (int i = lo; i <= hi; ++i) e += counts[i];
+  long double num = 0.0L;
+  for (int t = a; t < e; ++t) num += (long double)x[t];
+  double m = (e > a) ? (double)(num / (long double)(e - a)) : z_names[ (lo+hi)/2 ];
 
-  double mu = mean_vec(x);
+  double mu = mean_vec(x, (std::size_t)l);
   double mid = 0.25 * ( q2 + m + mu + 0.5*(q1 + q3) );
 
   double out = R_finite(mid) ? mid : q2;
   if (discrete) out = nearest_int_half_up(out);
   return out;
+}
+
+// Gravity of the finite values in x, which is sorted in place. The result
+// depends only on the set of values, so input order is irrelevant.
+double gravity_inplace(std::vector<double>& x, bool discrete) {
+  const int l = (int)x.size();
+  if (l == 0) return NA_REAL;
+  if (l > 3) {
+    // All equal: the first value as supplied (which keeps its sign of zero).
+    bool all_eq = true;
+    for (int i = 1; i < l; ++i) if (x[i] != x[0]) { all_eq = false; break; }
+    if (all_eq) return x[0];
+  }
+  std::sort(x.begin(), x.end());
+  return gravity_sorted(x.data(), l, discrete);
+}
+
+// Core gravity computation operating on a vector of finite values.
+// Shared by NNS_gravity_cpp and the NNS.reg regression-point builder.
+double gravity_value(std::vector<double> x, bool discrete) {
+  return gravity_inplace(x, discrete);
 }
 
 // [[Rcpp::export]]
@@ -246,10 +312,11 @@ static void smooth_counts_tri7(const std::vector<int>& counts, std::vector<doubl
   smooth.assign(n, 0.0);
   if (n == 0) return;
   
-  // Mirror at edges (symmetric extension)
+  // Mirror at edges (symmetric extension); the clamp only binds for n <= 3 bins.
   auto at = [&](int idx)->int{
-    if (idx < 0)   return counts[-idx];            // reflect: -1 -> 1, -2 -> 2, ...
-    if (idx >= n)  return counts[2*n - 2 - idx];   // reflect: n -> n-2, n+1 -> n-3, ...
+    if (idx < 0)   idx = -idx;                     // reflect: -1 -> 1, -2 -> 2, ...
+    if (idx >= n)  idx = 2*n - 2 - idx;            // reflect: n -> n-2, n+1 -> n-3, ...
+    idx = std::min(std::max(idx, 0), n - 1);
     return counts[idx];
   };
   
@@ -276,34 +343,32 @@ SEXP NNS_mode_cpp(SEXP xSEXP, bool discrete, bool multi) {
   
   // ====================== DISCRETE PATH ======================
   if (discrete) {
-    if (l <= 3) {
-      // For tiny samples, integerized median
-      std::vector<double> tmp = xnum; std::sort(tmp.begin(), tmp.end());
-      double med = (l % 2 == 1) ? tmp[l/2] : 0.5*(tmp[l/2 - 1] + tmp[l/2]);
-      return Rf_ScalarReal(nearest_int_half_up(med));
-    }
-    
-    // Integerize and count exact frequencies
-    std::unordered_map<int,int> freq; freq.reserve(l * 2u);
-    for (double v : xnum) ++freq[ nearest_int_half_up(v) ];
+    // Integerize and count exact frequencies. The key is a double so values
+    // beyond the int range stay exact; "+ 0.0" folds -0.0 into the 0 key.
+    std::unordered_map<double,int> freq; freq.reserve(l * 2u);
+    for (double v : xnum) ++freq[ nearest_int_half_up(v) + 0.0 ];
     
     int maxf = 0; for (auto &kv : freq) if (kv.second > maxf) maxf = kv.second;
     
-    std::vector<int> modes_int;
+    std::vector<double> modes_int;
     for (auto &kv : freq) if (kv.second == maxf) modes_int.push_back(kv.first);
     std::sort(modes_int.begin(), modes_int.end());
     
     if (multi) {
       NumericVector out((int)modes_int.size());
-      for (int i = 0; i < (int)modes_int.size(); ++i) out[i] = (double)modes_int[i];
+      for (int i = 0; i < (int)modes_int.size(); ++i) out[i] = modes_int[i];
       return out;            // e.g., 2 3 4 for c(1,2,2,3,3,4,4,5)
     } else {
-      // Return the arithmetic mean of all tied modes
-      long double sum = 0.0L;
-      for (int m : modes_int) sum += (long double)m;
-      double mean_modes = (modes_int.empty() ? NA_REAL
-                             : (double)(sum / (long double)modes_int.size()));
-      return Rf_ScalarReal(mean_modes);
+      // Tied modes: the one nearest the gravity of the data, then the lower
+      // value, as in the continuous path; a mean of tied classes is no class.
+      if (modes_int.size() == 1) return Rf_ScalarReal(modes_int[0]);
+      const double g = gravity_value(xnum, false);
+      double best_c = NA_REAL, best_d = R_PosInf;
+      for (double m : modes_int) {
+        const double dist = std::fabs(m - g);
+        if (dist < best_d) { best_d = dist; best_c = m; }
+      }
+      return Rf_ScalarReal(best_c);
     }
   }
   
@@ -329,116 +394,186 @@ SEXP NNS_mode_cpp(SEXP xSEXP, bool discrete, bool multi) {
   quartiles_like_R_code(xnum, q1, q2, q3);
   double width = (q3 - q1) * std::pow((double)l, -0.5);
   if (!(width > 0.0) || !R_finite(width)) width = range / 128.0;
-  
+
+  // ----- Discrete-valued data (#114) -----
+  // When every gap between consecutive distinct values exceeds the bin width,
+  // the histogram only spaces the distinct values out with empty bins, and
+  // smoothing it moves the peaks off the values. The modes are then read from
+  // the values' own frequencies: a run of consecutive distinct values with
+  // equal counts is a mode when the runs beside it have lower counts (or it
+  // reaches an end), so every mode is a data value and the end values count.
+  {
+    std::vector<double> vals;
+    std::vector<int> cnt;
+    for (int i = 0; i < l;) {
+      int j = i + 1;
+      while (j < l && xnum[j] == xnum[i]) ++j;
+      vals.push_back(xnum[i]);
+      cnt.push_back(j - i);
+      i = j;
+    }
+    const int k = (int)vals.size();
+    bool coarse = k >= 2;
+    for (int i = 1; coarse && i < k; ++i) if (!(vals[i] - vals[i - 1] > width)) coarse = false;
+    if (coarse) {
+      std::vector<int> modes;
+      for (int i = 0; i < k;) {
+        int j = i + 1;
+        while (j < k && cnt[j] == cnt[i]) ++j;
+        const bool left_ok = (i == 0) || cnt[i - 1] < cnt[i];
+        const bool right_ok = (j == k) || cnt[j] < cnt[i];
+        if (left_ok && right_ok) for (int t = i; t < j; ++t) modes.push_back(t);
+        i = j;
+      }
+      if (multi) {
+        NumericVector out((int)modes.size());
+        for (int t = 0; t < (int)modes.size(); ++t) out[t] = vals[modes[t]];
+        return out;
+      }
+      // The most frequent mode; equally frequent ones go to the value nearest
+      // the gravity of the data, then the lower value (modes ascend).
+      int top = 0;
+      for (int t : modes) top = std::max(top, cnt[t]);
+      int n_top = 0, only = -1;
+      for (int t : modes) if (cnt[t] == top) { ++n_top; only = t; }
+      if (n_top == 1) return Rf_ScalarReal(vals[only]);
+      const double g = gravity_value(xnum, false);
+      double best_c = NA_REAL, best_d = R_PosInf;
+      for (int t : modes) {
+        if (cnt[t] != top) continue;
+        const double dist = std::fabs(vals[t] - g);
+        if (dist < best_d) { best_d = dist; best_c = vals[t]; }
+      }
+      return Rf_ScalarReal(best_c);
+    }
+  }
+
   // Histogram
-  std::vector<double> z_names;   // representative x for each bin (center/name)
+  std::vector<double> z_names;   // left edge of each bin
   std::vector<int> counts;       // histogram counts
-  if (width <= 0.0 || !R_finite(width)) width = range / 128.0;
-  simple_bin_counts(xnum, width, xnum.front(), z_names, counts);
+  simple_bin_counts(xnum.data(), xnum.size(), width, xnum.front(), z_names, counts);
   const int lz = (int)counts.size();
   if (lz == 0) return Rf_ScalarReal(NA_REAL);
-  
+
+  // xnum is sorted, so the observations of bins lo..hi are the contiguous
+  // slice [start[lo], start[hi + 1]). A peak is centred on the mean of the
+  // observations in its window rather than on the bin names, which sit up to
+  // a bin below the data (#114); a window holding one value returns it.
+  std::vector<int> start(lz + 1, 0);
+  for (int b = 0; b < lz; ++b) start[b + 1] = start[b] + counts[b];
+  auto obs_centre = [&](int lo, int hi) -> double {
+    const int a = start[lo], e = start[hi + 1];
+    if (e <= a) return z_names[lo];
+    if (xnum[a] == xnum[e - 1]) return xnum[a];
+    long double s = 0.0L;
+    for (int t = a; t < e; ++t) s += (long double)xnum[t];
+    return (double)(s / (long double)(e - a));
+  };
+
   // For fallback paths
   int maxc = 0; for (int c : counts) if (c > maxc) maxc = c;
-  
-  // ----- Peak detection on SMOOTHED counts (edge-aware 1..3 & concavity) -----
+
+  // ----- Peak detection on SMOOTHED counts (concavity) -----
   std::vector<double> cs; smooth_counts_tri7(counts, cs);
-  
+
   // Optional margin above side maxima (in smoothed counts)
   const double MARGIN = 0.0;
-  
+
   std::vector<int> peak_idx; peak_idx.reserve(lz);
-  // Require full neighborhoods for offsets 1..3
-  for (int i = 3; i <= lz - 4; ++i) {
-    double ci = cs[i];
+  // A peak beats the neighbours at offsets 1..3 that exist. Within three bins
+  // of either end, where that neighbourhood is cut short, a peak must also be
+  // the tallest bin of the smoothed histogram: a density highest at its
+  // minimum (an exponential, say) has its mode there, while an isolated
+  // extreme observation does not.
+  const double cs_max = (lz > 0) ? *std::max_element(cs.begin(), cs.end()) : 0.0;
+  for (int i = 0; i < lz && lz >= 7; ++i) {
+    const double ci = cs[i];
     if (ci <= 0.0) continue;
-    
-    // Max of neighbors at offsets 1..3 on each side (smoothed series)
-    double Ls = std::max(std::max(cs[i-1], cs[i-2]), cs[i-3]);
-    double Rs = std::max(std::max(cs[i+1], cs[i+2]), cs[i+3]);
+    if ((i < 3 || i > lz - 4) && ci < cs_max) continue;
+
+    double Ls = R_NegInf, Rs = R_NegInf;
+    for (int d = 1; d <= 3; ++d) {
+      if (i - d >= 0) Ls = std::max(Ls, cs[i - d]);
+      if (i + d < lz) Rs = std::max(Rs, cs[i + d]);
+    }
     if (!(ci > Ls + MARGIN && ci > Rs + MARGIN)) continue;
-    
-    // Negative curvature gate (concavity)
-    double curv = cs[i-1] - 2.0*cs[i] + cs[i+1];
-    if (!(curv < 0.0)) continue;
-    
+
+    // Negative curvature gate (concavity), reflected at the ends
+    const double left = (i > 0) ? cs[i - 1] : ((i + 1 < lz) ? cs[i + 1] : ci);
+    const double right = (i + 1 < lz) ? cs[i + 1] : ((i > 0) ? cs[i - 1] : ci);
+    if (!(left - 2.0 * ci + right < 0.0)) continue;
+
     peak_idx.push_back(i);
   }
-  
+
   // Non-maximum suppression on smoothed heights: keep peaks >= 4 bins apart
   if (!peak_idx.empty()) {
-    std::sort(peak_idx.begin(), peak_idx.end(),
-              [&](int a, int b){ return cs[a] > cs[b]; });
+    // Equal heights keep bin order, so the kept peaks don't depend on the sort implementation.
+    std::stable_sort(peak_idx.begin(), peak_idx.end(),
+                     [&](int a, int b){ return cs[a] > cs[b]; });
     std::vector<int> kept;
     for (int idx : peak_idx) {
       bool too_close = false;
       for (int jdx : kept) if (std::abs(idx - jdx) <= 3) { too_close = true; break; }
       if (!too_close) kept.push_back(idx);
     }
-    
+
     if (!kept.empty()) {
-      // Per-peak weighted center over ±3 bins using ORIGINAL counts
+      // Per-peak centre: the observations within +-3 bins
       NumericVector centers((int)kept.size());
       for (int t = 0; t < (int)kept.size(); ++t) {
-        int zc = kept[t];
-        int lo = std::max(0, zc - 3);
-        int hi = std::min(lz - 1, zc + 3);
-        long double num = 0.0L, den = 0.0L;
-        for (int j = lo; j <= hi; ++j) {
-          if (std::abs(j - zc) <= 3) {
-            num += (long double)z_names[j] * (long double)counts[j];
-            den += (long double)counts[j];
-          }
-        }
-        double m = (den > 0.0L) ? (double)(num / den) : z_names[zc];
-        centers[t] = m;
+        const int zc = kept[t];
+        centers[t] = obs_centre(std::max(0, zc - 3), std::min(lz - 1, zc + 3));
       }
-      
+
       if (multi) {
         NumericVector out = clone(centers);
         std::sort(out.begin(), out.end());
         return out;
       } else {
-        // GLOBAL-HEIGHT RULE: choose the kept peak with largest smoothed height cs[i]
-        int best_t = 0;
-        for (int t = 1; t < (int)kept.size(); ++t) {
-          if (cs[kept[t]] > cs[kept[best_t]]) best_t = t;
+        // GLOBAL-HEIGHT RULE: the kept peak with the largest smoothed height.
+        // Equally high peaks are broken by distance to the gravity of the
+        // data (then the lower value), so the result is always a real peak:
+        // an average of tied peaks can land in a gap with no data.
+        double best_h = cs[kept[0]];
+        for (int t = 1; t < (int)kept.size(); ++t) best_h = std::max(best_h, cs[kept[t]]);
+        const double g = gravity_value(xnum, false);
+        double best_c = NA_REAL, best_d = R_PosInf;
+        for (int t = 0; t < (int)kept.size(); ++t) {
+          if (cs[kept[t]] != best_h) continue;
+          const double dist = std::fabs(centers[t] - g);
+          if (dist < best_d || (dist == best_d && centers[t] < best_c)) { best_d = dist; best_c = centers[t]; }
         }
-        return Rf_ScalarReal(centers[best_t]);
+        return Rf_ScalarReal(best_c);
       }
     }
   }
-  
+
   // Fallback: if multiple global-max bins exist
   int ties = 0; for (int c : counts) if (c == maxc) ++ties;
   if (ties > 1) {
     if (multi) {
       NumericVector out(ties);
       int pos = 0;
-      for (int i = 0; i < lz; ++i) if (counts[i] == maxc) out[pos++] = z_names[i];
+      for (int i = 0; i < lz; ++i) if (counts[i] == maxc) out[pos++] = obs_centre(i, i);
       std::sort(out.begin(), out.end());
       return out;
     } else {
-      // Mean of those bin centers when multi==false
-      long double sum = 0.0L;
-      int pos = 0;
-      for (int i = 0; i < lz; ++i) if (counts[i] == maxc) { sum += (long double)z_names[i]; ++pos; }
-      double mean_modes = (pos > 0 ? (double)(sum / (long double)pos) : NA_REAL);
-      return Rf_ScalarReal(mean_modes);
+      // Tied highest bins: the one nearest the gravity of the data (then the
+      // lower value), as for tied peaks above.
+      const double g = gravity_value(xnum, false);
+      double best_c = NA_REAL, best_d = R_PosInf;
+      for (int i = 0; i < lz; ++i) {
+        if (counts[i] != maxc) continue;
+        const double c = obs_centre(i, i);
+        const double dist = std::fabs(c - g);
+        if (dist < best_d || (dist == best_d && c < best_c)) { best_d = dist; best_c = c; }
+      }
+      return Rf_ScalarReal(best_c);
     }
   }
-  
-  // Final fallback: single winning bin -> weighted center around ±1
+
+  // Final fallback: single winning bin -> centre of the observations within +-1 bin
   int zc = 0; for (int i = 0; i < lz; ++i) if (counts[i] == maxc) { zc = i; break; }
-  {
-    int lo = std::max(0, zc - 1);
-    int hi = std::min(lz - 1, zc + 1);
-    long double num = 0.0L, den = 0.0L;
-    for (int j = lo; j <= hi; ++j) {
-      num += (long double)z_names[j] * (long double)counts[j];
-      den += (long double)counts[j];
-    }
-    double finalv = (den > 0.0L) ? (double)(num / den) : z_names[zc];
-    return Rf_ScalarReal(finalv);
-  }
+  return Rf_ScalarReal(obs_centre(std::max(0, zc - 1), std::min(lz - 1, zc + 1)));
 }

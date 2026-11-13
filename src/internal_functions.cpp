@@ -94,13 +94,6 @@ double vecSd(const NumericVector &x) {
   return std::sqrt(ss / (double)(n - 1));
 }
 
-// ---------- 1) is.fcl ----------
-
-// [[Rcpp::export(name = "is.fcl")]]
-bool is_fcl(SEXP x) {
-  return isFactor(x) || TYPEOF(x) == STRSXP || TYPEOF(x) == LGLSXP;
-}
-
 // ---------- 2) is.discrete ----------
 // [[Rcpp::export(name = "is.discrete")]]
 bool is_discrete(SEXP x) {
@@ -182,6 +175,7 @@ List generate_vectors(NumericVector x, IntegerVector l, int len = -1) {
   // recursive forecast steps without re-allocating or copying a growing
   // vector each step.  len < 0 (default) preserves the original behaviour of
   // using the full length of 'x'.
+  if (len > x.size()) stop("'len' must not exceed length(x)");
   int n = (len < 0) ? x.size() : len;
   List comp_series(l.size()), comp_index(l.size());
   for (int t = 0; t < l.size(); ++t) {
@@ -191,8 +185,9 @@ List generate_vectors(NumericVector x, IntegerVector l, int len = -1) {
       comp_index[t] = IntegerVector(0);
       continue;
     }
+    // For lag > n, start = n + 1 and the component is empty.
     int start = (n % lag) + 1;
-    int m = ((n - start) / lag) + 1;
+    int m = (start > n) ? 0 : ((n - start) / lag) + 1;
     
     NumericVector s(no_init(m));
     IntegerVector idx(no_init(m));
@@ -227,13 +222,17 @@ static List create_recycled_list_num(const NumericVector& values, int list_lengt
 
 // [[Rcpp::export(name = "generate.lin.vectors")]]
 List generate_lin_vectors(NumericVector x, int l, int h = 1) {
+  // l is a modulus below, so l = 0 would raise SIGFPE.
+  if (l < 1) stop("'l' must be a positive integer");
+  if (h < 0) stop("'h' must be a non-negative integer");
   int n = x.size();
   int max_fcast = std::min(h, l);
   
   List comp_series(max_fcast), comp_index(max_fcast);
   for (int i = 1; i <= max_fcast; ++i) {
     int start = ((n + i - 1) % l) + 1;
-    int m = ((n - start) / l) + 1;
+    // start > n (l > n) means an empty component; see generate_vectors.
+    int m = (start > n) ? 0 : ((n - start) / l) + 1;
     NumericVector s(no_init(m));
     IntegerVector idx(no_init(m));
     int pos = start;
@@ -320,7 +319,8 @@ List ARMA_seas_weighting(bool sf, SEXP mat) {
     wprod[i] = lag_weighting[i] * observation_weighting[i];
     denom += wprod[i];
   }
-  return List::create(_["lag"] = lag, _["Weights"] = (denom == 0.0) ? NumericVector(wprod.size(), 0.0) : wprod / denom);
+  // No lag beats the series (e.g. the no-seasonality row): weight them equally, not all 0
+  return List::create(_["lag"] = lag, _["Weights"] = (denom == 0.0) ? NumericVector(wprod.size(), 1.0 / wprod.size()) : wprod / denom);
 }
 
 // ---------- 8) NNS.meboot.part ----------
@@ -456,8 +456,12 @@ SEXP force_clt(SEXP x, NumericMatrix ensemble) {
   NumericVector sortxbar = clone(xbar);
   std::sort(sortxbar.begin(), sortxbar.end());
   
+  // The replicate means are spread like means of n observations, s / sqrt(n),
+  // with n the series length. meboot::meboot's code divides by the number of
+  // replicates (its comment says n), which made the spread shrink as reps grew
+  // (#101): a computational setting must not change the stated uncertainty.
   NumericVector smean = clone(s);
-  for (int i = 0; i < smean.size(); ++i) smean[i] = s[i] / std::sqrt((double)bigj);
+  for (int i = 0; i < smean.size(); ++i) smean[i] = s[i] / std::sqrt((double)n);
   double smean_scalar = smean.size() ? smean[0] : 0.0;
   
   NumericVector newbar(no_init(bigj));
@@ -485,198 +489,4 @@ SEXP force_clt(SEXP x, NumericMatrix ensemble) {
     out.attr("tsp") = Rf_getAttrib(x, Rf_install("tsp"));
   }
   return out;
-}
-
-// ---------- 11) downSample / upSample ----------
-
-static IntegerVector subset_factor_codes(const IntegerVector& codes, const IntegerVector& rows) {
-  IntegerVector out(no_init(rows.size()));
-  for (int i = 0; i < rows.size(); ++i) {
-    const int idx = rows[i] - 1;
-    out[i] = (idx >= 0 && idx < codes.size()) ? codes[idx] : NA_INTEGER;
-  }
-  return out;
-}
-
-template <int RTYPE>
-static Rcpp::Vector<RTYPE> subset_vec_template(const Rcpp::Vector<RTYPE>& v, const IntegerVector& rows) {
-  Rcpp::Vector<RTYPE> out(no_init(rows.size()));
-  for (int i = 0; i < rows.size(); ++i) {
-    const int idx = rows[i] - 1;
-    out[i] = (idx >= 0 && idx < v.size()) ? v[idx] : Rcpp::Vector<RTYPE>::get_na();
-  }
-  return out;
-}
-
-template <>
-inline Rcpp::CharacterVector subset_vec_template<STRSXP>(const Rcpp::CharacterVector& v, const IntegerVector& rows) {
-  Rcpp::CharacterVector out(no_init(rows.size()));
-  for (int i = 0; i < rows.size(); ++i) {
-    const int idx = rows[i] - 1;
-    if (idx >= 0 && idx < v.size()) {
-      out[i] = v[idx];
-    } else {
-      out[i] = NA_STRING;
-    }
-  }
-  return out;
-}
-
-static DataFrame subset_df_rows_with_y(const DataFrame& X, const IntegerVector& rows, SEXP y_factor, const std::string& yname, bool include_y) {
-  const int p = X.size(), m = rows.size();
-  List out(include_y ? (p + 1) : p);
-  CharacterVector out_names(include_y ? (p + 1) : p);
-  CharacterVector in_names = X.names();
-  
-  for (int j = 0; j < p; ++j) {
-    SEXP col = X[j];
-    out_names[j] = in_names[j];
-    switch (TYPEOF(col)) {
-    case INTSXP: {
-      IntegerVector iv(col);
-      RObject cls = iv.attr("class");
-      if (!cls.isNULL() && as<CharacterVector>(cls).size() > 0 && as<CharacterVector>(cls)[0] == "factor") {
-        IntegerVector sub = subset_factor_codes(iv, rows);
-        sub.attr("class")  = iv.attr("class");
-        sub.attr("levels") = iv.attr("levels");
-        out[j] = sub;
-      } else out[j] = subset_vec_template<INTSXP>(iv, rows);
-      break;
-    }
-    case REALSXP: out[j] = subset_vec_template<REALSXP>(NumericVector(col), rows); break;
-    case LGLSXP:  out[j] = subset_vec_template<LGLSXP>(LogicalVector(col), rows);  break;
-    case STRSXP:  out[j] = subset_vec_template<STRSXP>(CharacterVector(col), rows);break;
-    default: {
-      CharacterVector cv = as<CharacterVector>(col);
-      out[j] = subset_vec_template<STRSXP>(cv, rows);
-      break;
-    }}
-  }
-  if (include_y) {
-    IntegerVector ycodes = as<IntegerVector>(y_factor);
-    IntegerVector ysub   = subset_factor_codes(ycodes, rows);
-    ysub.attr("class")   = CharacterVector::create("factor");
-    ysub.attr("levels")  = Rf_getAttrib(y_factor, R_LevelsSymbol);
-    out[p] = ysub;
-    out_names[p] = yname;
-  }
-  out.attr("names") = out_names;
-  out.attr("class") = "data.frame";
-  out.attr("row.names") = IntegerVector::create(NA_INTEGER, -m);
-  return DataFrame(out);
-}
-
-static IntegerVector sample_indices(int N, int k, bool replace) {
-  IntegerVector res(no_init(k));
-  if (N <= 0 || k <= 0) return res;
-  if (!replace && k > N) k = N;
-  
-  if (replace) {
-    for (int i = 0; i < k; ++i) {
-      int draw = 1 + (int)floor(R::runif(0.0, 1.0) * N);
-      res[i] = (draw > N) ? N : draw;
-    }
-  } else {
-    std::vector<int> a(N);
-    for (int i = 0; i < N; ++i) a[i] = i + 1;
-    for (int i = 0; i < k; ++i) {
-      int j = i + (int)floor(R::runif(0.0, 1.0) * (N - i));
-      if (j >= N) j = N - 1;
-      std::swap(a[i], a[j]);
-      res[i] = a[i];
-    }
-  }
-  return res;
-}
-
-// ---------- downSample ------------------------------------
-
-// [[Rcpp::export]]
-SEXP downSample(SEXP x, SEXP y, bool list = false, std::string yname = "Class") {
-  RNGScope scope;
-  if (!Rf_isFactor(y)) {
-    Rcpp::warning("Down-sampling requires a factor variable as the response. The original data was returned.");
-    return List::create(_["x"] = as<DataFrame>(x), _["y"] = y);
-  }
-  
-  DataFrame X = as<DataFrame>(x);
-  IntegerVector fy = as<IntegerVector>(y);
-  CharacterVector lev = Rf_getAttrib(y, R_LevelsSymbol);
-  const int n = X.nrows(), L = lev.size();
-  if (fy.size() != n) stop("downSample: nrow(x) != length(y)");
-  
-  std::vector< std::vector<int> > perClass(L);
-  for (int i = 0; i < n; ++i) if (fy[i] != NA_INTEGER) perClass[fy[i] - 1].push_back(i + 1);
-  
-  int minClass = n;
-  bool any_ok = false;
-  for (int k = 0; k < L; ++k) {
-    int sz = (int)perClass[k].size();
-    if (sz > 0) { any_ok = true; if (sz < minClass) minClass = sz; }
-  }
-  if (!any_ok || minClass <= 0) stop("downSample: no non-empty classes.");
-  
-  std::vector<int> rows_out;
-  rows_out.reserve(minClass * L);
-  for (int k = 0; k < L; ++k) {
-    if (perClass[k].empty()) continue;
-    IntegerVector s = sample_indices(perClass[k].size(), minClass, false);
-    for (int j = 0; j < s.size(); ++j) rows_out.push_back(perClass[k][ s[j] - 1 ]);
-  }
-  IntegerVector rows = wrap(rows_out);
-  
-  if (list) {
-    DataFrame Xout = subset_df_rows_with_y(X, rows, R_NilValue, yname, false);
-    IntegerVector ysub = subset_factor_codes(fy, rows);
-    ysub.attr("class")  = CharacterVector::create("factor");
-    ysub.attr("levels") = lev;
-    return List::create(_["x"] = Xout, _["y"] = ysub);
-  }
-  return subset_df_rows_with_y(X, rows, y, yname, true);
-}
-
-// ---------- upSample --------------------------------------
-
-// [[Rcpp::export]]
-SEXP upSample(SEXP x, SEXP y, bool list = false, std::string yname = "Class") {
-  RNGScope scope;
-  if (!Rf_isFactor(y)) {
-    Rcpp::warning("Up-sampling requires a factor variable as the response. The original data was returned.");
-    return List::create(_["x"] = as<DataFrame>(x), _["y"] = y);
-  }
-  
-  DataFrame X = as<DataFrame>(x);
-  IntegerVector fy = as<IntegerVector>(y);
-  CharacterVector lev = Rf_getAttrib(y, R_LevelsSymbol);
-  const int n = X.nrows(), L = lev.size();
-  if (fy.size() != n) stop("upSample: nrow(x) != length(y)");
-  
-  std::vector< std::vector<int> > perClass(L);
-  for (int i = 0; i < n; ++i) if (fy[i] != NA_INTEGER) perClass[fy[i] - 1].push_back(i + 1);
-  
-  int maxClass = 0;
-  bool any_ok = false;
-  for (int k = 0; k < L; ++k) {
-    int sz = (int)perClass[k].size();
-    if (sz > 0) { any_ok = true; if (sz > maxClass) maxClass = sz; }
-  }
-  if (!any_ok || maxClass <= 0) stop("upSample: no non-empty classes.");
-  
-  std::vector<int> rows_out;
-  rows_out.reserve(maxClass * L);
-  for (int k = 0; k < L; ++k) {
-    if (perClass[k].empty()) continue;
-    IntegerVector s = sample_indices(perClass[k].size(), maxClass, true);
-    for (int j = 0; j < s.size(); ++j) rows_out.push_back(perClass[k][ s[j] - 1 ]);
-  }
-  IntegerVector rows = wrap(rows_out);
-  
-  if (list) {
-    DataFrame Xout = subset_df_rows_with_y(X, rows, R_NilValue, yname, false);
-    IntegerVector ysub = subset_factor_codes(fy, rows);
-    ysub.attr("class")  = CharacterVector::create("factor");
-    ysub.attr("levels") = lev;
-    return List::create(_["x"] = Xout, _["y"] = ysub);
-  }
-  return subset_df_rows_with_y(X, rows, y, yname, true);
 }

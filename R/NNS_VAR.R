@@ -5,23 +5,26 @@
 #' @param variables a numeric matrix or data.frame of contemporaneous time-series to forecast.
 #' @param h integer; 1 (default) Number of periods to forecast. \code{(h = 0)} will return just the interpolated and extrapolated values.
 #' @param tau positive integer [ > 0]; 1 (default) Number of lagged observations to consider for the time-series data.  Vector for single lag for each respective variable or list for multiple lags per each variable.
-#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for selecting the relevant regressors via \link{NNS.reg} dimension reduction.  \code{(dim.red.method = "cor")} (default) uses standard linear correlation for dimension reduction in the lagged variable matrix.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.
+#' @param dim.red.method options: ("cor", "NNS.dep", "NNS.caus", "all") method for screening lagged regressors with \link{NNS.reg} before the multivariate \link{NNS.stack} fit. \code{dim.red.method = "cor"} (default) uses signed Spearman rank-correlation coefficients, screened by magnitude. \code{"NNS.dep"} uses nonlinear dependence weights, and \code{"NNS.caus"} uses directional association weights. \code{"all"} averages the Spearman, dependence, directional-association, and unit-weight coefficients. The coefficient cutoff is selected by scoring \code{NNS.reg} validation forecasts.
 #' @param naive.weights logical; \code{TRUE} (default) Equal weights applied to univariate and multivariate outputs in ensemble.  \code{FALSE} will apply weights based on the number of relevant variables detected. 
 #' @param obj.fn expression;
 #' \code{expression(mean((predicted - actual)^2)) / (Sum of NNS Co-partial moments)} (default) MSE / co-movements is the default objective function.  Any \code{expression(...)} using the specific terms \code{predicted} and \code{actual} can be used.
 #' @param objective options: ("min", "max") \code{"min"} (default) Select whether to minimize or maximize the objective function \code{obj.fn}.
 #' @param status logical; \code{TRUE} (default) Prints status update message in console.
 #' @param ncores integer; value specifying the number of cores to be used in the parallelized subroutine \link{NNS.ARMA.optim}. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.
+#' @param validation \code{"pipeline"} (default) tunes with a chronological holdout whose predictors are built by completing and forecasting each series using only its prefix. Only observed holdout targets are scored. \code{"observed"} retains the former conditional-regression validation on realized covariates; it is not a deployment forecast score.
 #' @param nowcast logical; \code{FALSE} (default) internal call for frequency alignment in downstream nowcasting applications.
 #'
 #' @return Returns the following matrices of forecasted variables:
 #' \itemize{
-#'  \item{\code{"interpolated_and_extrapolated"}} Returns a \code{data.frame} of the linear interpolated and \link{NNS.ARMA} extrapolated values to replace \code{NA} values in the original \code{variables} argument.  This is required for working with variables containing different frequencies, e.g. where \code{NA} would be reported for intra-quarterly data when indexed with monthly periods.
+#'  \item{\code{"interpolated_and_extrapolated"}} Returns a \code{data.frame} of the original \code{variables} with their \code{NA} values replaced.  When a variable's latest values are missing, every \code{NA} of that variable is estimated from its own observations by the \link{NNS.stack} fit on the time index used in NNS 13.0: \link{NNS.reg} with one nearest regression point, on the index duplicated into two predictors.  The latest observation keeps its own regression point, and values after it (or before the first observation) extend the gradient at that boundary.  When only earlier values are missing, they are interpolated linearly with \code{NNS.reg(order = "max")} on the index.  This is required for working with variables containing different frequencies, e.g. where \code{NA} would be reported for intra-quarterly data when indexed with monthly periods.
 #'  \item{\code{"relevant_variables"}} Returns the relevant variables from the dimension reduction step: the lagged regressors whose dimension reduction coefficient meets the cross-validated threshold.  These are the only regressors used in the \code{"multivariate"} estimate.
 #'
 #'  \item{\code{"univariate"}} Returns the univariate \link{NNS.ARMA} forecasts.
 #'
-#'  \item{\code{"multivariate"}} Returns the multi-variate forecasts: a full \link{NNS.stack} \code{(method = c(1, 2), stack = FALSE)} on the relevant variables.
+#'  \item{\code{"multivariate"}} Returns the multi-variate forecasts: \link{NNS.stack} \code{(method = 1, stack = FALSE)} on the relevant variables, evaluated on the lag-matrix rows of the forecast period (built from the univariate forecasts).
+#'
+#'  \item{\code{"validation"}} validation mode, origin and horizon used for tuning; pipeline mode excludes future covariates from prefix completion and prediction.
 #'
 #'  \item{\code{"ensemble"}} Returns the ensemble of both \code{"univariate"} and \code{"multivariate"} forecasts.
 #'  }
@@ -73,7 +76,9 @@
 #'  replicates <- NNS.meboot(nns_estimate$ensemble[,1], rho = seq(-1,1,.25))["replicates",]
 #'  replicates <- do.call(cbind, replicates)
 #'
-#'  # Apply UPM.VaR and LPM.VaR for desired prediction interval...95 percent illustrated
+#'  # Apply UPM.VaR and LPM.VaR for a band around the forecast path (2.5 percent per tail).
+#'  # The replicates resample the forecast path itself, so the band shows the path's
+#'  # dispersion, not a calibrated 95 percent prediction interval (see NNS.ARMA's pred.int).
 #'  # Tail percentage used in first argument per {LPM.VaR} and {UPM.VaR} functions
 #'  lower_CIs <- apply(replicates, 1, function(z) LPM.VaR(0.025, 0, z))
 #'  upper_CIs <- apply(replicates, 1, function(z) UPM.VaR(0.025, 0, z))
@@ -115,7 +120,9 @@ NNS.VAR <- function(variables,
                     objective = "min",
                     status = TRUE,
                     ncores = NULL,
-                    nowcast = FALSE){
+                    nowcast = FALSE,
+                    validation = c("pipeline", "observed")){
+  validation <- match.arg(validation)
   
   # Capture whether the built-in ratio objective is in force before anything
   # touches obj.fn. Only then may NNS.VAR fall back to plain MSE when the
@@ -290,10 +297,18 @@ NNS.VAR <- function(variables,
   if(status) message("Currently interpolating/extrapolating variables...","\r", appendLF=TRUE)
   
   # ===================== Interpolation / Extrapolation  =====================
-  .interp_worker <- function(i) {
-    n <- nrow(variables)
+  max_tau <- max(unlist(tau))
+  validation_h <- if (h > 0) max(2L * h, ceiling(.2 * (nrow(variables) - max_tau))) else 0L
+  validation_origin <- nrow(variables) - validation_h
+  if (h > 0 && validation_h >= nrow(variables) - max_tau)
+    stop("The series is too short for the requested forecast horizon and lagged validation window.")
+
+  .interp_worker <- function(i, panel = variables, ahead = h) {
+    if (!any(is.finite(panel[, i])))
+      stop("Each variable needs observed values before the validation origin.")
+    n <- nrow(panel)
     index <- seq_len(n)
-    a <- cbind.data.frame("index" = index, variables)
+    a <- cbind.data.frame("index" = index, panel)
     
     # For Interpolation / Extrapolation of all missing values
     selected_variable <- a[, c(1,(i+1))]
@@ -305,32 +320,28 @@ NNS.VAR <- function(variables,
     
     h_int <- tail(index, 1) - interpolation_point
     # ensure plain numeric to avoid classed assignment issues
-    variable_interpolation <- as.numeric(variables[,i])
+    variable_interpolation <- as.numeric(panel[,i])
     
     if (length(missing_index) == 0L) {
       # ---- FIX: dataset is complete -> DO NOT SMOOTH ----
       # keep the original series exactly
-      variable_interpolation <- as.numeric(variables[, i])
+      variable_interpolation <- as.numeric(panel[, i])
       
     } else if (h_int > 0) {
-      # trailing NA(s): estimate them using NNS.stack on the index (as in original).
-      # The index is duplicated into two identical predictors so the multivariate
-      # machinery has >1 column; strip cbind's auto-generated column names so the
-      # duplicate labels do not trip NNS.stack's unique-predictor-name guard.
-      multi <- NNS.stack(unname(cbind(selected_variable[,1], selected_variable[,1])), selected_variable[,2],
-                         order = NULL, ncores = 1, status = FALSE, folds = 5,
-                         IVs.test = unname(cbind(missing_index, missing_index)), method = 1)$stack
-      variable_interpolation[missing_index] <- as.numeric(multi)
+      # trailing NA(s): estimate every NA, interior ones included, with the
+      # NNS.stack fit on the index that NNS 13.0 used (see .nns_var_index_fit).
+      variable_interpolation[missing_index] <-
+        .nns_var_index_fit(selected_variable[,1], selected_variable[,2], missing_index)
       
     } else {
       # interior NA(s) only: fit on index, but fill ONLY the missing indices (no global smoothing)
       fitted_missing <- NNS.reg(selected_variable[,1], selected_variable[,2],
-                                order = "max", ncores = 1,
+                                order = "max", type = "REG", ncores = 1,
                                 point.est = missing_index, plot = FALSE, point.only = TRUE)$Point.est
       if (length(missing_index)) variable_interpolation[missing_index] <- as.numeric(fitted_missing)
     }
     
-    if(h > 0){
+    if(ahead > 0){
       # robust tau selection without changing flow
       tau_i <- if (is.list(tau)) tau[[min(i, length(tau))]] else tau
       periods <- tryCatch(NNS.seas(variable_interpolation, modulo = min(tau_i),
@@ -343,7 +354,7 @@ NNS.VAR <- function(variables,
                           objective = objective,
                           print.trace = FALSE,
                           ncores = 1,
-                          negative.values = min(variable_interpolation, na.rm = TRUE) < 0, h = h)
+                          negative.values = min(variable_interpolation, na.rm = TRUE) < 0, h = ahead)
       
       variable_extrapolation <- b$results
       
@@ -352,17 +363,40 @@ NNS.VAR <- function(variables,
     list(variable_interpolation, variable_extrapolation)
   }
   
-  nns_IVs <- if (use_parallel) {
+  # Rebuild the first stage at the validation origin. Finish all prefix tasks
+  # before fitting the full panel, so even random draws for missing-value fits
+  # cannot depend on the amount of work performed using later observations.
+  .prefix_worker <- function(i) {
+    panel <- variables[seq_len(validation_origin), , drop = FALSE]
+    prefix <- .interp_worker(i, panel, validation_h)
+    if (min(panel[, i], na.rm = TRUE) > 0)
+      prefix[[1]] <- pmax(0, prefix[[1]])
+    prefix
+  }
+  if (use_parallel) {
     parallel::clusterExport(
       cl,
-      varlist = c("variables", "h", "tau", "obj.fn", "objective"),
+      varlist = c("variables", "h", "tau", "obj.fn", "objective", "validation",
+                  "validation_origin", "validation_h", ".interp_worker"),
       envir = environment()
     )
-    parallel::parLapply(cl, 1:ncol(variables), .interp_worker)
-  } else {
-    lapply(1:ncol(variables), .interp_worker)
   }
-  
+  run_stage <- function(worker) {
+    if (use_parallel) parallel::parLapply(cl, seq_len(ncol(variables)), worker)
+    else lapply(seq_len(ncol(variables)), worker)
+  }
+  prefix <- if (h > 0 && validation == "pipeline") run_stage(.prefix_worker) else NULL
+  nns_IVs <- run_stage(.interp_worker)
+  validation_train <- validation_test <- validation_actual <- NULL
+  if (h > 0 && validation == "pipeline") {
+    extended <- as.data.frame(lapply(prefix, function(z) c(z[[1]], z[[2]])))
+    colnames(extended) <- colnames(variables)
+    vlags <- lag.mtx(extended, tau)
+    validation_train <- head(vlags, nrow(vlags) - validation_h)
+    validation_test <- tail(vlags, validation_h)
+    validation_actual <- as.matrix(variables[seq.int(validation_origin + 1L, nrow(variables)), , drop = FALSE])
+  }
+
   interpolation_results <- lapply(nns_IVs, `[[`, 1)
   
   nns_IVs_interpolated_extrapolated <- data.frame(do.call(cbind, interpolation_results))
@@ -411,11 +445,23 @@ NNS.VAR <- function(variables,
     
     IV <- lagged_new_values_train[, -i, drop = FALSE]
     DV <- lagged_new_values_train[, i]
+    # Forecast-period regressors (rows n+1, ..., n+h of the extended lag matrix);
+    # tail(IV, h) would be the last h observed rows.
+    IV.test <- tail(lagged_new_values[, -i, drop = FALSE], h)
     
     # ts.test must be a whole number: NNS.stack now validates it as an integer
     # >= 1, so round the 0.2 * length(DV) floor up rather than passing the raw
     # fractional value through.
-    ts <- max(2 * h, ceiling(.2 * length(DV)))
+    ts <- validation_h
+    fold <- NULL
+    if (validation == "pipeline") {
+      observed <- is.finite(validation_actual[, i])
+      if (!any(observed)) stop("A target has no observed values in the validation window; provide a longer observed history.")
+      fold <- list(IVs.train = validation_train[, -i, drop = FALSE],
+                   DV.train = validation_train[, i],
+                   IVs.test = validation_test[observed, -i, drop = FALSE],
+                   DV.test = validation_actual[observed, i])
+    }
     
     # Relevant variables: the regressors whose dimension reduction
     # coefficient meets the cross-validated threshold
@@ -424,22 +470,29 @@ NNS.VAR <- function(variables,
                                   ts.test = ts,
                                   obj.fn = obj.fn,
                                   objective = objective,
-                                  dim.red.method = dim.red.method)
+                                  dim.red.method = dim.red.method,
+                                  .validation = fold)
     
     # Multivariate estimate: a full NNS.stack on exactly the relevant variables.
     # stack = FALSE runs both methods on them independently; stack = TRUE uses
     # the dimension reduction output in the n.best optimization.
     .run_var_stack <- function(stack_obj_fn, stack_objective) {
+      selected_fold <- fold
+      if (!is.null(selected_fold)) {
+        selected_fold$IVs.train <- selected_fold$IVs.train[, rel_vars, drop = FALSE]
+        selected_fold$IVs.test <- selected_fold$IVs.test[, rel_vars, drop = FALSE]
+      }
       NNS.stack(IVs.train = IV[, rel_vars, drop = FALSE],
-                DV.train = DV,
-                IVs.test = tail(IV, h)[, rel_vars, drop = FALSE],
+                DV.train = DV, type = "REG",
+                IVs.test = IV.test[, rel_vars, drop = FALSE],
                 ts.test = ts,
                 folds = 1,
                 obj.fn = stack_obj_fn,
                 objective = stack_objective,
                 method = 1,
                 dim.red.method = dim.red.method,
-                order = NULL, ncores = 1, stack = FALSE, status = FALSE)
+                order = NULL, ncores = 1, stack = FALSE, status = FALSE,
+                .validation = selected_fold)
     }
     
     multivariate <- tryCatch(
@@ -468,9 +521,10 @@ NNS.VAR <- function(variables,
   lists <- if (use_parallel) {
     parallel::clusterExport(
       cl,
-      varlist = c("status", "variables", "lagged_new_values_train", "h",
+      varlist = c("status", "variables", "lagged_new_values", "lagged_new_values_train", "h",
                   "obj.fn", "objective", "use_default_objective",
-                  "dim.red.method", "nns_IVs_results"),
+                  "dim.red.method", "nns_IVs_results", "validation", "validation_h",
+                  "validation_train", "validation_test", "validation_actual"),
       envir = environment()
     )
     parallel::parLapply(cl, 1:ncol(variables), .model_worker)
@@ -536,17 +590,21 @@ NNS.VAR <- function(variables,
                "relevant_variables" = .NNS.df(data.frame(RV)),
                univariate = .NNS.df(nns_IVs_results),
                multivariate = .NNS.df(nns_DVs),
-               ensemble = .NNS.df(forecasts)) )
+               ensemble = .NNS.df(forecasts),
+               validation = list(mode = validation, origin = validation_origin,
+                                 horizon = validation_h,
+                                 observed.targets = if (is.null(validation_actual)) NULL
+                                   else colSums(is.finite(validation_actual)))) )
   
 }
 
 
 # Relevant variables: cross-validate the
-# dimension reduction threshold over NNS.stack cutoff grid
+# dimension reduction threshold overNNS.stack cutoff grid
 # (validated on the last ts.test rows) and keep every regressor whose
 # coefficient meets it.  Returns their names.
 .nns_var_relevant <- function(IVs.train, DV.train, ts.test, obj.fn, objective,
-                              dim.red.method) {
+                              dim.red.method, .validation = NULL) {
   IVs.train <- data.frame(IVs.train, check.names = FALSE)
   DV.train <- as.numeric(DV.train)
   n <- ncol(IVs.train)
@@ -563,17 +621,25 @@ NNS.VAR <- function(variables,
   CV.IVs.test <- IVs.train[test.set, , drop = FALSE]
   CV.DV.train <- DV.train[-test.set]
   actual <- DV.train[test.set]
+  if (!is.null(.validation)) {
+    CV.IVs.train <- .validation$IVs.train
+    CV.IVs.test <- .validation$IVs.test
+    CV.DV.train <- .validation$DV.train
+    actual <- .validation$DV.test
+  }
   
   coefficients <- function(x, y) {
     if (dim.red.method == "cor") {
       suppressWarnings(cor(data.matrix(cbind(y, x)), method = "spearman"))[-1, 1]
     } else {
-      suppressWarnings(NNS.reg(x, y, dim.red.method = dim.red.method, plot = FALSE, residual.plot = FALSE,
+      suppressWarnings(NNS.reg(x, y, type = "REG", dim.red.method = dim.red.method, plot = FALSE, residual.plot = FALSE,
                                order = NULL, ncores = 1, point.only = TRUE)$equation$Coefficient[1:n])
     }
   }
-  var.cutoffs_1 <- abs(round(coefficients(IVs.train, DV.train), digits = 2))
   var.cutoffs_2 <- abs(round(coefficients(CV.IVs.train, CV.DV.train), digits = 2))
+  # Pipeline validation does not use heldout outcomes to construct its cutoff grid.
+  var.cutoffs_1 <- if (is.null(.validation)) abs(round(coefficients(IVs.train, DV.train), digits = 2))
+                  else var.cutoffs_2
   
   var.cutoffs <- pmin(var.cutoffs_1, (var.cutoffs_1 + var.cutoffs_2) / 2)
   var.cutoffs <- var.cutoffs[var.cutoffs < 1 & var.cutoffs >= 0]
@@ -583,7 +649,7 @@ NNS.VAR <- function(variables,
   if (n == 2) var.cutoffs <- unique(c(var.cutoffs, 0))
   
   nns.ord <- sapply(var.cutoffs, function(threshold) {
-    predicted <- suppressWarnings(NNS.reg(CV.IVs.train, CV.DV.train, point.est = CV.IVs.test,
+    predicted <- suppressWarnings(NNS.reg(CV.IVs.train, CV.DV.train, type = "REG", point.est = CV.IVs.test,
                                           dim.red.method = dim.red.method, threshold = threshold,
                                           plot = FALSE, residual.plot = FALSE, order = NULL,
                                           ncores = 1, point.only = TRUE)$Point.est)
@@ -592,8 +658,12 @@ NNS.VAR <- function(variables,
   })
   threshold <- var.cutoffs[best(nns.ord)]
   
-  # Every regressor the threshold keeps (positive or negative coefficient)
-  coef <- suppressWarnings(NNS.reg(IVs.train, DV.train, dim.red.method = dim.red.method,
+  # Freeze the selected columns at the validation origin in pipeline mode.
+  # Later targets may choose the cutoff through its score, but must not enter
+  # the fitted relevance coefficients used in the next tuning stage.
+  selection_IVs <- if (is.null(.validation)) IVs.train else CV.IVs.train
+  selection_DV <- if (is.null(.validation)) DV.train else CV.DV.train
+  coef <- suppressWarnings(NNS.reg(selection_IVs, selection_DV, type = "REG", dim.red.method = dim.red.method,
                                    threshold = threshold, plot = FALSE, residual.plot = FALSE,
                                    order = NULL, ncores = 1, point.only = TRUE)$equation$Coefficient[1:n])
   relevant_vars <- which(coef != 0)

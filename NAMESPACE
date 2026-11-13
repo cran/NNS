@@ -2,6 +2,7 @@
 
 S3method(print,NNS.data.frame)
 S3method(print,NNS.matrix)
+export(.nns_fd_weights)
 export(Co.LPM)
 export(Co.LPM_nD)
 export(Co.UPM)

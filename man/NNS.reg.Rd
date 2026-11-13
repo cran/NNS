@@ -36,15 +36,15 @@ NNS.reg(
 
 \item{factor.2.dummy}{logical; \code{TRUE} (default) Automatically augments variable matrix with numerical dummy variables based on the levels of factors.}
 
-\item{order}{integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} will force a limit condition perfect fit.}
+\item{order}{integer; Controls the number of partial moment quadrant means.  Users are encouraged to try different \code{(order = ...)} integer settings with \code{(noise.reduction = "off")}.  \code{(order = "max")} retains distinct predictor locations. A perfect training fit requires compatible responses at tied locations and interpolation at those locations; duplicate predictors with different responses cannot all be interpolated.}
 
-\item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all", "equal", \code{numeric vector}, NULL) method for determining synthetic X* coefficients (per Dana and Dawes (2004)).  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for causal weights.  \code{(dim.red.method = "cor")} uses standard linear correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  \code{(dim.red.method = "equal")} uses unit weights.  Alternatively, user can specify a numeric vector of coefficients.}
+\item{dim.red.method}{options: ("cor", "NNS.dep", "NNS.caus", "all", "equal", \code{numeric vector}, NULL) method for determining synthetic X* coefficients (per Dana and Dawes (2004)).  Selection of a method automatically engages the dimension reduction regression.  The default is \code{NULL} for full multivariate regression.  \code{(dim.red.method = "NNS.dep")} uses \link{NNS.dep} for nonlinear dependence weights, while \code{(dim.red.method = "NNS.caus")} uses \link{NNS.caus} for directional association weights.  \code{(dim.red.method = "cor")} uses Spearman rank correlation for weights.  \code{(dim.red.method = "all")} averages all methods for further feature engineering.  \code{(dim.red.method = "equal")} uses unit weights.  Alternatively, user can specify a numeric vector of coefficients. Named vectors must exactly match the encoded predictor columns and are matched by name; unnamed vectors follow encoded column order.}
 
-\item{tau}{options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} for more accurate causal analysis.}
+\item{tau}{options("ts", NULL); \code{NULL}(default) To be used in conjunction with \code{(dim.red.method = "NNS.caus")} or \code{(dim.red.method = "all")}.  If the regression is using time-series data, set \code{(tau = "ts")} to use the time-series lag convention.}
 
-\item{type}{\code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1].}
+\item{type}{\code{NULL} (default).  To perform a classification, set to \code{(type = "CLASS")}.  Like a logistic regression, it is not necessary for target variable of two classes e.g. [0, 1]: a numeric response with exactly the values 0 and 1, or a factor, character or logical response, is classified automatically.  Use \code{type = "REG"} to fit a numeric response as regression, including a two-valued response, with one or more predictors. \code{(type = "XONLY")} is the single-predictor regression alias and keeps the default x-only partition.}
 
-\item{point.est}{a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.  Columns are matched to \code{x} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  Names that only partly overlap the training predictors are ambiguous and return an error.}
+\item{point.est}{a numeric or factor vector with compatible dimensions to \code{x}.  Returns the fitted value \code{y.hat} for any value of \code{x}.  Columns are matched to \code{x} by name when the two share the same predictor names, and positionally when they share no names at all (as in \code{cbind(test.x_1, test.x_2)} against \code{cbind(x_1, x_2)}).  A CSV UTF-8 byte-order mark in the first header (for example, \code{Male} becoming \code{X...Male}) is repaired before matching names. Other partial overlaps, including misspelled predictors, are ambiguous and return an error.}
 
 \item{location}{Sets the legend location within the plot, per the \code{x} and \code{y} co-ordinates used in base graphics \link{legend}.}
 
@@ -56,12 +56,12 @@ NNS.reg(
 
 \item{residual.plot}{logical; \code{TRUE} (default) To plot \code{y.hat} and \code{Y}.}
 
-\item{confidence.interval}{numeric [0, 1]; \code{NULL} (default) Plots the associated confidence interval with the estimate and reports the standard error for each individual segment.  Also applies the same level for the prediction intervals.}
+\item{confidence.interval}{numeric [0, 1]; \code{NULL} (default) Plots the associated confidence interval with the estimate and adds \code{conf.int.pos} / \code{conf.int.neg} to \code{Fitted.xy}.  The intervals are global: they are built from the type-8 quantiles of the in-sample residuals (no per-segment standard errors are returned).  Also applies the same level for the prediction intervals.}
 
-\item{threshold}{numeric [0, 1]; \code{(threshold = 0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}.}
+\item{threshold}{numeric [0, 1]; \code{(threshold = 0)} (default) Sets the threshold for dimension reduction of independent variables when \code{(dim.red.method)} is not \code{NULL}. Predictors whose coefficient magnitude is below \code{threshold} are dropped; \code{NULL} or \code{NA} means 0. For classification, a vector with one cutoff per class (named by class, or in class order) applies each cutoff to that class's index, as \link{NNS.stack} can report in \code{NNS.dim.red.threshold}.}
 
-\item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{sqrt(# of regressors)}.  \code{(n.best = "all")} will select and weight all generated regression points.  Analogous to \code{k} in a
-\code{k Nearest Neighbors} algorithm.  Different values of \code{n.best} are tested using cross-validation in \link{NNS.stack}.}
+\item{n.best}{integer; \code{NULL} (default) Sets the number of nearest regression points to use in weighting for multivariate regression at \code{floor((1 - D) * sqrt(nrow(x)))} (at least 1, at most the number of regression points), where D averages the copula summaries with response y and -y so the smoothing choice is unchanged by response reflection.  \code{(n.best = "all")} will select and weight all generated regression points.  Analogous to \code{k} in a
+\code{k Nearest Neighbors} algorithm.  Different values of \code{n.best} are tested using cross-validation in \link{NNS.stack}. \code{NA} selects the default, as \code{NULL} does.}
 
 \item{smooth}{logical; \code{FALSE} (default) Applies a smoothing spline instead of local linear fit to regression points.}
 
@@ -69,7 +69,7 @@ NNS.reg(
 
 \item{dist}{options:(NULL, "NNS", "L1", "L2", "FACTOR") the method of distance calculation. \code{dist = NULL} is the default and selects the native blended NNS distance, \eqn{sum(abs(z) + z^2)}, over range-normalized coordinates. \code{dist = "NNS"} is an explicit alias for the default. \code{dist = "L2"} selects Euclidean distance; \code{dist = "L1"} selects Manhattan distance; \code{dist = "FACTOR"} uses a frequency.}
 
-\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1.}
+\item{ncores}{integer; value specifying the number of cores to be used in the parallelized  procedure. If NULL (default), the number of cores to be used is equal to the number of cores of the machine - 1 for multivariate regression predictions large enough to repay them, and one otherwise.  The estimates do not depend on the number of cores.}
 
 \item{point.only}{Internal argument for abbreviated output.}
 
@@ -78,11 +78,11 @@ NNS.reg(
 \value{
 UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 \itemize{
- \item{\code{"R2"}} provides the goodness of fit;
+ \item{\code{"R2"}} is squared Pearson correlation between fitted and observed responses (Racine--Hastie goodness of fit), or fitted classification accuracy;
 
  \item{\code{"SE"}} returns the overall standard error of the estimate between \code{y} and \code{y.hat};
 
- \item{\code{"Prediction.Accuracy"}} returns the correct rounded \code{"Point.est"} used in classifications versus the categorical \code{y};
+ \item{\code{"Prediction.Accuracy"}} returns the proportion of fitted class decisions equal to the observed class;
 
  \item{\code{"derivative"}} for the coefficient of the \code{x} and its applicable range;
 
@@ -98,9 +98,9 @@ UNIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 
 MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
 \itemize{
- \item{\code{"R2"}} provides the goodness of fit;
+ \item{\code{"R2"}} is squared Pearson correlation between fitted and observed responses (Racine--Hastie goodness of fit), or fitted classification accuracy;
 
- \item{\code{"equation"}} returns the numerator of the synthetic X* dimension reduction equation as a \code{data.frame} consisting of regressor and its coefficient.  Denominator is simply the length of all coefficients > 0, returned in last row of \code{equation} \code{data.frame}.
+ \item{\code{"equation"}} returns the numerator of the synthetic X* dimension reduction equation as a \code{data.frame} consisting of regressor and its coefficient.  Denominator is the number of non-zero coefficients (\code{abs(coefficient) > 0}), returned in last row of \code{equation} \code{data.frame}.
 
  \item{\code{"x.star"}} returns the synthetic X* as a vector;
 
@@ -112,17 +112,26 @@ MULTIVARIATE REGRESSION RETURNS THE FOLLOWING VALUES:
  
  \item{\code{"pred.int"}} lower and upper prediction intervals for the \code{"Point.est"} returned using the \code{"confidence.interval"} provided;
 
- \item{\code{"Fitted.xy"}} returns a \code{data.frame} of \code{x},\code{y}, \code{y.hat}, \code{gradient}, and \code{NNS.ID}.
+ \item{\code{"Fitted.xy"}} returns a \code{data.frame} of the regressors, \code{y}, \code{y.hat}, \code{NNS.ID} and \code{residuals} for full multivariate regression, or of the synthetic \code{x}, \code{y}, \code{y.hat}, \code{NNS.ID}, \code{gradient} and \code{residuals} for dimension reduction regression.  \code{confidence.interval} adds \code{conf.int.neg} and \code{conf.int.pos}.
 }
 }
 \description{
 Generates a nonlinear regression based on partial moment quadrant means.
 }
+\details{
+For regression, \code{R2} measures association between fitted and observed responses: it is \eqn{cor(y, \hat y)^2}, with the package's finite constant-vector convention. It is not \eqn{1-SSE/SST}; a biased or incorrectly scaled prediction can have \code{R2 = 1}. Evaluate held-out prediction errors for predictive accuracy.
+
+The default partition order combines a finite-partition dependence score with the average of the duplicated-predictor copula score under both response orientations. This complexity heuristic is invariant to reflecting the response; the underlying directional dependence and copula definitions are unchanged. A supplied order bypasses this heuristic.
+
+Univariate regression linearly interpolates the selected regression points and extends the first or last segment beyond their range (unless a smoothing spline is requested). Endpoint slopes can be unstable with sparse or noisy boundary points. Multivariate distance weighting is a weighted average of regression-point responses, so it does not automatically continue a trend outside the training support. Neither construction supplies a general extrapolation guarantee. With the default \code{n.best = NULL}, purely categorical predictors use exact observed joint cells, and an unobserved joint combination uses its nearest cells. An explicit \code{n.best} weights that many nearest cells, as for numeric predictors. A declared factor level with no training rows is accepted in \code{point.est} and is placed by the same distance rule. A coordinate with exactly two observed values retains both terminal cells, including a dummy column in a mixed design. Other finite-order numeric coordinates retain interval cells; \code{order = "max"} uses exact joint support.
+
+Classification forms an indicator for each observed class, retains the empirical class frequencies in each predictor cell, and interpolates or distance-weights those probability vectors. Class labels never enter numeric interpolation. \code{Point.probabilities}, \code{Fitted.probabilities}, and \code{RPM.probabilities} expose the corresponding vectors. Tied class decisions follow first appearance in the training response. Factor and character responses retain numeric output codes with \code{class.levels}; numeric responses retain their supplied values. For dimension reduction, one signed NNS index is fitted per class indicator, and the resulting probabilities are normalized across classes; \code{equation} is then a list indexed by class. \code{confidence.interval} returns \code{Prediction.set}, the smallest leading set of classes attaining the requested estimated probability mass. These are descriptive probability sets, not calibrated coverage guarantees; nominal classes have no numeric prediction interval.
+}
 \note{
 \itemize{
  \item Please ensure \code{point.est} is of compatible dimensions to \code{x}, error message will ensue if not compatible.
 
- \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  The response variable base category should be 1 for classification problems.
+ \item Like a logistic regression, the \code{(type = "CLASS")} setting is not necessary for target variable of two classes e.g. [0, 1].  For other numeric responses set \code{type = "CLASS"}; class values can be any distinct numbers.
 
  \item For low signal:noise instances, increasing the dimension may yield better results using \code{NNS.stack(cbind(x,x), y, method = 1, ...)}.
 }
@@ -139,8 +148,6 @@ NNS.reg(x, y, order = 2)
 ## Maximum {order} selection
 NNS.reg(x, y, order = "max")
 
-## x-only paritioning (Univariate only)
-NNS.reg(x, y, type = "XONLY")
 
 ## For Multiple Regression:
 x <- cbind(rnorm(100), rnorm(100), rnorm(100)) ; y <- rnorm(100)
