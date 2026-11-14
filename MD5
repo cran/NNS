@@ -1,4 +1,4 @@
-d5ea281af1283b5649a893effd2b0181 *DESCRIPTION
+fbb10a907e187a8ef20464fb18328380 *DESCRIPTION
 4153782a708f9be1272b356bff5758c5 *NAMESPACE
 a0990148335d52c0b371a37fb813de01 *R/ANOVA.R
 eb0ab920817141cbc33f4bf65fd1d832 *R/ARMA.R
@@ -41,7 +41,7 @@ f53be32d5f6cd49b372620c60b734aa9 *R/Uni_SD_Routines.R
 3b6061569aedceecb9628405a3c4d387 *R/dy_dx.R
 8114ae29397c5fc466610b5b4737e09b *R/gvload.R
 55da0c5ea7434dd5006c50825f4b44a3 *R/print_methods.R
-5cfae7283c0ebbca7a1fc0f354ceb39f *README.md
+6978ec08f94060ac9203494f8360f7e8 *README.md
 afbe4209b3bb961ba3e41cbfe79ea507 *build/partial.rdb
 719c459d3ecb4ffd502d6fa6c5c9826b *build/vignette.rds
 562a45f28cf49ae921889aff4d81a169 *inst/NNS_before_after_test.R
@@ -175,7 +175,7 @@ b9ee4f71ce94d9c997635faf0c11abbc *tests/testthat/test-cdf-moments-var.R
 d611bfb97bd7f4f377c408f9ed210f45 *tests/testthat/test-cdf-target-value.R
 001490f7032feeaee5171843a9544673 *tests/testthat/test-classification-label-invariance.R
 4eabce914c630ef9bd1d0231dafd0859 *tests/testthat/test-co-moments.R
-47a7996b40b5277dd8fe5d89284cc631 *tests/testthat/test-compiled-equivalence.R
+8dfa7c8f87d91bb9ec7ca9e18a103ba9 *tests/testthat/test-compiled-equivalence.R
 bb56e25b99844dd1ad5d057b3f14777b *tests/testthat/test-copula-marginal-anchor.R
 63e959be3beb6124fa43fc2a67bba363 *tests/testthat/test-dep-caus-pvalues.R
 cca15582e81f5ac6b0711a61c725c11b *tests/testthat/test-dep-debias.R
@@ -185,7 +185,7 @@ adca34fa2c77d2e20bdd8d6d12523ffc *tests/testthat/test-dep-sign-and-ties.R
 dee7b6fb10f7d7b0b65d33330e155076 *tests/testthat/test-dimred-threshold.R
 b1483f9154f2db6a455a82c1ba53a4e4 *tests/testthat/test-distance-exp-rate.R
 18389f1b3adeed740c8ae2bcc1d7bb08 *tests/testthat/test-distance-path-rate-parity.R
-49f9c10542c8d53d7a60fdc22f78a24c *tests/testthat/test-dydx-diff.R
+5acbf5e96005e3cf23ffe57384f50070 *tests/testthat/test-dydx-diff.R
 a682586cbc5e93b32b5745c18e79af6a *tests/testthat/test-dydx-duplicate-bands.R
 3d52f897d0b28e184f6910d691f5986d *tests/testthat/test-forecast-validation-contracts.R
 0efcc21a5c531a0f203bf42f6c6e5163 *tests/testthat/test-gravity-centre.R
@@ -197,12 +197,12 @@ d515148ff83e844e65dce7e669a8ee27 *tests/testthat/test-mreg-1d-fast-path-ranges.R
 667e956958fd963e70929bf09b669b0c *tests/testthat/test-mreg-partial-selection.R
 c92f0713c63adf7c868f60b25cbf5a2f *tests/testthat/test-mreg-path-native.R
 b87b557d11689a5765f14c8184a86959 *tests/testthat/test-mreg-setup-native.R
-87229d7a9d3cd2c54c0487be18d76751 *tests/testthat/test-native-kernel-fixes.R
+7ca262aa80149cfe6d7789811349c42a *tests/testthat/test-native-kernel-fixes.R
 8b0b394eae4bc4a3abb4b320d5a38fb4 *tests/testthat/test-native-nns-distance-default.R
 9813181976eab583fd260c580147deb3 *tests/testthat/test-omega-order-label.R
 115ac809111e9a80f0a55f7a90d6d686 *tests/testthat/test-optim-pi-from-returned-model.R
 1cffab2429d98f3042fa06271ab1d0ce *tests/testthat/test-part-reg.R
-e3a81f393a065108427602f8ae840acb *tests/testthat/test-pm-ratio-targets.R
+f28ec97a9ca2324fcd6782481959dfed *tests/testthat/test-pm-ratio-targets.R
 678388b473afdbc0ffe66debed23f480 *tests/testthat/test-predictor-name-matching.R
 03473e1864b5088423135047ac107cde *tests/testthat/test-r93-regressions.R
 ee3cc5c0dfe844fd903804f83adc4a14 *tests/testthat/test-racine-hastie-r2.R
